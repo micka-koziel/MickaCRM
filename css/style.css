@@ -68,13 +68,11 @@ h1,h2,h3,h4,h5 { font-family: 'Outfit', sans-serif; }
   font-size: 18px;
   color: var(--blue-imperial);
 }
-.topbar-bars { display:flex; gap:3px; height:24px; align-items:flex-end; }
-.topbar-bars span { width:5px; border-radius:2px; }
-.topbar-bars span:nth-child(1) { height:14px; background:var(--blue-imperial); }
-.topbar-bars span:nth-child(2) { height:20px; background:var(--blue-light); }
-.topbar-bars span:nth-child(3) { height:24px; background:var(--teal); }
-.topbar-bars span:nth-child(4) { height:18px; background:var(--orange); }
-.topbar-bars span:nth-child(5) { height:10px; background:var(--raspberry); }
+.topbar-logo {
+  height: 38px;
+  width: auto;
+  object-fit: contain;
+}
 
 .topbar-search { margin-left:40px; position:relative; }
 .topbar-search input {

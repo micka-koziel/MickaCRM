@@ -8,12 +8,10 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
   <!-- TOPBAR -->
   <header class="topbar">
     <a href="index.html" class="topbar-brand">
-      <div class="topbar-bars"><span></span><span></span><span></span><span></span><span></span></div>
-      CRM360 SG
+      <img src="LogoSG.png" alt="CRM360 Saint-Gobain" class="topbar-logo">
     </a>
     <div class="topbar-search">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -23,11 +21,9 @@
       <div class="topbar-avatar">MC</div>
     </div>
   </header>
-
   <div class="app-layout">
     <!-- SIDEBAR -->
     <nav class="sidebar" id="sidebar"></nav>
-
     <!-- MAIN -->
     <main class="main fade-in" id="mainContent">
       <div class="page-header">
@@ -36,10 +32,8 @@
           <div class="page-header-sub">Vue d'ensemble CRM — Secteur Construction</div>
         </div>
       </div>
-
       <!-- KPIs -->
       <div class="kpi-row" id="dashKpis"></div>
-
       <!-- Widgets -->
       <div class="dash-grid">
         <div class="table-card fade-in fade-in-delay-2">
@@ -57,7 +51,6 @@
           </table>
         </div>
       </div>
-
       <div class="dash-grid" style="margin-top:20px">
         <div class="table-card fade-in fade-in-delay-3">
           <div class="table-toolbar"><div class="table-toolbar-left"><h3>Projets en cours</h3></div></div>
@@ -76,7 +69,6 @@
       </div>
     </main>
   </div>
-
   <!-- MODAL -->
   <div class="modal-overlay" id="modal">
     <div class="modal">
@@ -88,21 +80,17 @@
       <div class="modal-footer" id="modalFooter"></div>
     </div>
   </div>
-
   <!-- TOAST -->
   <div class="toast-container" id="toastContainer"></div>
-
   <!-- SCRIPTS -->
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
   <!-- Core -->
   <script src="js/config.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/nav.js"></script>
   <script src="js/data.js"></script>
-
   <!-- Dashboard init -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
