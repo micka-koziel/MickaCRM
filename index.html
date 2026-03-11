@@ -1,182 +1,115 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CRM360 — Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;600;700&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MickaCRM — CRM360 SG</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<!-- ═══════════════ TOPBAR ═══════════════ -->
-<header class="topbar">
-  <div class="topbar-logo">
-    <div class="logo-bars"><span></span><span></span><span></span><span></span></div>
-    CRM360 Saint-Gobain
-  </div>
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <a href="index.html" class="topbar-brand">
+      <div class="topbar-bars"><span></span><span></span><span></span><span></span><span></span></div>
+      CRM360 SG
+    </a>
+    <div class="topbar-search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="Rechercher..." id="globalSearch">
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-avatar">MC</div>
+    </div>
+  </header>
 
-  <div class="nav-dropdown-wrapper">
-    <button class="nav-dropdown-btn" id="navBtn" onclick="toggleNav()">
-      <span>Dashboard</span>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-    </button>
-    <div class="nav-dropdown-menu" id="navMenu">
-      <div class="menu-section-title">Principal</div>
-      <a href="index.html"><div class="menu-icon" style="background:#eef3fb;color:var(--sg-imperial)">📊</div> Dashboard</a>
-      <div class="menu-separator"></div>
-      <div class="menu-section-title">Commercial</div>
-      <a href="accounts.html"><div class="menu-icon" style="background:#eef3fb;color:var(--sg-imperial)">🏢</div> Accounts</a>
-      <a href="contacts.html"><div class="menu-icon" style="background:#e0f7fa;color:var(--sg-teal)">👤</div> Contacts</a>
-      <a href="opportunities.html"><div class="menu-icon" style="background:#fff3e0;color:var(--sg-orange)">💰</div> Opportunities</a>
-      <a href="leads.html"><div class="menu-icon" style="background:#e8f5e9;color:#16a34a">🎯</div> Leads</a>
-      <a href="quotes.html"><div class="menu-icon" style="background:#f3e8ff;color:#7c3aed">📋</div> Quotes</a>
-      <div class="menu-separator"></div>
-      <div class="menu-section-title">Opérations</div>
-      <a href="projects.html"><div class="menu-icon" style="background:#e0f2fe;color:var(--sg-blue-light)">📁</div> Projects</a>
-      <a href="campaigns.html"><div class="menu-icon" style="background:#fce4ec;color:var(--sg-raspberry)">📢</div> Campaigns</a>
-      <a href="cases.html"><div class="menu-icon" style="background:#fee2e2;color:var(--sg-red)">🔧</div> Cases</a>
-      <div class="menu-separator"></div>
-      <div class="menu-section-title">Gestion</div>
-      <a href="invoices.html"><div class="menu-icon" style="background:#fff8e1;color:var(--sg-orange)">🧾</div> Invoices</a>
-      <a href="orders.html"><div class="menu-icon" style="background:#e8eaf6;color:var(--sg-imperial)">📦</div> Orders</a>
-      <a href="calendar.html"><div class="menu-icon" style="background:#e0f7fa;color:var(--sg-teal)">📅</div> Calendar</a>
-    </div>
-  </div>
+  <div class="app-layout">
+    <!-- SIDEBAR -->
+    <nav class="sidebar" id="sidebar"></nav>
 
-  <div class="topbar-right">
-    <input type="text" class="topbar-search" placeholder="Rechercher…">
-    <div class="topbar-avatar">MR</div>
-  </div>
-</header>
-
-<!-- ═══════════════ CONTENU ═══════════════ -->
-<div class="main-content">
-  <div class="page-header">
-    <div>
-      <h1>Dashboard</h1>
-      <div class="breadcrumb">Bienvenue sur <span>CRM360</span></div>
-    </div>
-    <button class="btn-primary" onclick="seedDemoData().then(loadDashboard)">
-      🌱 Insérer données démo
-    </button>
-  </div>
-
-  <!-- KPIs dynamiques -->
-  <div class="kpi-grid" id="kpiGrid">
-    <div class="kpi-card blue animate-in">
-      <div class="kpi-label">Comptes actifs</div>
-      <div class="kpi-value" id="kpiAccounts">…</div>
-    </div>
-    <div class="kpi-card teal animate-in">
-      <div class="kpi-label">Opportunités ouvertes</div>
-      <div class="kpi-value" id="kpiOpps">…</div>
-    </div>
-    <div class="kpi-card orange animate-in">
-      <div class="kpi-label">CA Pipeline</div>
-      <div class="kpi-value" id="kpiPipeline">…</div>
-    </div>
-    <div class="kpi-card red animate-in">
-      <div class="kpi-label">Cases en cours</div>
-      <div class="kpi-value" id="kpiCases">…</div>
-    </div>
-  </div>
-
-  <!-- Tableaux -->
-  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-    <div class="card animate-in">
-      <div class="card-header">
-        <h2>Dernières opportunités</h2>
-        <a href="opportunities.html" class="btn-outline">Voir tout</a>
+    <!-- MAIN -->
+    <main class="main fade-in" id="mainContent">
+      <div class="page-header">
+        <div>
+          <h1>Dashboard</h1>
+          <div class="page-header-sub">Vue d'ensemble CRM — Secteur Construction</div>
+        </div>
       </div>
-      <table>
-        <thead><tr><th>Nom</th><th>Montant</th><th>Phase</th></tr></thead>
-        <tbody id="dashOpps"><tr><td colspan="3" class="loader"></td></tr></tbody>
-      </table>
-    </div>
 
-    <div class="card animate-in">
-      <div class="card-header">
-        <h2>Cases récents</h2>
-        <a href="cases.html" class="btn-outline">Voir tout</a>
+      <!-- KPIs -->
+      <div class="kpi-row" id="dashKpis"></div>
+
+      <!-- Widgets -->
+      <div class="dash-grid">
+        <div class="table-card fade-in fade-in-delay-2">
+          <div class="table-toolbar"><div class="table-toolbar-left"><h3>Dernières Opportunités</h3></div></div>
+          <table>
+            <thead><tr><th>Affaire</th><th>Montant</th><th>Étape</th></tr></thead>
+            <tbody id="dashOpps"></tbody>
+          </table>
+        </div>
+        <div class="table-card fade-in fade-in-delay-3">
+          <div class="table-toolbar"><div class="table-toolbar-left"><h3>Tickets Récents</h3></div></div>
+          <table>
+            <thead><tr><th>Sujet</th><th>Priorité</th><th>Statut</th></tr></thead>
+            <tbody id="dashCases"></tbody>
+          </table>
+        </div>
       </div>
-      <table>
-        <thead><tr><th>N°</th><th>Sujet</th><th>Statut</th></tr></thead>
-        <tbody id="dashCases"><tr><td colspan="3" class="loader"></td></tr></tbody>
-      </table>
+
+      <div class="dash-grid" style="margin-top:20px">
+        <div class="table-card fade-in fade-in-delay-3">
+          <div class="table-toolbar"><div class="table-toolbar-left"><h3>Projets en cours</h3></div></div>
+          <table>
+            <thead><tr><th>Chantier</th><th>Client</th><th>Avancement</th></tr></thead>
+            <tbody id="dashProjects"></tbody>
+          </table>
+        </div>
+        <div class="table-card fade-in fade-in-delay-4">
+          <div class="table-toolbar"><div class="table-toolbar-left"><h3>Factures à suivre</h3></div></div>
+          <table>
+            <thead><tr><th>N°</th><th>Client</th><th>Montant</th><th>Statut</th></tr></thead>
+            <tbody id="dashInvoices"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle"></h3>
+        <button class="modal-close" onclick="MickaCRM.ui.closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer" id="modalFooter"></div>
     </div>
   </div>
-</div>
 
-<!-- ═══════════════ FIREBASE SDK via CDN ═══════════════ -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="app.js"></script>
+  <!-- TOAST -->
+  <div class="toast-container" id="toastContainer"></div>
 
-<script>
-// Nav dropdown
-function toggleNav() {
-  document.getElementById('navBtn').classList.toggle('open');
-  document.getElementById('navMenu').classList.toggle('open');
-}
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.nav-dropdown-wrapper')) {
-    document.getElementById('navBtn').classList.remove('open');
-    document.getElementById('navMenu').classList.remove('open');
-  }
-});
+  <!-- SCRIPTS -->
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-// Charger le dashboard depuis Firestore
-async function loadDashboard() {
-  try {
-    // KPI : Comptes
-    const accounts = await getDocs('accounts');
-    document.getElementById('kpiAccounts').textContent = accounts.length;
+  <!-- Core -->
+  <script src="js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/data.js"></script>
 
-    // KPI : Opportunités ouvertes
-    const opps = await getDocs('opportunities');
-    const openOpps = opps.filter(o => o.stage !== 'Gagné' && o.stage !== 'Perdu');
-    document.getElementById('kpiOpps').textContent = openOpps.length;
-
-    // KPI : CA Pipeline
-    const pipeline = openOpps.reduce((sum, o) => sum + (o.amount || 0), 0);
-    document.getElementById('kpiPipeline').textContent = formatEuro(pipeline);
-
-    // KPI : Cases en cours
-    const cases = await getDocs('cases');
-    const openCases = cases.filter(c => c.status !== 'Résolu' && c.status !== 'Fermé');
-    document.getElementById('kpiCases').textContent = openCases.length;
-
-    // Tableau opportunités (5 dernières)
-    const recentOpps = opps.slice(0, 5);
-    document.getElementById('dashOpps').innerHTML = recentOpps.length
-      ? recentOpps.map(o => `
-          <tr>
-            <td>${o.name || '—'}</td>
-            <td>${formatEuro(o.amount)}</td>
-            <td>${statusBadge(o.stage || '—')}</td>
-          </tr>`).join('')
-      : '<tr><td colspan="3" style="text-align:center;padding:32px;color:#8e99a8;">Aucune opportunité. Cliquez "Insérer données démo".</td></tr>';
-
-    // Tableau cases
-    document.getElementById('dashCases').innerHTML = cases.length
-      ? cases.slice(0, 5).map(c => `
-          <tr>
-            <td>${c.number || '—'}</td>
-            <td>${c.subject || '—'}</td>
-            <td>${statusBadge(c.status || '—')}</td>
-          </tr>`).join('')
-      : '<tr><td colspan="3" style="text-align:center;padding:32px;color:#8e99a8;">Aucun case.</td></tr>';
-
-  } catch (err) {
-    console.error('Erreur chargement dashboard:', err);
-    showToast('Erreur de connexion à Firebase', 'error');
-  }
-}
-
-// Init
-loadDashboard();
-</script>
-
+  <!-- Dashboard init -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      MickaCRM.nav.init('dashboard');
+      MickaCRM.dashboard.init();
+    });
+  </script>
+  <script src="js/dashboard.js"></script>
 </body>
 </html>

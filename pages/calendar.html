@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendrier — CRM360 SG</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <header class="topbar"><a href="../index.html" class="topbar-brand"><div class="topbar-bars"><span></span><span></span><span></span><span></span><span></span></div>CRM360 SG</a><div class="topbar-search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Rechercher..." id="globalSearch"></div><div class="topbar-right"><div class="topbar-avatar">MC</div></div></header>
+  <div class="app-layout">
+    <nav class="sidebar" id="sidebar"></nav>
+    <main class="main fade-in" id="mainContent">
+      <div class="page-header"><div><h1>Calendrier</h1><div class="page-header-sub" id="calMonth"></div></div></div>
+      <div class="cal-grid" id="calGrid"></div>
+    </main>
+  </div>
+  <div class="modal-overlay" id="modal"><div class="modal"><div class="modal-header"><h3 id="modalTitle"></h3><button class="modal-close" onclick="MickaCRM.ui.closeModal()">&times;</button></div><div class="modal-body" id="modalBody"></div><div class="modal-footer" id="modalFooter"></div></div></div>
+  <div class="toast-container" id="toastContainer"></div>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="../js/config.js"></script><script src="../js/ui.js"></script><script src="../js/nav.js"></script><script src="../js/data.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      MickaCRM.nav.init('calendar');
+
+      const year = 2026, month = 2; // March 2026 (0-indexed)
+      const monthNames = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+      document.getElementById('calMonth').textContent = monthNames[month] + ' ' + year;
+
+      const firstDay = new Date(year, month, 1).getDay() || 7; // Monday=1
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const prevMonthDays = new Date(year, month, 0).getDate();
+      const events = MickaCRM.data.calendarEvents;
+      const today = 11; // March 11
+
+      const dayNames = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+      let html = dayNames.map(d => `<div class="cal-header">${d}</div>`).join('');
+
+      // Previous month padding
+      for (let i = 1; i < firstDay; i++) {
+        html += `<div class="cal-day other"><div class="cal-day-num">${prevMonthDays - firstDay + i + 1}</div></div>`;
+      }
+
+      // Current month
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dayEvents = events.filter(e => e.day === d && e.month === 3);
+        const isToday = d === today;
+        html += `<div class="cal-day ${isToday ? 'today' : ''}">
+          <div class="cal-day-num">${d}</div>
+          ${dayEvents.map(e => `<div class="cal-event" style="background:${e.color}22;color:${e.color}">${e.label}</div>`).join('')}
+        </div>`;
+      }
+
+      // Next month padding
+      const totalCells = (firstDay - 1) + daysInMonth;
+      const remaining = (7 - (totalCells % 7)) % 7;
+      for (let i = 1; i <= remaining; i++) {
+        html += `<div class="cal-day other"><div class="cal-day-num">${i}</div></div>`;
+      }
+
+      document.getElementById('calGrid').innerHTML = html;
+    });
+  </script>
+</body>
+</html>

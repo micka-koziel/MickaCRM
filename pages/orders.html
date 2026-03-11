@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Commandes — CRM360 SG</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <header class="topbar"><a href="../index.html" class="topbar-brand"><div class="topbar-bars"><span></span><span></span><span></span><span></span><span></span></div>CRM360 SG</a><div class="topbar-search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Rechercher..." id="globalSearch"></div><div class="topbar-right"><div class="topbar-avatar">MC</div></div></header>
+  <div class="app-layout">
+    <nav class="sidebar" id="sidebar"></nav>
+    <main class="main fade-in" id="mainContent">
+      <div class="page-header"><div><h1>Commandes</h1><div class="page-header-sub" id="pageSubtitle"></div></div></div>
+      <div class="table-card">
+        <div class="table-toolbar"><div class="table-toolbar-left"><h3>Toutes les commandes</h3><span class="table-count" id="count"></span></div></div>
+        <table>
+          <thead><tr><th>N° Commande</th><th>Client</th><th>Articles</th><th>Montant</th><th>Date</th><th>Livraison</th><th>Statut</th></tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+  <div class="modal-overlay" id="modal"><div class="modal"><div class="modal-header"><h3 id="modalTitle"></h3><button class="modal-close" onclick="MickaCRM.ui.closeModal()">&times;</button></div><div class="modal-body" id="modalBody"></div><div class="modal-footer" id="modalFooter"></div></div></div>
+  <div class="toast-container" id="toastContainer"></div>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="../js/config.js"></script><script src="../js/ui.js"></script><script src="../js/nav.js"></script><script src="../js/data.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      MickaCRM.nav.init('orders');
+      const D = MickaCRM.data.orders;
+      const { fmt, fmtDate, badge } = MickaCRM.ui;
+      document.getElementById('pageSubtitle').textContent = D.length + ' commandes';
+      document.getElementById('count').textContent = D.length;
+      document.getElementById('tableBody').innerHTML = D.map(o => `
+        <tr onclick="showOrder('${o.id}')">
+          <td><span style="font-weight:600;color:var(--blue-imperial)">${o.number}</span></td>
+          <td>${o.account}</td>
+          <td style="font-size:12px">${o.items.length > 45 ? o.items.substring(0,45)+'…' : o.items}</td>
+          <td><span style="font-family:Outfit;font-weight:600">${fmt(o.amount)}</span></td>
+          <td>${fmtDate(o.date)}</td>
+          <td>${fmtDate(o.deliveryDate)}</td>
+          <td>${badge(o.status)}</td>
+        </tr>
+      `).join('');
+
+      window.showOrder = (id) => {
+        const o = D.find(x => x.id === id); if (!o) return;
+        MickaCRM.ui.openModal(o.number, `
+          <div class="form-row"><div class="detail-field"><div class="detail-field-label">Client</div><div class="detail-field-value">${o.account}</div></div><div class="detail-field"><div class="detail-field-label">Devis</div><div class="detail-field-value">${o.quote}</div></div></div>
+          <div class="detail-field"><div class="detail-field-label">Articles</div><div class="detail-field-value">${o.items}</div></div>
+          <div class="form-row"><div class="detail-field"><div class="detail-field-label">Montant</div><div class="detail-field-value" style="font-family:Outfit;font-weight:700;font-size:20px;color:var(--blue-imperial)">${fmt(o.amount)}</div></div><div class="detail-field"><div class="detail-field-label">Statut</div><div class="detail-field-value">${badge(o.status)}</div></div></div>
+          <div class="form-row"><div class="detail-field"><div class="detail-field-label">Date commande</div><div class="detail-field-value">${fmtDate(o.date)}</div></div><div class="detail-field"><div class="detail-field-label">Livraison prévue</div><div class="detail-field-value">${fmtDate(o.deliveryDate)}</div></div></div>
+        `, '<button class="btn btn-secondary" onclick="MickaCRM.ui.closeModal()">Fermer</button>');
+      };
+    });
+  </script>
+</body>
+</html>

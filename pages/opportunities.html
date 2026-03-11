@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pipeline — CRM360 SG</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <header class="topbar"><a href="../index.html" class="topbar-brand"><div class="topbar-bars"><span></span><span></span><span></span><span></span><span></span></div>CRM360 SG</a><div class="topbar-search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Rechercher..." id="globalSearch"></div><div class="topbar-right"><div class="topbar-avatar">MC</div></div></header>
+  <div class="app-layout">
+    <nav class="sidebar" id="sidebar"></nav>
+    <main class="main fade-in" id="mainContent">
+      <div class="page-header"><div><h1>Pipeline</h1><div class="page-header-sub" id="pageSubtitle"></div></div></div>
+      <div class="pipeline-board" id="pipelineBoard"></div>
+    </main>
+  </div>
+  <div class="modal-overlay" id="modal"><div class="modal"><div class="modal-header"><h3 id="modalTitle"></h3><button class="modal-close" onclick="MickaCRM.ui.closeModal()">&times;</button></div><div class="modal-body" id="modalBody"></div><div class="modal-footer" id="modalFooter"></div></div></div>
+  <div class="toast-container" id="toastContainer"></div>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="../js/config.js"></script><script src="../js/ui.js"></script><script src="../js/nav.js"></script><script src="../js/data.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      MickaCRM.nav.init('opportunities');
+      const D = MickaCRM.data.opportunities;
+      const { fmt, fmtDate, badge } = MickaCRM.ui;
+      const total = D.reduce((s, o) => s + o.amount, 0);
+      document.getElementById('pageSubtitle').textContent = D.length + ' opportunités — ' + fmt(total) + ' total';
+
+      const stages = ['Prospection','Qualification','Proposition','Négociation','Gagné'];
+      document.getElementById('pipelineBoard').innerHTML = stages.map(stage => {
+        const opps = D.filter(o => o.stage === stage);
+        const stageTotal = opps.reduce((s, o) => s + o.amount, 0);
+        return `<div class="pipeline-col">
+          <div class="pipeline-col-header"><span>${stage}</span><span class="amount">${fmt(stageTotal)}</span></div>
+          ${opps.map(o => `
+            <div class="pipeline-card" onclick="showOpp('${o.id}')">
+              <h4>${o.name}</h4>
+              <p>${o.account}</p>
+              <div class="amount">${fmt(o.amount)}</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+                <span style="font-size:11px;color:var(--text-light)">Clôture: ${fmtDate(o.closeDate)}</span>
+                <span style="font-size:11px;color:var(--text-light)">${o.probability}%</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+      }).join('');
+
+      window.showOpp = (id) => {
+        const o = D.find(x => x.id === id); if (!o) return;
+        MickaCRM.ui.openModal(o.name, `
+          <div class="form-row"><div class="detail-field"><div class="detail-field-label">Compte</div><div class="detail-field-value">${o.account}</div></div><div class="detail-field"><div class="detail-field-label">Contact</div><div class="detail-field-value">${o.contact}</div></div></div>
+          <div class="form-row"><div class="detail-field"><div class="detail-field-label">Montant</div><div class="detail-field-value" style="font-family:Outfit;font-weight:700;font-size:20px;color:var(--blue-imperial)">${fmt(o.amount)}</div></div><div class="detail-field"><div class="detail-field-label">Probabilité</div><div class="detail-field-value">${o.probability}%</div></div></div>
+          <div class="form-row"><div class="detail-field"><div class="detail-field-label">Étape</div><div class="detail-field-value">${badge(o.stage)}</div></div><div class="detail-field"><div class="detail-field-label">Type</div><div class="detail-field-value">${o.type}</div></div></div>
+          <div class="detail-field"><div class="detail-field-label">Date de clôture</div><div class="detail-field-value">${fmtDate(o.closeDate)}</div></div>
+        `, '<button class="btn btn-secondary" onclick="MickaCRM.ui.closeModal()">Fermer</button>');
+      };
+    });
+  </script>
+</body>
+</html>

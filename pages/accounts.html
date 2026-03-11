@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comptes — CRM360 SG</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="../index.html" class="topbar-brand">
+      <div class="topbar-bars"><span></span><span></span><span></span><span></span><span></span></div>
+      CRM360 SG
+    </a>
+    <div class="topbar-search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="Rechercher..." id="globalSearch">
+    </div>
+    <div class="topbar-right"><div class="topbar-avatar">MC</div></div>
+  </header>
+  <div class="app-layout">
+    <nav class="sidebar" id="sidebar"></nav>
+    <main class="main fade-in" id="mainContent">
+      <!-- List view -->
+      <div id="listView">
+        <div class="page-header">
+          <div>
+            <h1>Comptes</h1>
+            <div class="page-header-sub" id="pageSubtitle"></div>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <div class="table-toolbar-left"><h3>Tous les comptes</h3><span class="table-count" id="count"></span></div>
+          </div>
+          <table>
+            <thead><tr><th>Entreprise</th><th>Type</th><th>Secteur</th><th>Ville</th><th>CA</th><th>Statut</th></tr></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Detail view -->
+      <div id="detailView" style="display:none"></div>
+    </main>
+  </div>
+  <div class="modal-overlay" id="modal"><div class="modal"><div class="modal-header"><h3 id="modalTitle"></h3><button class="modal-close" onclick="MickaCRM.ui.closeModal()">&times;</button></div><div class="modal-body" id="modalBody"></div><div class="modal-footer" id="modalFooter"></div></div></div>
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/data.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      MickaCRM.nav.init('accounts');
+      const D = MickaCRM.data.accounts;
+      const { fmt, fmtDate, badge, avatar, getGrad, initials } = MickaCRM.ui;
+
+      document.getElementById('pageSubtitle').textContent = D.length + ' entreprises de construction';
+      document.getElementById('count').textContent = D.length;
+
+      // Render list
+      document.getElementById('tableBody').innerHTML = D.map((a, i) => `
+        <tr onclick="showDetail('${a.id}')">
+          <td><div style="display:flex;align-items:center;gap:10px">${avatar(a.name, i)}<div><div style="font-weight:600">${a.name}</div><div style="font-size:12px;color:var(--text-light)">${a.industry}</div></div></div></td>
+          <td>${badge(a.type)}</td>
+          <td>${a.industry}</td>
+          <td>${a.city}</td>
+          <td><span style="font-family:Outfit;font-weight:600">${fmt(a.revenue)}</span></td>
+          <td>${badge(a.status)}</td>
+        </tr>
+      `).join('');
+
+      // Detail
+      window.showDetail = (id) => {
+        const a = D.find(x => x.id === id);
+        if (!a) return;
+        const contacts = MickaCRM.data.contacts.filter(c => c.accountId === id);
+        const opps = MickaCRM.data.opportunities.filter(o => o.accountId === id);
+        const idx = D.indexOf(a);
+
+        document.getElementById('listView').style.display = 'none';
+        document.getElementById('detailView').style.display = 'block';
+        document.getElementById('detailView').innerHTML = `
+          <div class="detail-back" onclick="backToList()">← Retour aux comptes</div>
+          <div class="detail-header">
+            <div class="detail-avatar" style="background:${getGrad(idx)}">${initials(a.name)}</div>
+            <div class="detail-info"><h1>${a.name}</h1><p>${a.industry} • ${a.city} • ${a.type}</p></div>
+            <div style="margin-left:auto">${badge(a.status)}</div>
+          </div>
+          <div class="detail-grid">
+            <div>
+              <div class="detail-section">
+                <h3>Informations</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                  <div class="detail-field"><div class="detail-field-label">Téléphone</div><div class="detail-field-value">${a.phone}</div></div>
+                  <div class="detail-field"><div class="detail-field-label">Email</div><div class="detail-field-value">${a.email}</div></div>
+                  <div class="detail-field"><div class="detail-field-label">Site web</div><div class="detail-field-value">${a.website}</div></div>
+                  <div class="detail-field"><div class="detail-field-label">Effectifs</div><div class="detail-field-value">${a.employees?.toLocaleString('fr-FR')}</div></div>
+                  <div class="detail-field" style="grid-column:span 2"><div class="detail-field-label">Adresse</div><div class="detail-field-value">${a.address}</div></div>
+                </div>
+              </div>
+              <div class="detail-section">
+                <h3>Contacts (${contacts.length})</h3>
+                ${contacts.length ? `<table><thead><tr><th>Nom</th><th>Fonction</th><th>Email</th><th>Téléphone</th></tr></thead><tbody>${contacts.map(c => `<tr><td style="font-weight:600">${c.firstName} ${c.lastName}</td><td>${c.title}</td><td style="font-size:12px">${c.email}</td><td>${c.phone}</td></tr>`).join('')}</tbody></table>` : '<p style="color:var(--text-light);font-size:13px">Aucun contact associé</p>'}
+              </div>
+            </div>
+            <div>
+              <div class="detail-section">
+                <h3>Chiffres clés</h3>
+                <div class="detail-field"><div class="detail-field-label">Chiffre d'affaires</div><div class="detail-field-value" style="font-family:Outfit;font-size:22px;font-weight:700;color:var(--blue-imperial)">${fmt(a.revenue)}</div></div>
+              </div>
+              <div class="detail-section">
+                <h3>Opportunités (${opps.length})</h3>
+                ${opps.length ? opps.map(o => `<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="font-weight:600;font-size:13px">${o.name}</div><div style="display:flex;justify-content:space-between;margin-top:4px"><span style="font-family:Outfit;font-weight:600;color:var(--blue-imperial)">${fmt(o.amount)}</span>${badge(o.stage)}</div></div>`).join('') : '<p style="color:var(--text-light);font-size:13px">Aucune opportunité</p>'}
+              </div>
+            </div>
+          </div>
+        `;
+      };
+
+      window.backToList = () => {
+        document.getElementById('listView').style.display = 'block';
+        document.getElementById('detailView').style.display = 'none';
+      };
+    });
+  </script>
+</body>
+</html>

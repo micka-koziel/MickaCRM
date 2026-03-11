@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projets — CRM360 SG</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <header class="topbar"><a href="../index.html" class="topbar-brand"><div class="topbar-bars"><span></span><span></span><span></span><span></span><span></span></div>CRM360 SG</a><div class="topbar-search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Rechercher..." id="globalSearch"></div><div class="topbar-right"><div class="topbar-avatar">MC</div></div></header>
+  <div class="app-layout">
+    <nav class="sidebar" id="sidebar"></nav>
+    <main class="main fade-in" id="mainContent">
+      <div class="page-header"><div><h1>Projets</h1><div class="page-header-sub" id="pageSubtitle"></div></div></div>
+      <div class="kpi-row" id="projectCards"></div>
+      <div class="table-card fade-in fade-in-delay-3">
+        <div class="table-toolbar"><div class="table-toolbar-left"><h3>Détail Projets</h3></div></div>
+        <table>
+          <thead><tr><th>Chantier</th><th>Client</th><th>Budget</th><th>Phase</th><th>Avancement</th><th>Statut</th></tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+  <div class="modal-overlay" id="modal"><div class="modal"><div class="modal-header"><h3 id="modalTitle"></h3><button class="modal-close" onclick="MickaCRM.ui.closeModal()">&times;</button></div><div class="modal-body" id="modalBody"></div><div class="modal-footer" id="modalFooter"></div></div></div>
+  <div class="toast-container" id="toastContainer"></div>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="../js/config.js"></script><script src="../js/ui.js"></script><script src="../js/nav.js"></script><script src="../js/data.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      MickaCRM.nav.init('projects');
+      const D = MickaCRM.data.projects;
+      const { fmt, fmtDate, badge } = MickaCRM.ui;
+      document.getElementById('pageSubtitle').textContent = D.length + ' chantiers';
+
+      const colors = ['blue','teal','orange','raspberry'];
+      document.getElementById('projectCards').innerHTML = D.map((p, i) => `
+        <div class="kpi-card ${colors[i]} fade-in fade-in-delay-${i+1}" style="cursor:pointer" onclick="showProject('${p.id}')">
+          <div class="kpi-label">${p.phase}</div>
+          <div style="font-family:Outfit;font-size:16px;font-weight:700;margin-bottom:4px">${p.name}</div>
+          <div style="font-size:12px;color:var(--text-secondary)">${p.account} • ${p.manager}</div>
+          <div class="progress-bar" style="margin-top:12px"><div class="progress-bar-fill" style="width:${p.progress}%"></div></div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--text-light)"><span>${p.progress}%</span>${badge(p.status)}</div>
+        </div>
+      `).join('');
+
+      document.getElementById('tableBody').innerHTML = D.map(p => `
+        <tr onclick="showProject('${p.id}')">
+          <td style="font-weight:600">${p.name}</td>
+          <td>${p.account}</td>
+          <td style="font-family:Outfit;font-weight:600">${fmt(p.budget)}</td>
+          <td>${p.phase}</td>
+          <td><div style="display:flex;align-items:center;gap:8px"><div class="progress-bar" style="flex:1"><div class="progress-bar-fill" style="width:${p.progress}%"></div></div><span style="font-size:12px;font-weight:600">${p.progress}%</span></div></td>
+          <td>${badge(p.status)}</td>
+        </tr>
+      `).join('');
+
+      window.showProject = (id) => {
+        const p = D.find(x => x.id === id); if (!p) return;
+        MickaCRM.ui.openModal(p.name, `
+          <div class="form-row"><div class="detail-field"><div class="detail-field-label">Client</div><div class="detail-field-value">${p.account}</div></div><div class="detail-field"><div class="detail-field-label">Chef de projet</div><div class="detail-field-value">${p.manager}</div></div></div>
+          <div class="form-row"><div class="detail-field"><div class="detail-field-label">Budget</div><div class="detail-field-value" style="font-family:Outfit;font-weight:700;font-size:20px;color:var(--blue-imperial)">${fmt(p.budget)}</div></div><div class="detail-field"><div class="detail-field-label">Phase</div><div class="detail-field-value">${p.phase}</div></div></div>
+          <div class="form-row"><div class="detail-field"><div class="detail-field-label">Début</div><div class="detail-field-value">${fmtDate(p.startDate)}</div></div><div class="detail-field"><div class="detail-field-label">Fin prévue</div><div class="detail-field-value">${fmtDate(p.endDate)}</div></div></div>
+          <div class="detail-field"><div class="detail-field-label">Avancement</div><div class="progress-bar" style="margin-top:8px;height:10px"><div class="progress-bar-fill" style="width:${p.progress}%"></div></div><div style="text-align:right;font-size:12px;margin-top:4px;font-weight:600">${p.progress}%</div></div>
+        `, '<button class="btn btn-secondary" onclick="MickaCRM.ui.closeModal()">Fermer</button>');
+      };
+    });
+  </script>
+</body>
+</html>
