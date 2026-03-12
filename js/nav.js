@@ -7,6 +7,7 @@ function navigate(page, objKey, recId) {
   APP.page = page;
   if (page === "home") { APP.currentObj=null; APP.currentRec=null; APP.breadcrumbs=[{label:"Home",page:"home"}]; }
   else if (page === "pipeline") { APP.currentObj="opportunities"; APP.currentRec=null; APP.breadcrumbs=[{label:"Home",page:"home"},{label:"Pipeline",page:"pipeline"}]; }
+  else if (page === "calendar") { APP.currentObj="activities"; APP.currentRec=null; APP.breadcrumbs=[{label:"Home",page:"home"},{label:"Calendar",page:"calendar"}]; }
   else if (page === "list" && objKey) { APP.currentObj=objKey; APP.currentRec=null; APP.breadcrumbs=[{label:"Home",page:"home"},{label:OBJ[objKey].label,page:"list",obj:objKey}]; }
   else if (page === "record" && objKey && recId) { APP.currentObj=objKey; APP.currentRec=recId; var rec=findRecord(objKey,recId); var name=rec?getRecordName(rec):recId; APP.breadcrumbs=[{label:"Home",page:"home"},{label:OBJ[objKey].label,page:"list",obj:objKey},{label:name,page:"record"}]; }
   renderApp();
@@ -27,6 +28,7 @@ function setupTopBar() {
   document.getElementById("logo").onclick = function() { navigate("home"); };
   document.getElementById("nav-home").onclick = function() { navigate("home"); };
   document.getElementById("nav-pipeline").onclick = function() { navigate("pipeline"); };
+  document.getElementById("nav-calendar").onclick = function() { navigate("calendar"); };
   setupObjectsDropdown();
   setupSearch();
   setupQuickCreate();
@@ -35,6 +37,7 @@ function setupTopBar() {
 function updateNavPills() {
   document.getElementById("nav-home").className = "topbar-pill" + (APP.page==="home"?" active":"");
   document.getElementById("nav-pipeline").className = "topbar-pill" + (APP.page==="pipeline"?" active":"");
+  document.getElementById("nav-calendar").className = "topbar-pill" + (APP.page==="calendar"?" active":"");
 }
 
 function setupObjectsDropdown() {

@@ -23,6 +23,10 @@ function renderRecord(objKey, recId) {
 
   // Right: related
   html += '<div style="display:flex;flex-direction:column;gap:12px">';
+
+  // New Activity button
+  html += '<button class="btn-new-activity-record" id="rec-new-activity">' + renderIcon("clock",14,"#fff") + ' New Activity</button>';
+
   var hasRelated = false;
   if (related.contacts && related.contacts.length) { hasRelated=true; html += buildRelCard("Contacts","user",related.contacts.map(function(c){return{id:c.id,name:c.firstName+" "+c.lastName,sub:c.title,objKey:"contacts"};})); }
   if (related.opportunities && related.opportunities.length) { hasRelated=true; html += buildRelCard("Opportunities","briefcase",related.opportunities.map(function(o){return{id:o.id,name:o.name,sub:o.amount+" · "+o.stage,objKey:"opportunities"};})); }
@@ -36,6 +40,12 @@ function renderRecord(objKey, recId) {
   container.querySelectorAll(".rel-card-item.clickable").forEach(function(el) {
     el.onclick = function() { var oK=el.getAttribute("data-obj"),rId=el.getAttribute("data-id"); if(oK&&rId)navigate("record",oK,rId); };
   });
+
+  // New Activity from record
+  var newActBtn = document.getElementById("rec-new-activity");
+  if (newActBtn) {
+    newActBtn.onclick = function() { openActivityFromRecord(objKey, recId); };
+  }
 }
 
 function buildRelCard(title, iconName, items) {
