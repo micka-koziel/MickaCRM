@@ -92,7 +92,16 @@ var OBJ_CONFIG = {
     ],
     formFields: [
       {key:'name',label:'Account Name',type:'text',required:true},
-      {key:'industry',label:'Industry',type:'text'},
+      {key:'industry',label:'Industry',type:'select',options:function(){return [
+        {value:'General Contractor',label:'General Contractor'},
+        {value:'Civil Engineering',label:'Civil Engineering'},
+        {value:'Real Estate Developer',label:'Real Estate Developer'},
+        {value:'Road & Rail',label:'Road & Rail'},
+        {value:'Foundations & Piling',label:'Foundations & Piling'},
+        {value:'Electrical & HVAC',label:'Electrical & HVAC'},
+        {value:'Building Materials',label:'Building Materials'},
+        {value:'Engineering Consultancy',label:'Engineering Consultancy'}
+      ];}},
       {key:'city',label:'City',type:'text'},
       {key:'status',label:'Status',type:'select',options:function(){return [{value:'Active',label:'Active'},{value:'Prospect',label:'Prospect'}];}}
     ]
@@ -114,7 +123,16 @@ var OBJ_CONFIG = {
     formFields: [
       {key:'name',label:'Full Name',type:'text',required:true},
       {key:'account',label:'Account',type:'select',options:function(){return (window.DATA.accounts||[]).map(function(a){return{value:a.id,label:a.name};});}},
-      {key:'role',label:'Role / Title',type:'text'},
+      {key:'role',label:'Role / Title',type:'select',options:function(){return [
+        {value:'CEO / Managing Director',label:'CEO / Managing Director'},
+        {value:'Project Director',label:'Project Director'},
+        {value:'Project Manager',label:'Project Manager'},
+        {value:'Site Manager',label:'Site Manager'},
+        {value:'Procurement Manager',label:'Procurement Manager'},
+        {value:'Design Engineer',label:'Design Engineer'},
+        {value:'Sales Manager',label:'Sales Manager'},
+        {value:'Other',label:'Other'}
+      ];}},
       {key:'email',label:'Email',type:'text'},
       {key:'phone',label:'Phone',type:'text'}
     ]
