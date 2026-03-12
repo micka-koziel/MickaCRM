@@ -278,11 +278,10 @@ function a360FieldInner(label, value) {
 function a360Kpi(value, label, icon, insight, insightType) {
   var navMap = { briefcase:"opportunities", file:"quotes", layers:"projects", wrench:"cases", clock:"activities" };
   var navTarget = navMap[icon] || "";
-  var insightColor = insightType === "positive" ? "#1a8a5c" : insightType === "warning" ? "#c43025" : "#88888d";
-  var insightIconName = insightType === "positive" ? "check" : insightType === "warning" ? "wrench" : "clock";
+  var insightColor = insightType === "positive" ? "#4ade80" : insightType === "warning" ? "#f87171" : "#64748b";
 
   var html = '<div class="a360-kpi-card" data-nav="' + navTarget + '">';
-  html += '<div class="a360-kpi-top">' + renderIcon(icon, 15, "#b0b0b5") + '<span class="a360-kpi-view">View all</span></div>';
+  html += '<div class="a360-kpi-top">' + renderIcon(icon, 15, "#64748b") + '<span class="a360-kpi-view">View all</span></div>';
   html += '<div class="a360-kpi-value">' + value + '</div>';
   html += '<div class="a360-kpi-label">' + label + '</div>';
   if (insight) {
@@ -420,14 +419,15 @@ function injectA360Styles() {
 .a360-field-value{font-size:12px;color:#111;font-weight:500}\
 \
 .a360-kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}\
-.a360-kpi-card{background:var(--white);border-radius:8px;padding:16px 18px 14px;border:1px solid #e0e0e3;box-shadow:0 1px 3px rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.03);cursor:pointer;transition:all .18s}\
-.a360-kpi-card:hover{box-shadow:0 3px 12px rgba(0,0,0,.07),0 0 0 1px rgba(0,0,0,.04);border-color:#d0d0d4}\
-.a360-kpi-card:hover .a360-kpi-view{color:#2563eb}\
-.a360-kpi-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}\
-.a360-kpi-view{font-size:9px;font-weight:500;color:transparent;transition:color .15s;letter-spacing:.2px}\
-.a360-kpi-value{font-size:28px;font-weight:800;color:#111;letter-spacing:-1.2px;line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums}\
-.a360-kpi-label{font-size:10.5px;color:#88888d;font-weight:500}\
-.a360-kpi-insight{display:flex;align-items:center;gap:5px;padding-top:8px;margin-top:8px;border-top:1px solid #eaeaed;font-size:9.5px;font-weight:600}\
+.a360-kpi-card{background:#0f172a;border-radius:10px;padding:18px 20px 16px;border:1px solid #1e293b;box-shadow:0 2px 8px rgba(0,0,0,.18),0 0 0 1px rgba(0,0,0,.08);cursor:pointer;transition:all .2s}\
+.a360-kpi-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.25);transform:translateY(-2px);border-color:#334155}\
+.a360-kpi-card:hover .a360-kpi-view{opacity:1}\
+.a360-kpi-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}\
+.a360-kpi-top svg{stroke:#64748b}\
+.a360-kpi-view{font-size:9px;font-weight:500;color:#64748b;opacity:0;transition:opacity .15s;letter-spacing:.2px}\
+.a360-kpi-value{font-size:30px;font-weight:800;color:#f8fafc;letter-spacing:-1.2px;line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums}\
+.a360-kpi-label{font-size:10.5px;color:#94a3b8;font-weight:500}\
+.a360-kpi-insight{display:flex;align-items:center;gap:5px;padding-top:9px;margin-top:9px;border-top:1px solid #1e293b;font-size:9.5px;font-weight:600}\
 .a360-kpi-insight-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}\
 \
 .a360-grid2{display:grid;grid-template-columns:1.12fr 1fr;gap:14px;align-items:start}\
