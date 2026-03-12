@@ -31,7 +31,7 @@ function renderRecord(objKey, recId) {
   if (related.contacts && related.contacts.length) { hasRelated=true; html += buildRelCard("Contacts","user",related.contacts.map(function(c){return{id:c.id,name:c.firstName+" "+c.lastName,sub:c.title,objKey:"contacts"};})); }
   if (related.opportunities && related.opportunities.length) { hasRelated=true; html += buildRelCard("Opportunities","briefcase",related.opportunities.map(function(o){return{id:o.id,name:o.name,sub:o.amount+" · "+o.stage,objKey:"opportunities"};})); }
   if (related.quotes && related.quotes.length) { hasRelated=true; html += buildRelCard("Quotes","file",related.quotes.map(function(q){return{id:q.id,name:q.name,sub:q.amount+" · "+q.status,objKey:"quotes"};})); }
-  if (related.activities && related.activities.length) { hasRelated=true; html += buildRelCard("Activities","phone",related.activities.map(function(a){return{id:a.id,name:a.subject,sub:a.type+" · "+a.date,objKey:"activities"};})); }
+  if (related.activities && related.activities.length && objKey !== "activities") { hasRelated=true; html += buildRelCard("Activities","phone",related.activities.map(function(a){return{id:a.id,name:a.subject,sub:a.type+" · "+a.date,objKey:"activities"};})); }
   if (related.tasks && related.tasks.length) { hasRelated=true; html += buildRelCard("Tasks","check",related.tasks.map(function(t){return{id:t.id,name:t.subject,sub:t.priority+" · "+t.status,objKey:"tasks"};})); }
   if (!hasRelated) html += '<div class="record-card" style="padding:24px;color:var(--muted);font-size:12px;text-align:center">No related data</div>';
   html += '</div></div>';
