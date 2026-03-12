@@ -222,13 +222,17 @@ function renderContact360(container, rec) {
   h += '<div class="c360-header-card">';
   h += '<div class="c360-header-top">';
 
-  // Photo avatar (large circle)
+  // Photo avatar (large circle) — click to upload
   var photoUrl = rec.photo || '';
+  h += '<div class="c360-photo-wrap" id="c360-photo-wrap" title="Click to change photo">';
   if (photoUrl) {
-    h += '<div class="c360-photo"><img src="'+photoUrl+'" alt="'+contactName+'" /></div>';
+    h += '<div class="c360-photo" id="c360-avatar"><img src="'+photoUrl+'" alt="'+contactName+'" /></div>';
   } else {
-    h += '<div class="c360-photo c360-photo-initials">' + initials + '</div>';
+    h += '<div class="c360-photo c360-photo-initials" id="c360-avatar">' + initials + '</div>';
   }
+  h += '<div class="c360-photo-overlay">' + svgIcon('plus',16,'#fff') + '</div>';
+  h += '<input type="file" id="c360-photo-input" accept="image/*" style="display:none" />';
+  h += '</div>';
 
   h += '<div class="c360-header-info">';
   h += '<h1 class="c360-name">' + contactName + '</h1>';
@@ -400,6 +404,27 @@ function renderContact360(container, rec) {
   // Bind events
   document.getElementById('c360-back').addEventListener('click', function(){ navigate('contacts'); });
 
+  // Photo upload
+  var photoWrap = document.getElementById('c360-photo-wrap');
+  var photoInput = document.getElementById('c360-photo-input');
+  if (photoWrap && photoInput) {
+    photoWrap.addEventListener('click', function(){ photoInput.click(); });
+    photoInput.addEventListener('change', function(e) {
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        rec.photo = ev.target.result;
+        var avatar = document.getElementById('c360-avatar');
+        if (avatar) {
+          avatar.className = 'c360-photo';
+          avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+contactName+'" />';
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   // Company link in header
   var compLink = document.getElementById('c360-company-link');
   if (compLink && rec.account) {
@@ -457,6 +482,10 @@ function injectC360Styles() {
 .c360-photo{width:72px;height:72px;border-radius:50%;flex-shrink:0;overflow:hidden;border:2.5px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.08)}\
 .c360-photo img{width:100%;height:100%;object-fit:cover}\
 .c360-photo.c360-photo-initials{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 100%);font-size:22px;font-weight:800;color:var(--accent);letter-spacing:-.5px}\
+\
+.c360-photo-wrap{position:relative;cursor:pointer;flex-shrink:0}\
+.c360-photo-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}\
+.c360-photo-wrap:hover .c360-photo-overlay{opacity:1}\
 \
 .c360-header-info{flex:1;min-width:0}\
 .c360-name{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.6px;margin:0 0 2px;line-height:1.1}\
