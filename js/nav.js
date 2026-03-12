@@ -23,6 +23,7 @@ const NAV_ICONS = {
   collapse: 'M11 19l-7-7 7-7m8 14l-7-7 7-7',
   expand: 'M13 5l7 7-7 7M5 5l7 7-7 7',
   arrowUp: 'M7 17l9.2-9.2M17 17V8h-9',
+  arrowLeft: 'M19 12H5m7-7l-7 7 7 7',
   phone: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z',
   users: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z',
   mapPin: 'M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z',
@@ -50,12 +51,15 @@ var NAV_ITEMS = [
 
 var sidebarCollapsed = false;
 var currentPage = 'home';
+var currentRecordObj = null;
+var currentRecordId = null;
 
 function renderSidebar() {
   var sb = document.getElementById('sidebar');
   sb.className = sidebarCollapsed ? 'collapsed' : '';
   var items = NAV_ITEMS.map(function(item) {
-    return '<button class="sb-item '+(currentPage === item.key ? 'active' : '')+'" data-page="'+item.key+'" title="'+(sidebarCollapsed ? item.label : '')+'">' +
+    var isActive = (currentPage === item.key) || (currentPage === 'record' && currentRecordObj === item.key);
+    return '<button class="sb-item '+(isActive ? 'active' : '')+'" data-page="'+item.key+'" title="'+(sidebarCollapsed ? item.label : '')+'">' +
       svgIcon(item.icon) + '<span>'+item.label+'</span></button>';
   }).join('');
 
@@ -77,8 +81,17 @@ function renderSidebar() {
   });
 }
 
-function navigate(page) {
-  currentPage = page;
+function navigate(page, recObj, recId) {
+  // Record detail view
+  if (page === 'record' && recObj && recId) {
+    currentPage = 'record';
+    currentRecordObj = recObj;
+    currentRecordId = recId;
+  } else {
+    currentPage = page;
+    currentRecordObj = null;
+    currentRecordId = null;
+  }
   renderSidebar();
   renderCurrentPage();
 }
@@ -93,6 +106,10 @@ function renderCurrentPage() {
     case 'home':
       header.style.display = 'none';
       renderDashboard(content);
+      break;
+    case 'record':
+      header.style.display = '';
+      renderRecordPage(currentRecordObj, currentRecordId, header, content);
       break;
     case 'opportunities':
     case 'leads':

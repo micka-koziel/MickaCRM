@@ -181,11 +181,18 @@ function renderKanbanCard(item, objKey) {
 
 function bindDragDrop(objKey, cfg, container) {
   container.querySelectorAll('.kanban-card').forEach(function(card) {
+    var wasDragged = false;
     card.addEventListener('dragstart', function(e) {
+      wasDragged = true;
       e.dataTransfer.setData('text/plain', card.dataset.id);
       card.classList.add('dragging');
     });
     card.addEventListener('dragend', function() { card.classList.remove('dragging'); });
+    card.addEventListener('click', function() {
+      if (wasDragged) { wasDragged = false; return; }
+      var id = card.dataset.id;
+      if (id) navigate('record', objKey, id);
+    });
   });
   container.querySelectorAll('.kanban-col').forEach(function(col) {
     col.addEventListener('dragover', function(e) { e.preventDefault(); col.classList.add('drag-over'); });
@@ -220,16 +227,23 @@ function renderListView(items, columns, container, objKey) {
     '</tbody></table></div>';
   container.innerHTML = html;
 
-  // Bind name link clicks
+  // Bind name link clicks → open record detail
   container.querySelectorAll('.record-link').forEach(function(link) {
     link.addEventListener('click', function(e) {
+      e.preventDefault();
       e.stopPropagation();
       var id = link.dataset.id;
       var obj = link.dataset.obj;
-      if (id && obj) {
-        console.log('Open record:', obj, id);
-        // TODO: navigate to record detail when record.js is implemented
-      }
+      if (id && obj) navigate('record', obj, id);
+    });
+  });
+
+  // Bind row clicks → open record detail
+  container.querySelectorAll('tbody tr[data-id]').forEach(function(tr) {
+    tr.addEventListener('click', function() {
+      var id = tr.dataset.id;
+      var obj = tr.dataset.obj;
+      if (id && obj) navigate('record', obj, id);
     });
   });
 }
