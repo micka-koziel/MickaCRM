@@ -1,17 +1,21 @@
-/* data.js — Mock Data */
+/* data.js — Mock Data with strategic fields */
 window.DATA = {
   accounts: [
-    {id:'a1',name:'Bouygues Construction'},{id:'a2',name:'Vinci Immobilier'},
-    {id:'a3',name:'Eiffage Génie Civil'},{id:'a4',name:'Spie Batignolles'},
-    {id:'a5',name:'Colas Group'},{id:'a6',name:'NGE Fondations'},
-    {id:'a7',name:'Demathieu Bard'},{id:'a8',name:'Razel-Bec'}
+    {id:'a1',name:'Bouygues Construction',industry:'General Contractor',city:'Paris',pipeline:101000000,opps:3,status:'Active'},
+    {id:'a2',name:'Vinci Immobilier',industry:'Real Estate Developer',city:'Nanterre',pipeline:12000000,opps:1,status:'Active'},
+    {id:'a3',name:'Eiffage Génie Civil',industry:'Civil Engineering',city:'Vélizy',pipeline:32000000,opps:1,status:'Active'},
+    {id:'a4',name:'Spie Batignolles',industry:'General Contractor',city:'Neuilly-sur-Seine',pipeline:19000000,opps:1,status:'Active'},
+    {id:'a5',name:'Colas Group',industry:'Road & Rail',city:'Boulogne',pipeline:32000000,opps:1,status:'Active'},
+    {id:'a6',name:'NGE Fondations',industry:'Foundations & Piling',city:'Lyon',pipeline:0,opps:0,status:'Prospect'},
+    {id:'a7',name:'Demathieu Bard',industry:'General Contractor',city:'Metz',pipeline:22000000,opps:1,status:'Active'},
+    {id:'a8',name:'Razel-Bec',industry:'Civil Engineering',city:'Saclay',pipeline:0,opps:0,status:'Prospect'}
   ],
   contacts: [
-    {id:'c1',name:'Jean-Pierre Martin',account:'a1',role:'Directeur Travaux',email:'jp.martin@bouygues.fr'},
-    {id:'c2',name:'Sophie Durand',account:'a2',role:'Chef de Projet',email:'s.durand@vinci.com'},
-    {id:'c3',name:'Marc Lefèvre',account:'a3',role:'Responsable Achats',email:'m.lefevre@eiffage.com'},
-    {id:'c4',name:'Isabelle Moreau',account:'a4',role:'DG Adjoint',email:'i.moreau@spie.com'},
-    {id:'c5',name:'Thomas Girard',account:'a5',role:'Ingénieur Études',email:'t.girard@colas.com'}
+    {id:'c1',name:'Jean-Pierre Martin',account:'a1',role:'Directeur Travaux',email:'jp.martin@bouygues.fr',phone:'+33 6 12 34 56 78'},
+    {id:'c2',name:'Sophie Durand',account:'a2',role:'Chef de Projet',email:'s.durand@vinci.com',phone:'+33 6 23 45 67 89'},
+    {id:'c3',name:'Marc Lefèvre',account:'a3',role:'Responsable Achats',email:'m.lefevre@eiffage.com',phone:'+33 6 34 56 78 90'},
+    {id:'c4',name:'Isabelle Moreau',account:'a4',role:'DG Adjoint',email:'i.moreau@spie.com',phone:'+33 6 45 67 89 01'},
+    {id:'c5',name:'Thomas Girard',account:'a5',role:'Ingénieur Études',email:'t.girard@colas.com',phone:'+33 6 56 78 90 12'}
   ],
   opportunities: [
     {id:'o1',name:'Grand Paris Express – Lot 7',account:'a1',amount:45000000,prob:70,stage:'negotiation',close:'2026-06-15'},
@@ -24,15 +28,15 @@ window.DATA = {
     {id:'o8',name:'Campus Saclay – Bldg R',account:'a4',amount:19000000,prob:40,stage:'closed_won',close:'2026-11-01'}
   ],
   leads: [
-    {id:'l1',name:'Vinci – Warehouse project',account:'a2',stage:'new',source:'Website'},
-    {id:'l2',name:'Eiffage – Highway extension',account:'a3',stage:'contacted',source:'Trade Show'},
-    {id:'l3',name:'Spie – Underground parking',account:'a4',stage:'qualified',source:'Referral'},
-    {id:'l4',name:'Bouygues – Tech campus',account:'a1',stage:'new',source:'Cold Call'}
+    {id:'l1',name:'Vinci – Warehouse project',account:'a2',stage:'new',source:'Website',estimatedValue:15000000,priority:'High'},
+    {id:'l2',name:'Eiffage – Highway extension',account:'a3',stage:'contacted',source:'Trade Show',estimatedValue:45000000,priority:'Medium'},
+    {id:'l3',name:'Spie – Underground parking',account:'a4',stage:'qualified',source:'Referral',estimatedValue:8000000,priority:'High'},
+    {id:'l4',name:'Bouygues – Tech campus',account:'a1',stage:'new',source:'Cold Call',estimatedValue:28000000,priority:'Low'}
   ],
   projects: [
-    {id:'p1',name:'Gare du Nord',phase:'construction',account:'a3'},
-    {id:'p2',name:'Campus Saclay',phase:'construction',account:'a4'},
-    {id:'p3',name:'Tour Triangle',phase:'prestudy',account:'a2'}
+    {id:'p1',name:'Gare du Nord',phase:'construction',account:'a3',budget:23000000,start:'2025-01-15',end:'2026-12-01'},
+    {id:'p2',name:'Campus Saclay',phase:'construction',account:'a4',budget:19000000,start:'2025-03-01',end:'2026-11-01'},
+    {id:'p3',name:'Tour Triangle',phase:'prestudy',account:'a2',budget:12000000,start:'2025-06-01',end:'2027-06-01'}
   ],
   tasks: [
     {id:'t1',name:'Finalize Tour Triangle quote',ref:'Tour Triangle – Facades · 2025-03-15',status:'In Progress',color:'#ef4444'},

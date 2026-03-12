@@ -60,7 +60,10 @@ function renderSidebar() {
   }).join('');
 
   sb.innerHTML =
-    '<div class="sb-logo"><img src="assets/LogoSG.png" alt="Logo" /></div>' +
+    '<div class="sb-logo">' +
+      '<img src="assets/LogoSG.png" alt="Logo" class="sb-logo-icon" />' +
+      (sidebarCollapsed ? '' : '<span class="sb-logo-text">MickaCRM<span class="sb-logo-360">360</span></span>') +
+    '</div>' +
     '<div class="sb-nav">' + items + '</div>' +
     '<div class="sb-footer"><button class="sb-collapse-btn" id="sb-toggle">' +
     svgIcon(sidebarCollapsed ? 'expand' : 'collapse', 15) + '<span>Collapse</span></button></div>';

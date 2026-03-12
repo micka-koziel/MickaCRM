@@ -17,7 +17,7 @@ var OBJ_CONFIG = {
     stages: function(){ return STAGES.opportunities||[]; },
     getData: function(){ return (window.DATA.opportunities||[]).slice(); },
     columns: [
-      {key:'name',label:'Opportunity'},
+      {key:'name',label:'Opportunity',isLink:true},
       {key:'account',label:'Account',render:function(it){return getAccountName(it.account);}},
       {key:'stage',label:'Stage',render:function(it){return renderStageBadge(it.stage,'opportunities');}},
       {key:'amount',label:'Amount',render:function(it){return fmtAmount(it.amount||0);}},
@@ -30,25 +30,41 @@ var OBJ_CONFIG = {
     stages: function(){ return STAGES.leads||[]; },
     getData: function(){ return (window.DATA.leads||[]).slice(); },
     columns: [
-      {key:'name',label:'Lead'},
+      {key:'name',label:'Lead',isLink:true},
       {key:'account',label:'Account',render:function(it){return getAccountName(it.account);}},
       {key:'stage',label:'Stage',render:function(it){return renderStageBadge(it.stage,'leads');}},
-      {key:'source',label:'Source'}
+      {key:'source',label:'Source'},
+      {key:'estimatedValue',label:'Est. Value',render:function(it){return it.estimatedValue ? fmtAmount(it.estimatedValue) : '–';}},
+      {key:'priority',label:'Priority',render:function(it){
+        var colors = {High:'var(--danger)',Medium:'var(--warning)',Low:'var(--text-light)'};
+        return it.priority ? '<span class="stage-badge" style="color:'+(colors[it.priority]||'var(--text-muted)')+'"><span class="dot" style="background:'+(colors[it.priority]||'var(--text-muted)')+'"></span>'+it.priority+'</span>' : '–';
+      }}
     ]
   },
   accounts: {
     title: 'Accounts', hasKanban: false,
     getData: function(){ return (window.DATA.accounts||[]).slice(); },
-    columns: [{key:'name',label:'Account Name'},{key:'id',label:'ID'}]
+    columns: [
+      {key:'name',label:'Account Name',isLink:true},
+      {key:'industry',label:'Industry'},
+      {key:'city',label:'City'},
+      {key:'pipeline',label:'Pipeline',render:function(it){return it.pipeline ? fmtAmount(it.pipeline) : '–';}},
+      {key:'opps',label:'Opps',render:function(it){return it.opps||0;}},
+      {key:'status',label:'Status',render:function(it){
+        var c = it.status==='Active' ? 'var(--success)' : 'var(--text-light)';
+        return '<span class="stage-badge" style="color:'+c+'"><span class="dot" style="background:'+c+'"></span>'+it.status+'</span>';
+      }}
+    ]
   },
   contacts: {
     title: 'Contacts', hasKanban: false,
     getData: function(){ return (window.DATA.contacts||[]).slice(); },
     columns: [
-      {key:'name',label:'Name'},
+      {key:'name',label:'Name',isLink:true},
       {key:'account',label:'Account',render:function(it){return getAccountName(it.account);}},
       {key:'role',label:'Role'},
-      {key:'email',label:'Email'}
+      {key:'email',label:'Email'},
+      {key:'phone',label:'Phone'}
     ]
   }
 };
@@ -125,7 +141,7 @@ function renderObjContent(objKey, cfg, mode, contentEl) {
   if (ce) ce.textContent = filtered.length;
 
   if (mode==='kanban' && cfg.hasKanban) { renderKanban(objKey, cfg, filtered, contentEl); }
-  else if (mode==='list') { renderListView(filtered, cfg.columns, contentEl); }
+  else if (mode==='list') { renderListView(filtered, cfg.columns, contentEl, objKey); }
   else { contentEl.innerHTML='<div class="placeholder-view">'+svgIcon('chart',18,'var(--text-light)')+' '+mode.charAt(0).toUpperCase()+mode.slice(1)+' view — coming soon</div>'; }
 }
 
@@ -188,17 +204,32 @@ function bindDragDrop(objKey, cfg, container) {
   });
 }
 
-function renderListView(items, columns, container) {
+function renderListView(items, columns, container, objKey) {
   var html = '<div class="list-view"><table><thead><tr>' +
     columns.map(function(c){return '<th>'+c.label+'</th>';}).join('') +
     '</tr></thead><tbody>' +
     items.map(function(item) {
-      return '<tr>' + columns.map(function(c) {
-        var cls = c.key==='name' ? ' class="col-name"' : '';
+      return '<tr data-id="'+item.id+'" data-obj="'+(objKey||'')+'">' + columns.map(function(c) {
         var val = c.render ? c.render(item) : (item[c.key]||'');
-        return '<td'+cls+'>'+val+'</td>';
+        if (c.isLink) {
+          return '<td class="col-name"><a class="record-link" data-id="'+item.id+'" data-obj="'+(objKey||'')+'">'+val+'</a></td>';
+        }
+        return '<td>'+val+'</td>';
       }).join('') + '</tr>';
     }).join('') +
     '</tbody></table></div>';
   container.innerHTML = html;
+
+  // Bind name link clicks
+  container.querySelectorAll('.record-link').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var id = link.dataset.id;
+      var obj = link.dataset.obj;
+      if (id && obj) {
+        console.log('Open record:', obj, id);
+        // TODO: navigate to record detail when record.js is implemented
+      }
+    });
+  });
 }

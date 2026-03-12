@@ -73,27 +73,48 @@ body {
 }
 
 .sb-logo {
-  height: 70px;
+  height: 48px;
   display: flex;
   align-items: center;
-  padding: 0 14px;
+  padding: 0 12px;
+  gap: 9px;
   border-bottom: 1px solid rgba(255,255,255,.07);
   overflow: hidden;
+  white-space: nowrap;
+  margin-bottom: 4px;
 }
 
 .collapsed .sb-logo {
   justify-content: center;
-  padding: 0 6px;
+  padding: 0 8px;
+  gap: 0;
 }
 
-.sb-logo img {
-  height: 60px;
+.sb-logo-icon {
+  height: 28px;
+  width: 28px;
   object-fit: contain;
-  transition: height 0.2s;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: height 0.2s, width 0.2s;
 }
 
-.collapsed .sb-logo img {
-  height: 30px;
+.collapsed .sb-logo-icon {
+  height: 24px;
+  width: 24px;
+}
+
+.sb-logo-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.sb-logo-360 {
+  color: rgba(255,255,255,0.4);
+  font-weight: 500;
 }
 
 .sb-nav {
@@ -635,4 +656,15 @@ body {
   padding: 1px 6px;
   border-radius: 8px;
   border: 1px solid var(--border);
+}
+
+/* Record name link in list view */
+.record-link {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.record-link:hover {
+  text-decoration: underline;
 }
