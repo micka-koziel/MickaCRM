@@ -18,6 +18,8 @@ function renderApp() {
 function renderPageHeader() {
   var header = document.getElementById("page-header");
   if (APP.page === "home") { header.style.display = "none"; return; }
+  // Hide page header for account records (Account 360 has its own header)
+  if (APP.page === "record" && APP.currentObj === "accounts") { header.style.display = "none"; return; }
   header.style.display = "flex";
   var obj = APP.currentObj ? OBJ[APP.currentObj] : null;
   var iconEl = document.getElementById("page-header-icon");
