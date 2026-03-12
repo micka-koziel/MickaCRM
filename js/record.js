@@ -1,128 +1,51 @@
 // ============================================================
-// MICKACRM 360 — RECORD.JS
-// Record Detail View (fiche détail)
-// 2-column layout: fields + related objects
+// MICKACRM 360 v3 — RECORD.JS
 // ============================================================
-
 function renderRecord(objKey, recId) {
   var container = document.getElementById("main-content");
-  var obj = OBJ[objKey];
-  var rec = findRecord(objKey, recId);
-
-  if (!rec) {
-    container.innerHTML = '<div style="padding:40px;color:var(--muted);text-align:center">Enregistrement introuvable</div>';
-    return;
-  }
-
-  var fields = Object.entries(rec).filter(function(e) {
-    return e[0] !== "id" && e[0] !== "amountNum";
-  });
-
+  var obj = OBJ[objKey]; var rec = findRecord(objKey, recId);
+  if (!rec) { container.innerHTML = '<div style="padding:40px;color:var(--muted);text-align:center">Introuvable</div>'; return; }
+  var fields = Object.entries(rec).filter(function(e){return e[0]!=="id"&&e[0]!=="amountNum";});
   var related = getRelatedRecords(objKey, rec);
+  var html = '<div class="record-layout" style="animation:fadeSlide .2s ease">';
 
-  var html = '<div class="record-layout anim-fade-slide">';
-
-  // ─── Left: Fields Card
-  html += '<div class="record-card">';
-
-  // Header
-  html += '<div class="record-header">';
-  html += '<span class="rec-icon">' + obj.icon + '</span>';
-  html += '<div><div class="rec-name">' + getRecordName(rec) + '</div>';
-  html += '<div class="rec-type">' + obj.label + '</div></div>';
-  html += '</div>';
-
-  // Fields grid
+  // Left: fields
+  html += '<div class="record-card"><div class="record-header">' + renderObjIcon(objKey,22,COLORS.text2) + '<div><div style="font-size:16px;font-weight:700;color:var(--text)">' + getRecordName(rec) + '</div><div style="font-size:11px;color:var(--muted)">' + obj.label + '</div></div></div>';
   html += '<div class="record-fields">';
   fields.forEach(function(f) {
-    var key = f[0], val = f[1];
-    var isFullWidth = (obj.fullWidthFields && obj.fullWidthFields.includes(key)) || key === "notes" || key === "address";
-    html += '<div' + (isFullWidth ? ' class="field-full"' : '') + '>';
-    html += '<div class="field-label">' + (FIELD_LABELS[key] || key) + '</div>';
-
-    if (isBadgeField(key) && val) {
-      var bc = BADGE_COLORS[val] || COLORS.text2;
-      html += '<div class="field-value"><span class="badge badge-sm" style="background:' + bc + '14;color:' + bc + '">' + val + '</span></div>';
-    } else {
-      html += '<div class="field-value">' + formatFieldValue(key, val) + '</div>';
-    }
-
-    html += '</div>';
+    var k=f[0], v=f[1];
+    var isFullWidth = (obj.fullWidthFields && obj.fullWidthFields.indexOf(k)>=0) || k==="notes" || k==="address";
+    html += '<div' + (isFullWidth?' class="field-full"':'') + '>';
+    html += '<div class="field-label">' + (FIELD_LABELS[k]||k) + '</div>';
+    html += '<div class="field-value">' + (isBadgeField(k)&&v ? createBadge(v) : formatFieldValue(k,v)) + '</div></div>';
   });
   html += '</div></div>';
 
-  // ─── Right: Related Cards
-  html += '<div style="display:flex;flex-direction:column;gap:14px">';
-
+  // Right: related
+  html += '<div style="display:flex;flex-direction:column;gap:12px">';
   var hasRelated = false;
-
-  if (related.contacts && related.contacts.length > 0) {
-    hasRelated = true;
-    html += buildRelCard("Contacts", "👤", related.contacts.map(function(c) {
-      return { id: c.id, name: c.firstName + " " + c.lastName, sub: c.title, objKey: "contacts" };
-    }));
-  }
-
-  if (related.opportunities && related.opportunities.length > 0) {
-    hasRelated = true;
-    html += buildRelCard("Opportunités", "💰", related.opportunities.map(function(o) {
-      return { id: o.id, name: o.name, sub: o.amount + " · " + o.stage, objKey: "opportunities" };
-    }));
-  }
-
-  if (related.quotes && related.quotes.length > 0) {
-    hasRelated = true;
-    html += buildRelCard("Devis", "📄", related.quotes.map(function(q) {
-      return { id: q.id, name: q.name, sub: q.amount + " · " + q.status, objKey: "quotes" };
-    }));
-  }
-
-  if (related.activities && related.activities.length > 0) {
-    hasRelated = true;
-    html += buildRelCard("Activités", "📞", related.activities.map(function(a) {
-      return { id: a.id, name: a.subject, sub: a.type + " · " + a.date, objKey: null };
-    }));
-  }
-
-  if (related.tasks && related.tasks.length > 0) {
-    hasRelated = true;
-    html += buildRelCard("Tâches", "✅", related.tasks.map(function(t) {
-      return { id: t.id, name: t.subject, sub: t.priority + " · " + t.status, objKey: null };
-    }));
-  }
-
-  if (!hasRelated) {
-    html += '<div class="record-card" style="padding:24px;color:var(--muted);font-size:12px;text-align:center">Aucune donnée liée</div>';
-  }
-
-  html += '</div>'; // end right col
-  html += '</div>'; // end record-layout
-
+  if (related.contacts && related.contacts.length) { hasRelated=true; html += buildRelCard("Contacts","user",related.contacts.map(function(c){return{id:c.id,name:c.firstName+" "+c.lastName,sub:c.title,objKey:"contacts"};})); }
+  if (related.opportunities && related.opportunities.length) { hasRelated=true; html += buildRelCard("Opportunités","briefcase",related.opportunities.map(function(o){return{id:o.id,name:o.name,sub:o.amount+" · "+o.stage,objKey:"opportunities"};})); }
+  if (related.quotes && related.quotes.length) { hasRelated=true; html += buildRelCard("Devis","file",related.quotes.map(function(q){return{id:q.id,name:q.name,sub:q.amount+" · "+q.status,objKey:"quotes"};})); }
+  if (related.activities && related.activities.length) { hasRelated=true; html += buildRelCard("Activités","phone",related.activities.map(function(a){return{id:a.id,name:a.subject,sub:a.type+" · "+a.date};})); }
+  if (related.tasks && related.tasks.length) { hasRelated=true; html += buildRelCard("Tâches","check",related.tasks.map(function(t){return{id:t.id,name:t.subject,sub:t.priority+" · "+t.status};})); }
+  if (!hasRelated) html += '<div class="record-card" style="padding:24px;color:var(--muted);font-size:12px;text-align:center">Aucune donnée liée</div>';
+  html += '</div></div>';
   container.innerHTML = html;
 
-  // Bind click on related items
   container.querySelectorAll(".rel-card-item.clickable").forEach(function(el) {
-    el.onclick = function() {
-      var oKey = el.getAttribute("data-obj");
-      var rId = el.getAttribute("data-id");
-      if (oKey && rId) navigate("record", oKey, rId);
-    };
+    el.onclick = function() { var oK=el.getAttribute("data-obj"),rId=el.getAttribute("data-id"); if(oK&&rId)navigate("record",oK,rId); };
   });
 }
 
-// ─── Related Card Builder ──────────────────────────────────────
-function buildRelCard(title, icon, items) {
-  var html = '<div class="rel-card">';
-  html += '<div class="rel-card-header"><span>' + icon + '</span> ' + title + ' <span class="count">' + items.length + '</span></div>';
-
-  items.forEach(function(it, i) {
+function buildRelCard(title, iconName, items) {
+  var html = '<div class="rel-card"><div class="rel-card-header">' + renderIcon(iconName,14,COLORS.text2) + title + '<span style="margin-left:auto;font-size:10px;color:var(--muted);font-weight:400">' + items.length + '</span></div>';
+  items.forEach(function(it,i) {
     var clickable = it.objKey ? ' clickable" data-obj="' + it.objKey + '" data-id="' + it.id : '';
     html += '<div class="rel-card-item' + clickable + '">';
-    html += '<div class="item-name">' + it.name + '</div>';
-    html += '<div class="item-sub">' + it.sub + '</div>';
-    html += '</div>';
+    html += '<div style="font-size:12px;font-weight:600;color:var(--primary)">' + it.name + '</div>';
+    html += '<div style="font-size:10.5px;color:var(--muted);margin-top:1px">' + it.sub + '</div></div>';
   });
-
   html += '</div>';
   return html;
 }

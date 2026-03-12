@@ -12,47 +12,30 @@
   <!-- ═══════════ TOPBAR ═══════════ -->
   <div class="topbar">
     <div class="topbar-left">
-      <!-- Logo -->
       <div class="logo" id="logo">
-        <div class="logo-bars">
-          <div class="logo-bar" style="height:10px;background:#0195D6"></div>
-          <div class="logo-bar" style="height:13px;background:#4DB1B3"></div>
-          <div class="logo-bar" style="height:16px;background:#E66407"></div>
-          <div class="logo-bar" style="height:19px;background:#C5284C"></div>
-        </div>
+        <div class="logo-icon">C</div>
         <span class="logo-text">CRM<span>360</span></span>
       </div>
-
       <div class="topbar-sep"></div>
-
-      <!-- Nav Pills -->
-      <button class="topbar-pill active" id="nav-home">🏠 Accueil</button>
-      <button class="topbar-pill" id="nav-pipeline">📊 Pipeline</button>
-
-      <!-- Objects Dropdown -->
+      <button class="topbar-pill active" id="nav-home">Accueil</button>
+      <button class="topbar-pill" id="nav-pipeline">Pipeline</button>
       <div style="position:relative">
-        <button class="topbar-menu-btn" id="menu-btn">☰ <span class="arrow">▾</span></button>
-        <div class="dropdown dropdown-left" id="menu-dropdown" style="display:none"></div>
+        <button class="topbar-menu-btn" id="menu-btn">Objets ▾</button>
+        <div class="dropdown" id="menu-dropdown" style="display:none;top:120%;left:0;min-width:210px"></div>
       </div>
     </div>
-
     <div class="topbar-right">
-      <!-- Search -->
       <div style="position:relative">
         <div class="search-wrapper closed" id="search-wrapper">
-          <span class="search-icon" id="search-icon">🔍</span>
+          <span id="search-icon" style="cursor:pointer;flex-shrink:0;display:flex"></span>
           <input class="search-input" id="search-input" placeholder="Rechercher..." style="display:none">
         </div>
-        <div class="dropdown dropdown-search" id="search-results" style="display:none"></div>
+        <div class="dropdown" id="search-results" style="display:none;top:120%;right:0;min-width:260px"></div>
       </div>
-
-      <!-- Quick Create -->
       <div style="position:relative">
-        <button class="btn-create" id="create-btn">+</button>
-        <div class="dropdown dropdown-right" id="create-dropdown" style="display:none"></div>
+        <button class="btn-create" id="create-btn"></button>
+        <div class="dropdown" id="create-dropdown" style="display:none;top:120%;right:0;min-width:190px"></div>
       </div>
-
-      <!-- Avatar -->
       <div class="avatar">M</div>
     </div>
   </div>
@@ -61,36 +44,34 @@
   <div class="breadcrumbs" id="breadcrumbs"></div>
 
   <!-- ═══════════ PAGE HEADER ═══════════ -->
-  <div class="page-header" id="page-header" style="display:none;padding:0 20px">
-    <div class="page-header-left">
-      <span class="page-header-icon" id="page-header-icon"></span>
-      <h1 class="page-header-title" id="page-header-title"></h1>
+  <div class="page-header" id="page-header" style="display:none;padding:0 24px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span id="page-header-icon"></span>
+      <h1 style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.3px" id="page-header-title"></h1>
     </div>
     <button class="btn-primary" id="page-header-new-btn" style="display:none"
-      onclick="showToast('Création — bientôt disponible', 'info')">+ Nouveau</button>
+      onclick="showToast('Création — bientôt disponible','info')"><span id="page-header-new-icon"></span>Nouveau</button>
   </div>
 
   <!-- ═══════════ MAIN CONTENT ═══════════ -->
-  <div class="main-content anim-fade-slide" id="main-content"></div>
+  <div class="main-content" id="main-content"></div>
 
-  <!-- ═══════════ SCRIPTS (order matters!) ═══════════ -->
-  <!-- 1. Config & constants -->
+  <!-- ═══════════ SCRIPTS ═══════════ -->
   <script src="js/config.js"></script>
-  <!-- 2. Mock data -->
   <script src="js/data.js"></script>
-  <!-- 3. Object registry -->
   <script src="js/objects.js"></script>
-  <!-- 4. UI components -->
   <script src="js/ui.js"></script>
-  <!-- 5. Navigation & routing -->
   <script src="js/nav.js"></script>
-  <!-- 6. Pages -->
   <script src="js/dashboard.js"></script>
   <script src="js/list.js"></script>
   <script src="js/record.js"></script>
   <script src="js/pipeline.js"></script>
-  <!-- 7. App entry (must be last) -->
   <script src="js/app.js"></script>
-
+  <script>
+    // Init icons in topbar after scripts load
+    document.getElementById("search-icon").innerHTML = renderIcon("search",14,"rgba(255,255,255,0.4)");
+    document.getElementById("create-btn").innerHTML = renderIcon("plus",16,"#fff");
+    document.getElementById("page-header-new-icon").innerHTML = renderIcon("plus",14,"#fff");
+  </script>
 </body>
 </html>
