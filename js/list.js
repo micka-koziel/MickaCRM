@@ -13,8 +13,8 @@ function renderListInner(objKey) {
 
   var html = '<div class="table-container" style="animation:fadeSlide .2s ease">';
   html += '<div style="margin-bottom:14px;display:flex;gap:10px;align-items:center"><div style="position:relative;flex:1;max-width:300px"><span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);display:flex">' + renderIcon("search",14,COLORS.muted) + '</span>';
-  html += '<input id="list-filter" placeholder="Rechercher..." value="' + listState.filter + '" style="width:100%;padding:9px 12px 9px 32px;border:1px solid var(--border);border-radius:9px;font-size:12px;outline:none;background:var(--white);box-shadow:var(--sh1);font-family:var(--font)"></div>';
-  html += '<span style="font-size:11px;color:var(--muted)">' + data.length + ' enregistrement' + (data.length>1?'s':'') + '</span></div>';
+  html += '<input id="list-filter" placeholder="Search..." value="' + listState.filter + '" style="width:100%;padding:9px 12px 9px 32px;border:1px solid var(--border);border-radius:9px;font-size:12px;outline:none;background:var(--white);box-shadow:var(--sh1);font-family:var(--font)"></div>';
+  html += '<span style="font-size:11px;color:var(--muted)">' + data.length + ' record' + (data.length>1?'s':'') + '</span></div>';
 
   html += '<div class="data-table"><div style="overflow-x:auto"><table><thead><tr>';
   obj.cols.forEach(function(col) { var arrow = listState.sortCol===col?(listState.sortDir==="asc"?" ↑":" ↓"):""; html += '<th data-col="' + col + '">' + obj.colLabels[col] + arrow + '</th>'; });

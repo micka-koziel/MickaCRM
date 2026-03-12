@@ -13,27 +13,27 @@ var COLORS = {
 };
 
 var BADGE_COLORS = {
-  Client:COLORS.success, Prospect:COLORS.primary, Nouveau:COLORS.stageTeal,
-  "Contacté":COLORS.warn, "Qualifié":COLORS.primary,
-  Haute:COLORS.red, Critique:"#9f1239", Moyenne:COLORS.warn, Basse:COLORS.stageTeal,
-  Ouvert:COLORS.red, "En cours":COLORS.warn, "Résolu":COLORS.success,
-  "À faire":COLORS.muted, Brouillon:COLORS.muted,
-  "Envoyé":COLORS.primary, "Accepté":COLORS.success,
-  Actif:COLORS.success, "Planifié":COLORS.primary, "Terminé":COLORS.muted,
-  Construction:COLORS.warn, "Pré-étude":COLORS.stageTeal,
+  Client:COLORS.success, Prospect:COLORS.primary, New:COLORS.stageTeal,
+  "Contacted":COLORS.warn, "Qualified":COLORS.primary,
+  High:COLORS.red, Critical:"#9f1239", Medium:COLORS.warn, Low:COLORS.stageTeal,
+  Open:COLORS.red, "In Progress":COLORS.warn, "Resolved":COLORS.success,
+  "To Do":COLORS.muted, Draft:COLORS.muted,
+  "Sent":COLORS.primary, "Accepted":COLORS.success,
+  Active:COLORS.success, "Planned":COLORS.primary, "Completed":COLORS.muted,
+  Construction:COLORS.warn, "Pre-study":COLORS.stageTeal,
 };
 
 var STAGES = [
-  {key:"Lead identifié",     short:"Lead",       color:COLORS.stageGray},
-  {key:"Étude préalable",    short:"Étude",      color:COLORS.stageTeal},
-  {key:"Appel d'offres",     short:"AO",         color:COLORS.stageBlue},
-  {key:"Proposition soumise",short:"Proposition", color:COLORS.stageAmber},
-  {key:"Négociation",        short:"Négo",       color:COLORS.stageOrange},
-  {key:"Contrat signé",      short:"Signé",      color:COLORS.stageGreen},
+  {key:"Lead",              short:"Lead",       color:COLORS.stageGray},
+  {key:"Study",             short:"Study",      color:COLORS.stageTeal},
+  {key:"Tender",            short:"Tender",     color:COLORS.stageBlue},
+  {key:"Proposal",          short:"Proposal",   color:COLORS.stageAmber},
+  {key:"Negotiation",       short:"Negot.",     color:COLORS.stageOrange},
+  {key:"Closed Won",        short:"Won",        color:COLORS.stageGreen},
 ];
 
-var ACTIVITY_ICONS  = {"Appel":"phone","Réunion":"users","Visite chantier":"hardhat","Email":"mail"};
-var ACTIVITY_COLORS = {"Appel":COLORS.primary,"Réunion":"#7c3aed","Visite chantier":COLORS.warn,"Email":COLORS.stageTeal};
+var ACTIVITY_ICONS  = {"Call":"phone","Meeting":"users","Site Visit":"hardhat","Email":"mail"};
+var ACTIVITY_COLORS = {"Call":COLORS.primary,"Meeting":"#7c3aed","Site Visit":COLORS.warn,"Email":COLORS.stageTeal};
 
 var QUICK_CREATE = ["accounts","contacts","leads","opportunities","projects"];
 

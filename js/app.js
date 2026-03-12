@@ -22,7 +22,7 @@ function renderPageHeader() {
   var iconEl = document.getElementById("page-header-icon");
   var titleEl = document.getElementById("page-header-title");
   var newBtn = document.getElementById("page-header-new-btn");
-  if (APP.page === "pipeline") { iconEl.innerHTML = renderIcon("briefcase",20,COLORS.text2); titleEl.textContent = "Pipeline Opportunités"; newBtn.style.display = "none"; }
+  if (APP.page === "pipeline") { iconEl.innerHTML = renderIcon("briefcase",20,COLORS.text2); titleEl.textContent = "Opportunities Pipeline"; newBtn.style.display = "none"; }
   else if (APP.page === "list" && obj) { iconEl.innerHTML = renderObjIcon(APP.currentObj,20,COLORS.text2); titleEl.textContent = obj.label; newBtn.style.display = "flex"; }
   else if (APP.page === "record" && obj) { var lastBc = APP.breadcrumbs[APP.breadcrumbs.length-1]; iconEl.innerHTML = renderObjIcon(APP.currentObj,20,COLORS.text2); titleEl.textContent = lastBc?lastBc.label:""; newBtn.style.display = "none"; }
   else { header.style.display = "none"; }

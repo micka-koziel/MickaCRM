@@ -4,7 +4,7 @@
 function renderRecord(objKey, recId) {
   var container = document.getElementById("main-content");
   var obj = OBJ[objKey]; var rec = findRecord(objKey, recId);
-  if (!rec) { container.innerHTML = '<div style="padding:40px;color:var(--muted);text-align:center">Introuvable</div>'; return; }
+  if (!rec) { container.innerHTML = '<div style="padding:40px;color:var(--muted);text-align:center">Not found</div>'; return; }
   var fields = Object.entries(rec).filter(function(e){return e[0]!=="id"&&e[0]!=="amountNum";});
   var related = getRelatedRecords(objKey, rec);
   var html = '<div class="record-layout" style="animation:fadeSlide .2s ease">';
@@ -25,11 +25,11 @@ function renderRecord(objKey, recId) {
   html += '<div style="display:flex;flex-direction:column;gap:12px">';
   var hasRelated = false;
   if (related.contacts && related.contacts.length) { hasRelated=true; html += buildRelCard("Contacts","user",related.contacts.map(function(c){return{id:c.id,name:c.firstName+" "+c.lastName,sub:c.title,objKey:"contacts"};})); }
-  if (related.opportunities && related.opportunities.length) { hasRelated=true; html += buildRelCard("Opportunités","briefcase",related.opportunities.map(function(o){return{id:o.id,name:o.name,sub:o.amount+" · "+o.stage,objKey:"opportunities"};})); }
-  if (related.quotes && related.quotes.length) { hasRelated=true; html += buildRelCard("Devis","file",related.quotes.map(function(q){return{id:q.id,name:q.name,sub:q.amount+" · "+q.status,objKey:"quotes"};})); }
-  if (related.activities && related.activities.length) { hasRelated=true; html += buildRelCard("Activités","phone",related.activities.map(function(a){return{id:a.id,name:a.subject,sub:a.type+" · "+a.date};})); }
-  if (related.tasks && related.tasks.length) { hasRelated=true; html += buildRelCard("Tâches","check",related.tasks.map(function(t){return{id:t.id,name:t.subject,sub:t.priority+" · "+t.status};})); }
-  if (!hasRelated) html += '<div class="record-card" style="padding:24px;color:var(--muted);font-size:12px;text-align:center">Aucune donnée liée</div>';
+  if (related.opportunities && related.opportunities.length) { hasRelated=true; html += buildRelCard("Opportunities","briefcase",related.opportunities.map(function(o){return{id:o.id,name:o.name,sub:o.amount+" · "+o.stage,objKey:"opportunities"};})); }
+  if (related.quotes && related.quotes.length) { hasRelated=true; html += buildRelCard("Quotes","file",related.quotes.map(function(q){return{id:q.id,name:q.name,sub:q.amount+" · "+q.status,objKey:"quotes"};})); }
+  if (related.activities && related.activities.length) { hasRelated=true; html += buildRelCard("Activities","phone",related.activities.map(function(a){return{id:a.id,name:a.subject,sub:a.type+" · "+a.date};})); }
+  if (related.tasks && related.tasks.length) { hasRelated=true; html += buildRelCard("Tasks","check",related.tasks.map(function(t){return{id:t.id,name:t.subject,sub:t.priority+" · "+t.status};})); }
+  if (!hasRelated) html += '<div class="record-card" style="padding:24px;color:var(--muted);font-size:12px;text-align:center">No related data</div>';
   html += '</div></div>';
   container.innerHTML = html;
 

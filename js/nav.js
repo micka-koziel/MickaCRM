@@ -1,14 +1,14 @@
 // ============================================================
 // MICKACRM 360 v3 — NAV.JS
 // ============================================================
-var APP = { page:"home", currentObj:null, currentRec:null, breadcrumbs:[{label:"Accueil",page:"home"}] };
+var APP = { page:"home", currentObj:null, currentRec:null, breadcrumbs:[{label:"Home",page:"home"}] };
 
 function navigate(page, objKey, recId) {
   APP.page = page;
-  if (page === "home") { APP.currentObj=null; APP.currentRec=null; APP.breadcrumbs=[{label:"Accueil",page:"home"}]; }
-  else if (page === "pipeline") { APP.currentObj="opportunities"; APP.currentRec=null; APP.breadcrumbs=[{label:"Accueil",page:"home"},{label:"Pipeline",page:"pipeline"}]; }
-  else if (page === "list" && objKey) { APP.currentObj=objKey; APP.currentRec=null; APP.breadcrumbs=[{label:"Accueil",page:"home"},{label:OBJ[objKey].label,page:"list",obj:objKey}]; }
-  else if (page === "record" && objKey && recId) { APP.currentObj=objKey; APP.currentRec=recId; var rec=findRecord(objKey,recId); var name=rec?getRecordName(rec):recId; APP.breadcrumbs=[{label:"Accueil",page:"home"},{label:OBJ[objKey].label,page:"list",obj:objKey},{label:name,page:"record"}]; }
+  if (page === "home") { APP.currentObj=null; APP.currentRec=null; APP.breadcrumbs=[{label:"Home",page:"home"}]; }
+  else if (page === "pipeline") { APP.currentObj="opportunities"; APP.currentRec=null; APP.breadcrumbs=[{label:"Home",page:"home"},{label:"Pipeline",page:"pipeline"}]; }
+  else if (page === "list" && objKey) { APP.currentObj=objKey; APP.currentRec=null; APP.breadcrumbs=[{label:"Home",page:"home"},{label:OBJ[objKey].label,page:"list",obj:objKey}]; }
+  else if (page === "record" && objKey && recId) { APP.currentObj=objKey; APP.currentRec=recId; var rec=findRecord(objKey,recId); var name=rec?getRecordName(rec):recId; APP.breadcrumbs=[{label:"Home",page:"home"},{label:OBJ[objKey].label,page:"list",obj:objKey},{label:name,page:"record"}]; }
   renderApp();
 }
 
@@ -68,9 +68,9 @@ function setupQuickCreate() {
   var btn=document.getElementById("create-btn"), dd=document.getElementById("create-dropdown");
   dd.innerHTML="";
   QUICK_CREATE.forEach(function(key) {
-    var obj=OBJ[key]; var item=document.createElement("button"); item.className="dropdown-item";
-    item.innerHTML = renderObjIcon(key,14,COLORS.text2) + "Nouveau " + obj.label.slice(0,-1);
-    item.onclick = function() { dd.style.display="none"; showToast("Création "+obj.label.slice(0,-1)+" — bientôt disponible","info"); };
+    var obj=OBJ[key]; var singular=obj.label.replace(/s$/,""); var item=document.createElement("button"); item.className="dropdown-item";
+    item.innerHTML = renderObjIcon(key,14,COLORS.text2) + "New " + singular;
+    item.onclick = function() { dd.style.display="none"; showToast("Create "+singular+" — coming soon","info"); };
     dd.appendChild(item);
   });
   btn.onclick = function(e) { e.stopPropagation(); dd.style.display=dd.style.display==="none"?"block":"none"; };
