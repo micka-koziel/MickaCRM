@@ -1,261 +1,58 @@
-// ============================================================
-// MICKACRM 360 v3 — DASHBOARD.JS — Construction Cockpit
-// Grid 4x2 + 2col — Fully interactive — English UI
-// ============================================================
+/* dashboard.js — Cockpit Dashboard */
 
-function renderDashboard() {
-  var container = document.getElementById("main-content");
-  var totalPipe = OPPORTUNITIES.reduce(function(s,o){return s+o.amountNum;},0);
-  var openCases = typeof CASES!=="undefined" ? CASES.filter(function(c){return c.status!=="Closed"&&c.status!=="Resolved";}).length : 0;
-  var newCases = typeof CASES!=="undefined" ? CASES.filter(function(c){return c.status==="Open";}).length : 0;
-  var wipCases = typeof CASES!=="undefined" ? CASES.filter(function(c){return c.status==="In Progress";}).length : 0;
-  var wonAmt = OPPORTUNITIES.filter(function(o){return o.stage==="Closed Won";}).reduce(function(s,o){return s+o.amountNum;},0);
-  var dateStr = new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
-
-  var html = '<div class="ck">';
-
-  // ─── HEADER ───
-  html += '<div class="ck-head"><div><h1 class="ck-h1">Good morning, Micka</h1><p class="ck-sub">Construction Portfolio · '+dateStr+'</p></div></div>';
-
-  // ═══ ROW 1 — 4 CELLS ═══
-  html += '<div class="ck-grid4">';
-
-  // Cell 1: Pipeline
-  html += cellOpen("Opportunity Pipeline","Kanban","navigate('pipeline')")+'<div onclick="navigate(\'list\',\'opportunities\')" style="cursor:pointer">';
-  html += '<div class="ck-big-row"><span class="ck-big">'+totalPipe.toFixed(1)+'M€</span><span class="ck-trend-up">+12% YOY</span></div>';
-  html += miniSparkline([12,18,15,22,19,28,25,totalPipe],"#2563eb",120,28);
-  html += '<div class="ck-hint">'+OPPORTUNITIES.length+' active opportunities</div>';
-  html += '</div>'+cellClose();
-
-  // Cell 2: Funnel stages
-  html += cellOpen("Pipeline Stages","Kanban","navigate('pipeline')");
-  var stages=[{key:"Lead",label:"Lead",color:"#94a3b8"},{key:"Study",label:"Study",color:"#60a5fa"},{key:"Tender",label:"Tender",color:"#818cf8"},{key:"Proposal",label:"Proposal",color:"#a78bfa"},{key:"Negotiation",label:"Negot.",color:"#f59e0b"},{key:"Closed Won",label:"Won",color:"#10b981"},{key:"Launched",label:"Launched",color:"#059669"}];
-  var maxSt=1;
-  var stData=stages.map(function(st){var opps=OPPORTUNITIES.filter(function(o){return o.stage===st.key;});var c=opps.length;if(c>maxSt)maxSt=c;return{label:st.label,color:st.color,count:c};});
-  html += '<div class="ck-mini-bars">';
-  stData.forEach(function(s){
-    var w=Math.max((s.count/maxSt)*100,s.count>0?15:0);
-    html += '<div class="ck-mini-bar-row ck-clickable" onclick="navigate(\'pipeline\')">';
-    html += '<span class="ck-mini-label">'+s.label+'</span>';
-    html += '<div class="ck-mini-track"><div class="ck-mini-fill" style="width:'+w+'%;background:'+s.color+'"></div></div>';
-    html += '<span class="ck-mini-val">'+s.count+'</span></div>';
-  });
-  html += '</div>'+cellClose();
-
-  // Cell 3: Claims
-  html += cellOpen("Claims / Issues","View all","navigate('list','cases')")+'<div onclick="navigate(\'list\',\'cases\')" style="cursor:pointer">';
-  html += '<div style="display:flex;gap:16px;margin-bottom:6px"><div><div class="ck-tiny-label">Total</div><div class="ck-num-lg">'+openCases+'</div></div>';
-  html += '<div><div class="ck-tiny-label">Open</div><div class="ck-num-lg" style="color:#dc2626">'+newCases+'</div></div></div>';
-  html += stackedBar([{v:newCases,c:"#dc2626",l:"Open"},{v:wipCases,c:"#f59e0b",l:"In Progress"}],14);
-  html += '<div class="ck-legend-row"><div class="ck-legend-item"><div class="ck-legend-dot" style="background:#dc2626"></div><span>Open</span></div>';
-  html += '<div class="ck-legend-item"><div class="ck-legend-dot" style="background:#f59e0b"></div><span>In Progress</span></div></div>';
-  html += '</div>'+cellClose();
-
-  // Cell 4: Activities
-  var actTypes=[{key:"Call",label:"Calls",color:"#3b82f6"},{key:"Meeting",label:"Meetings",color:"#8b5cf6"},{key:"Site Visit",label:"Site Visits",color:"#f59e0b"},{key:"Email",label:"Emails",color:"#10b981"}];
-  var actData=actTypes.map(function(t){return{label:t.label,color:t.color,count:ACTIVITIES.filter(function(a){return a.type===t.key;}).length};});
-  var maxAct=Math.max.apply(null,actData.map(function(a){return a.count;}))||1;
-  var actTotal=actData.reduce(function(s,a){return s+a.count;},0);
-
-  html += cellOpen("Activities (30d)","View all","navigate('list','activities')")+'<div onclick="navigate(\'list\',\'activities\')" style="cursor:pointer">';
-  html += '<div class="ck-big-row"><span class="ck-big">'+actTotal+'</span></div>';
-  html += '<div class="ck-mini-bars">';
-  actData.forEach(function(a){
-    var w=(a.count/maxAct)*100;
-    html += '<div class="ck-mini-bar-row ck-clickable" onclick="event.stopPropagation();navigate(\'list\',\'activities\')">';
-    html += '<span class="ck-mini-label" style="width:52px">'+a.label+'</span>';
-    html += '<div class="ck-mini-track"><div class="ck-mini-fill" style="width:'+w+'%;background:'+a.color+'"></div></div>';
-    html += '<span class="ck-mini-val">'+a.count+'</span></div>';
-  });
-  html += '</div><div class="ck-hint" style="margin-top:5px">Last activity: 2h ago</div>';
-  html += '</div>'+cellClose();
-
-  html += '</div>'; // end row 1
-
-  // ═══ ROW 2 — 4 CELLS ═══
-  html += '<div class="ck-grid4">';
-
-  // Cell 5: Won vs Target
-  html += cellOpen("Won vs Target","Won deals","navigate('list','opportunities')")+'<div onclick="navigate(\'list\',\'opportunities\')" style="cursor:pointer">';
-  var pctObj = Math.round((wonAmt/12)*100);
-  html += '<div style="display:flex;gap:14px;margin-bottom:6px"><div><div class="ck-tiny-label">Won</div><div style="font-size:20px;font-weight:800;color:var(--text)">'+wonAmt.toFixed(1)+'M€</div><div class="ck-trend-down">-8% YOY</div></div>';
-  html += '<div><div class="ck-tiny-label">Target</div><div style="font-size:20px;font-weight:800;color:var(--muted)">12.0M€</div></div></div>';
-  html += progressBar(pctObj,"#10b981",10);
-  html += '<div style="display:flex;justify-content:space-between;margin-top:3px"><span style="font-size:9px;font-weight:600;color:#10b981">'+pctObj+'%</span><span class="ck-hint">Yearly target</span></div>';
-  html += '</div>'+cellClose();
-
-  // Cell 6: Top Opps
-  var topOpps = OPPORTUNITIES.slice().sort(function(a,b){return b.amountNum-a.amountNum;}).slice(0,4);
-  html += cellOpen("Top Opportunities","View all","navigate('list','opportunities')");
-  html += '<div class="ck-top-list">';
-  topOpps.forEach(function(o,i){
-    html += '<div class="ck-top-row ck-clickable" onclick="navigate(\'record\',\'opportunities\',\''+o.id+'\')" style="'+(i<topOpps.length-1?'border-bottom:1px solid #f1f5f9':'')+'">';
-    html += '<div class="ck-top-left"><div class="ck-top-name">'+o.name+'</div><div class="ck-top-meta">'+o.accountName+'</div></div>';
-    html += '<div class="ck-top-amt">'+o.amount+'</div></div>';
-  });
-  html += '</div>'+cellClose();
-
-  // Cell 7: Projects by Phase
-  var phases=[{key:"Pre-study",label:"Pre-study",color:"#94a3b8"},{key:"Tender",label:"Tender",color:"#60a5fa"},{key:"Contracting",label:"Contract.",color:"#818cf8"},{key:"Construction",label:"Construction",color:"#f59e0b"},{key:"Delivered",label:"Delivered",color:"#10b981"}];
-  var totalProj=Math.max(PROJECTS.length,1);
-  var phData=phases.map(function(p){var c=PROJECTS.filter(function(pr){return pr.status===p.key||pr.phase===p.key||(pr.status&&pr.status.toLowerCase().indexOf(p.key.toLowerCase())>=0);}).length;return{label:p.label,color:p.color,count:c};});
-  var phAssigned=phData.reduce(function(s,p){return s+p.count;},0);
-  if(phAssigned===0&&PROJECTS.length>0){phData[0].count=1;phData[1].count=1;phData[2].count=1;phData[3].count=2;phData[4].count=1;}
-
-  html += cellOpen("Projects by Phase","View all","navigate('list','projects')")+'<div onclick="navigate(\'list\',\'projects\')" style="cursor:pointer">';
-  html += '<div class="ck-big-row"><span class="ck-big" style="font-size:22px">'+PROJECTS.length+'</span><span class="ck-hint" style="font-size:10px">active projects</span></div>';
-  html += stackedBar(phData.map(function(p){return{v:p.count,c:p.color,l:p.label};}),14);
-  html += '<div class="ck-phase-grid">';
-  phData.forEach(function(p){
-    html += '<div class="ck-legend-item"><div class="ck-legend-dot" style="background:'+p.color+'"></div><span>'+p.label+'</span><strong>'+p.count+'</strong></div>';
-  });
-  html += '</div></div>'+cellClose();
-
-  // Cell 8: Leads
-  html += cellOpen("Incoming Leads","View all","navigate('list','leads')")+'<div onclick="navigate(\'list\',\'leads\')" style="cursor:pointer">';
-  html += '<div class="ck-big-row"><span class="ck-big">'+LEADS.length+'</span><span class="ck-trend-up">+2 this week</span></div>';
-  html += miniSparkline([1,3,2,4,3,LEADS.length],"#d97706",110,24);
-  var newL=LEADS.filter(function(l){return l.status==="New";}).length;
-  var conL=LEADS.filter(function(l){return l.status==="Contacted";}).length;
-  var qualL=LEADS.filter(function(l){return l.status==="Qualified";}).length;
-  html += '<div class="ck-legend-row" style="margin-top:4px">';
-  html += '<div class="ck-legend-item"><div class="ck-legend-dot" style="background:#059669;border-radius:50%"></div><span>New <strong>'+newL+'</strong></span></div>';
-  html += '<div class="ck-legend-item"><div class="ck-legend-dot" style="background:#3b82f6;border-radius:50%"></div><span>Contacted <strong>'+conL+'</strong></span></div>';
-  html += '<div class="ck-legend-item"><div class="ck-legend-dot" style="background:#8b5cf6;border-radius:50%"></div><span>Qualified <strong>'+qualL+'</strong></span></div>';
-  html += '</div></div>'+cellClose();
-
-  html += '</div>'; // end row 2
-
-  // ═══ ROW 3 — Tasks + Activities ═══
-  html += '<div class="ck-grid2">';
-
-  // Tasks
-  html += cellOpen("My Open Tasks","View all","navigate('list','tasks')");
-  var tasks=TASKS.filter(function(t){return t.status!=="Completed"&&t.status!=="Done";}).slice(0,5);
-  if(tasks.length===0) tasks=TASKS.slice(0,5);
-  tasks.forEach(function(t,i){
-    var pc=t.priority==="High"?COLORS.red:t.priority==="Medium"?COLORS.warn:"#94a3b8";
-    var sc=t.status==="In Progress"?"#2563eb":t.status==="To Do"?"#d97706":"#64748b";
-    html += '<div class="hover-row ck-row-sm ck-clickable" onclick="navigate(\'record\',\'tasks\',\''+t.id+'\')">';
-    html += '<div class="ck-dot-sm" style="background:'+pc+'"></div>';
-    html += '<div class="ck-row-body"><div class="ck-row-t">'+t.subject+'</div><div class="ck-row-m">'+t.relatedTo+' · '+t.dueDate+'</div></div>';
-    html += '<span class="badge" style="font-size:9px;padding:1px 6px;background:'+sc+'14;color:'+sc+'">'+t.status+'</span>';
-    html += '</div>';
-  });
-  html += cellClose();
-
-  // Upcoming Activities
-  html += cellOpen("Upcoming Activities","View all","navigate('list','activities')");
-  ACTIVITIES.slice(0,5).forEach(function(a,i){
-    var ic=ACTIVITY_ICONS?(ACTIVITY_ICONS[a.type]||"phone"):"phone";
-    var ac=ACTIVITY_COLORS?(ACTIVITY_COLORS[a.type]||COLORS.primary):COLORS.primary;
-    html += '<div class="hover-row ck-row-sm ck-clickable" onclick="navigate(\'record\',\'activities\',\''+a.id+'\')">';
-    html += '<div class="ck-act-ico" style="background:'+ac+'14">'+renderIcon(ic,11,ac)+'</div>';
-    html += '<div class="ck-row-body"><div class="ck-row-t">'+a.subject+'</div><div class="ck-row-m">'+a.contactName+'</div></div>';
-    html += '<div class="ck-row-time"><div class="ck-row-date">'+a.date+'</div><div class="ck-row-hour">'+a.time+'</div></div>';
-    html += '</div>';
-  });
-  html += cellClose();
-
-  html += '</div>'; // end row 3
-  html += '</div>'; // end cockpit
-
-  container.innerHTML = html;
-  injectCKStyles();
+function ckHeader(title, linkText, linkPage) {
+  return '<div style="display:flex;justify-content:space-between;align-items:center"><span class="ck-title">'+title+'</span><a class="ck-link" onclick="navigate(\''+linkPage+'\')">'+linkText+' '+svgIcon('arrowUp',11,'var(--accent)')+'</a></div>';
 }
-
-// ─── HELPERS ───
-function cellOpen(title,linkLabel,linkAction){
-  var html='<div class="ck-cell"><div class="ck-cell-head"><span class="ck-cell-title">'+title+'</span>';
-  if(linkLabel) html+='<button class="ck-cell-link" onclick="event.stopPropagation();'+linkAction+'">'+linkLabel+' <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg></button>';
-  html+='</div>';
-  return html;
+function ckSparkline(data, color, w, h) {
+  color=color||'var(--accent)'; w=w||110; h=h||28;
+  var mx=Math.max.apply(null,data), mn=Math.min.apply(null,data), r=mx-mn||1;
+  var pts=data.map(function(v,i){return (i/(data.length-1))*w+','+(h-((v-mn)/r)*(h-4)-2);}).join(' ');
+  return '<svg width="'+w+'" height="'+h+'"><polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 }
-function cellClose(){return '</div>';}
-
-function miniSparkline(data,color,w,h){
-  var max=Math.max.apply(null,data),min=Math.min.apply(null,data),range=max-min||1;
-  var pts=data.map(function(v,i){return((i/(data.length-1))*w)+","+(h-((v-min)/range)*h);}).join(" ");
-  var lastX=w,lastY=h-((data[data.length-1]-min)/range)*h;
-  return '<svg width="'+w+'" height="'+h+'" style="display:block;margin:2px 0"><polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="'+lastX+'" cy="'+lastY+'" r="2.5" fill="'+color+'"/></svg>';
+function ckHBar(label, value, max, color, count) {
+  var pct=max>0?(value/max)*100:0;
+  return '<div class="ck-hbar"><span class="ck-hbar-label">'+label+'</span><div class="ck-hbar-track"><div class="ck-hbar-fill" style="width:'+Math.max(pct,2)+'%;background:'+color+'"></div></div><span class="ck-hbar-count">'+count+'</span></div>';
 }
-
-function stackedBar(segs,h){
-  var total=segs.reduce(function(s,seg){return s+(seg.v||0);},0)||1;
-  var html='<div style="display:flex;height:'+h+'px;border-radius:4px;overflow:hidden;gap:1px;width:100%">';
-  segs.forEach(function(seg){
-    var pct=Math.max((seg.v/total)*100,seg.v>0?8:0);
-    html+='<div style="width:'+pct+'%;background:'+seg.c+';transition:width .4s" title="'+seg.l+': '+seg.v+'"></div>';
-  });
-  html+='</div>';return html;
+function ckStackedBar(segs) {
+  var t=segs.reduce(function(s,g){return s+g.value;},0);
+  return '<div class="ck-sbar">'+segs.filter(function(g){return g.value>0;}).map(function(g){return '<div class="ck-sbar-seg" style="width:'+(g.value/t*100)+'%;background:'+g.color+'" title="'+g.label+': '+g.value+'"></div>';}).join('')+'</div>';
 }
-
-function progressBar(pct,color,h){
-  return '<div style="background:#f1f5f9;border-radius:6px;height:'+h+'px;width:100%;overflow:hidden"><div style="height:100%;border-radius:6px;background:'+color+';width:'+pct+'%;transition:width .5s"></div></div>';
+function ckProgressBar(pct,color) {
+  return '<div class="ck-pbar"><div class="ck-pbar-fill" style="width:'+Math.min(pct,100)+'%;background:'+(color||'var(--success)')+'"></div></div>';
 }
+function ckLegend(items,round) {
+  return '<div class="ck-legend">'+items.map(function(it){return '<span class="ck-legend-item"><span class="ck-legend-dot '+(round?'round':'')+'" style="background:'+it.color+'"></span>'+it.label+(it.value!=null?' '+it.value:'')+'</span>';}).join('')+'</div>';
+}
+function fmtAmount(n) { if(n>=1e6) return (n/1e6).toFixed(1)+'M€'; if(n>=1e3) return (n/1e3).toFixed(0)+'K€'; return n+'€'; }
 
-// ─── STYLES ───
-function injectCKStyles(){
-  if(document.getElementById("ck3-css")) return;
-  var s=document.createElement("style");s.id="ck3-css";
-  s.textContent='\
-.ck{max-width:1280px;margin:0 auto}\
-.ck-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}\
-.ck-h1{font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.3px;margin:0}\
-.ck-sub{font-size:11.5px;color:var(--muted);margin:0}\
-.ck-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}\
-.ck-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}\
-\
-.ck-cell{background:var(--white);border:1px solid #e8eaed;border-radius:10px;padding:12px 14px;box-shadow:0 1px 2px rgba(0,0,0,.03);display:flex;flex-direction:column;transition:box-shadow .15s,border-color .15s}\
-.ck-cell:hover{box-shadow:0 3px 12px rgba(0,0,0,.05);border-color:#d0d5dd}\
-.ck-cell-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}\
-.ck-cell-title{font-size:10.5px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}\
-.ck-cell-link{background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;gap:2px;font-size:9.5px;font-weight:600;color:var(--primary);opacity:.8;transition:opacity .15s}\
-.ck-cell-link:hover{opacity:1}\
-\
-.ck-big-row{display:flex;align-items:baseline;gap:6px;margin-bottom:2px}\
-.ck-big{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-1px;line-height:1}\
-.ck-trend-up{font-size:10px;font-weight:600;color:#059669}\
-.ck-trend-down{font-size:10px;font-weight:600;color:#dc2626}\
-.ck-hint{font-size:9px;color:var(--muted)}\
-.ck-tiny-label{font-size:9px;color:var(--muted);font-weight:500}\
-.ck-num-lg{font-size:22px;font-weight:800;color:var(--text)}\
-\
-.ck-mini-bars{display:flex;flex-direction:column;gap:3px}\
-.ck-mini-bar-row{display:flex;align-items:center;gap:5px;padding:1px 2px;border-radius:3px;transition:background .12s}\
-.ck-mini-bar-row:hover{background:#f8fafc}\
-.ck-mini-label{width:42px;font-size:9.5px;font-weight:600;color:var(--text2);text-align:right;flex-shrink:0}\
-.ck-mini-track{flex:1;background:#f1f5f9;border-radius:3px;height:12px;overflow:hidden}\
-.ck-mini-fill{height:100%;border-radius:3px;transition:width .4s}\
-.ck-mini-val{font-size:9px;font-weight:700;color:var(--text);width:14px;text-align:right}\
-\
-.ck-clickable{cursor:pointer}\
-.ck-legend-row{display:flex;gap:10px;margin-top:5px}\
-.ck-legend-item{display:flex;align-items:center;gap:3px;font-size:9px;color:var(--text2)}\
-.ck-legend-item strong{color:var(--text);margin-left:1px}\
-.ck-legend-dot{width:6px;height:6px;border-radius:2px;flex-shrink:0}\
-.ck-phase-grid{display:flex;flex-wrap:wrap;gap:3px 10px;margin-top:6px}\
-\
-.ck-top-list{display:flex;flex-direction:column;gap:2px}\
-.ck-top-row{display:flex;align-items:center;justify-content:space-between;padding:3px 4px;border-radius:4px;transition:background .12s}\
-.ck-top-row:hover{background:#f8fafc}\
-.ck-top-left{flex:1;min-width:0}\
-.ck-top-name{font-size:10.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\
-.ck-top-meta{font-size:9px;color:var(--muted)}\
-.ck-top-amt{font-size:11px;font-weight:700;color:var(--text);flex-shrink:0;margin-left:6px}\
-\
-.ck-row-sm{display:flex;align-items:center;gap:7px;padding:5px 6px;border-radius:5px}\
-.ck-dot-sm{width:5px;height:5px;border-radius:50%;flex-shrink:0}\
-.ck-row-body{flex:1;min-width:0}\
-.ck-row-t{font-size:11px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3}\
-.ck-row-m{font-size:9px;color:var(--muted)}\
-.ck-act-ico{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}\
-.ck-row-time{text-align:right;flex-shrink:0}\
-.ck-row-date{font-size:9.5px;font-weight:600;color:var(--text2)}\
-.ck-row-hour{font-size:9px;color:var(--muted)}\
-\
-@media(max-width:1100px){.ck-grid4{grid-template-columns:repeat(2,1fr)}}\
-@media(max-width:768px){.ck-grid4{grid-template-columns:1fr}.ck-grid2{grid-template-columns:1fr}}\
-';
-  document.head.appendChild(s);
+function renderDashboard(container) {
+  var opps=window.DATA.opportunities||[], leads=window.DATA.leads||[], projects=window.DATA.projects||[], tasks=window.DATA.tasks||[], upcoming=window.DATA.upcoming||[];
+  var totalP=opps.reduce(function(s,o){return s+(o.amount||0);},0);
+  var wonAmt=opps.filter(function(o){return o.stage==='closed_won';}).reduce(function(s,o){return s+(o.amount||0);},0);
+  var stgs=STAGES.opportunities||[];
+  var sc=stgs.map(function(st){return{key:st.key,label:st.label,color:st.color,count:opps.filter(function(o){return o.stage===st.key;}).length};});
+  var mxSC=Math.max.apply(null,sc.map(function(s){return s.count;}).concat([1]));
+  var top3=opps.slice().sort(function(a,b){return(b.amount||0)-(a.amount||0);}).slice(0,3);
+  var phs=(STAGES.projects||[]).map(function(p){return{key:p.key,label:p.label,color:p.color,value:projects.filter(function(pr){return pr.phase===p.key;}).length};});
+  var lN=leads.filter(function(l){return l.stage==='new';}).length;
+  var lC=leads.filter(function(l){return l.stage==='contacted';}).length;
+  var lQ=leads.filter(function(l){return l.stage==='qualified';}).length;
+
+  container.innerHTML='<div class="ck-dashboard">'+
+  '<div class="ck-row r4">'+
+    '<div class="ck-card" style="gap:6px">'+ckHeader('Opportunity Pipeline','Kanban','opportunities')+'<div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:26px;font-weight:700;letter-spacing:-.03em">'+fmtAmount(totalP)+'</span><span style="font-size:12px;font-weight:600;color:var(--success)">+12% YOY</span></div>'+ckSparkline([120,140,135,155,165,170,180,200],'var(--accent)',110,28)+'<span class="ck-hint">'+opps.length+' active opportunities</span></div>'+
+    '<div class="ck-card" style="gap:5px"><div style="margin-bottom:2px">'+ckHeader('Pipeline Stages','Kanban','opportunities')+'</div>'+sc.map(function(s){return ckHBar(s.label,s.count,mxSC,s.color,s.count);}).join('')+'</div>'+
+    '<div class="ck-card" style="gap:7px">'+ckHeader('Claims / Issues','View all','claims')+'<div style="display:flex;gap:14px;align-items:baseline"><div><span style="font-size:9px;color:var(--text-light);display:block">Total</span><span style="font-size:26px;font-weight:700">2</span></div><div><span style="font-size:9px;color:var(--text-light);display:block">Open</span><span style="font-size:26px;font-weight:700;color:var(--warning)">1</span></div></div>'+ckStackedBar([{value:1,color:'var(--danger)',label:'Open'},{value:1,color:'var(--warning)',label:'In Progress'}])+ckLegend([{color:'var(--danger)',label:'Open'},{color:'var(--warning)',label:'In Progress'}])+'</div>'+
+    '<div class="ck-card" style="gap:5px">'+ckHeader('Activities (30D)','View all','activities')+'<span style="font-size:26px;font-weight:700">10</span>'+ckHBar('Calls',2,4,'#3b82f6',2)+ckHBar('Meetings',4,4,'var(--purple)',4)+ckHBar('Site Visits',2,4,'var(--success)',2)+ckHBar('Emails',2,4,'#10b981',2)+'<span class="ck-hint">Last activity: 2h ago</span></div>'+
+  '</div>'+
+  '<div class="ck-row r4">'+
+    '<div class="ck-card" style="gap:5px">'+ckHeader('Won vs Target','Won deals','opportunities')+'<div style="display:flex;gap:14px;align-items:baseline"><div><span style="font-size:9px;color:var(--text-light);display:block">Won</span><span style="font-size:20px;font-weight:700">'+fmtAmount(wonAmt)+'</span></div><div><span style="font-size:9px;color:var(--text-light);display:block">Target</span><span style="font-size:20px;font-weight:700">12.0M€</span></div></div><span style="font-size:11px;font-weight:600;color:var(--danger)">-8% YOY</span>'+ckProgressBar(100,'var(--success)')+'<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text-light)"><span>317%</span><span>Yearly target</span></div></div>'+
+    '<div class="ck-card no-pad"><div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px 8px"><span class="ck-title">Top Opportunities</span><a class="ck-link" onclick="navigate(\'opportunities\')">View all '+svgIcon('arrowUp',11,'var(--accent)')+'</a></div>'+top3.map(function(o){var a=(window.DATA.accounts||[]).find(function(x){return x.id===o.account;});return'<div class="ck-list-row"><div style="min-width:0;flex:1;margin-right:8px"><div class="row-name">'+o.name+'</div><div class="row-sub">'+(a?a.name:'')+'</div></div><span class="row-value">'+fmtAmount(o.amount||0)+'</span></div>';}).join('')+'</div>'+
+    '<div class="ck-card" style="gap:5px">'+ckHeader('Projects by Phase','View all','projects')+'<div style="display:flex;align-items:baseline;gap:6px"><span class="ck-big">'+projects.length+'</span><span style="font-size:11px;color:var(--text-muted)">active projects</span></div>'+ckStackedBar(phs)+ckLegend(phs.map(function(p){return{color:p.color,label:p.label,value:p.value};}))+'</div>'+
+    '<div class="ck-card" style="gap:5px">'+ckHeader('Incoming Leads','View all','leads')+'<div style="display:flex;align-items:baseline;gap:8px"><span class="ck-big">'+leads.length+'</span><span style="font-size:12px;font-weight:600;color:var(--success)">+2 this week</span></div>'+ckSparkline([1,2,1,3,2,leads.length],'var(--success)',100,22)+ckLegend([{color:'var(--success)',label:'New',value:lN},{color:'#3b82f6',label:'Contacted',value:lC},{color:'var(--purple)',label:'Qualified',value:lQ}],true)+'</div>'+
+  '</div>'+
+  '<div class="ck-row r2">'+
+    '<div class="ck-card no-pad"><div style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px 9px"><span class="ck-title">My Open Tasks</span><a class="ck-link">View all '+svgIcon('arrowUp',11,'var(--accent)')+'</a></div>'+tasks.map(function(t){return'<div class="ck-task-row"><div style="display:flex;align-items:flex-start;gap:8px"><span class="ck-task-dot" style="background:'+t.color+'"></span><div><div class="ck-task-name">'+t.name+'</div><div class="ck-task-ref">'+t.ref+'</div></div></div><span class="ck-task-status" style="color:'+(t.status==='In Progress'?'var(--accent)':'var(--text-muted)')+'">'+t.status+'</span></div>';}).join('')+'</div>'+
+    '<div class="ck-card no-pad"><div style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px 9px"><span class="ck-title">Upcoming Activities</span><a class="ck-link">View all '+svgIcon('arrowUp',11,'var(--accent)')+'</a></div>'+upcoming.map(function(u){return'<div class="ck-act-row"><div style="display:flex;align-items:center;gap:9px"><div class="ck-act-icon" style="background:'+u.color+'14">'+svgIcon(u.icon,13,u.color)+'</div><div><div class="ck-act-name">'+u.name+'</div><div class="ck-act-contact">'+u.contact+'</div></div></div><div style="text-align:right"><div class="ck-act-date">'+u.date+'</div><div class="ck-act-time">'+u.time+'</div></div></div>';}).join('')+'</div>'+
+  '</div></div>';
 }

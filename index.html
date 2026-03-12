@@ -3,60 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CRM360 · MickaCRM</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>📊</text></svg>">
+  <title>MickaCRM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
-  <!-- ═══════════ TOPBAR ═══════════ -->
-  <div class="topbar">
-    <div class="topbar-left">
-<div class="logo" id="logo">
-  <img src="assets/LogoSG.png" alt="CRM360" style="height:48px;">
-</div>
-      <div class="topbar-sep"></div>
-      <button class="topbar-pill active" id="nav-home">Home</button>
-      <button class="topbar-pill" id="nav-pipeline">Pipeline</button>
-      <button class="topbar-pill" id="nav-calendar">Calendar</button>
-      <div style="position:relative">
-        <button class="topbar-menu-btn" id="menu-btn">Objects ▾</button>
-        <div class="dropdown" id="menu-dropdown" style="display:none;top:120%;left:0;min-width:210px"></div>
-      </div>
-    </div>
-    <div class="topbar-right">
-      <div style="position:relative">
-        <div class="search-wrapper closed" id="search-wrapper">
-          <span id="search-icon" style="cursor:pointer;flex-shrink:0;display:flex"></span>
-          <input class="search-input" id="search-input" placeholder="Search..." style="display:none">
-        </div>
-        <div class="dropdown" id="search-results" style="display:none;top:120%;right:0;min-width:260px"></div>
-      </div>
-      <div style="position:relative">
-        <button class="btn-create" id="create-btn"></button>
-        <div class="dropdown" id="create-dropdown" style="display:none;top:120%;right:0;min-width:190px"></div>
-      </div>
-      <div class="avatar">M</div>
+  <div id="app-shell">
+    <!-- Sidebar -->
+    <nav id="sidebar"></nav>
+    <!-- Main content area -->
+    <div id="main-area">
+      <div id="page-header"></div>
+      <div id="page-content"></div>
     </div>
   </div>
 
-  <!-- ═══════════ BREADCRUMBS ═══════════ -->
-  <div class="breadcrumbs" id="breadcrumbs"></div>
-
-  <!-- ═══════════ PAGE HEADER ═══════════ -->
-  <div class="page-header" id="page-header" style="display:none;padding:0 24px">
-    <div style="display:flex;align-items:center;gap:10px">
-      <span id="page-header-icon"></span>
-      <h1 style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.3px" id="page-header-title"></h1>
-    </div>
-    <button class="btn-primary" id="page-header-new-btn" style="display:none"
-      onclick="showToast('Creation — coming soon','info')"><span id="page-header-new-icon"></span>New</button>
-  </div>
-
-  <!-- ═══════════ MAIN CONTENT ═══════════ -->
-  <div class="main-content" id="main-content"></div>
-
-  <!-- ═══════════ SCRIPTS ═══════════ -->
+  <!-- Scripts (keep same load order, data/objects/ui untouched) -->
   <script src="js/config.js"></script>
   <script src="js/data.js"></script>
   <script src="js/objects.js"></script>
@@ -64,15 +27,8 @@
   <script src="js/nav.js"></script>
   <script src="js/dashboard.js"></script>
   <script src="js/list.js"></script>
-  <script src="js/record.js"></script>
   <script src="js/pipeline.js"></script>
-  <script src="js/calendar.js"></script>
+  <script src="js/record.js"></script>
   <script src="js/app.js"></script>
-  <script>
-    // Init icons in topbar after scripts load
-    document.getElementById("search-icon").innerHTML = renderIcon("search",14,"rgba(255,255,255,0.4)");
-    document.getElementById("create-btn").innerHTML = renderIcon("plus",16,"#fff");
-    document.getElementById("page-header-new-icon").innerHTML = renderIcon("plus",14,"#fff");
-  </script>
 </body>
 </html>
