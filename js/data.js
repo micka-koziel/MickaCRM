@@ -1,106 +1,81 @@
-/* ============================================
-   MickaCRM — data.js
-   Demo seed data for all objects
-   Secteur Construction / BTP
-   ============================================ */
+// ============================================================
+// MICKACRM 360 — DATA.JS
+// Mock data for all CRM objects
+// When Firebase is branched, this file will be replaced by
+// Firestore reads. Structure stays identical.
+// ============================================================
 
-MickaCRM.data = {
+const ACCOUNTS = [
+  { id:"a1", name:"Bouygues Construction", city:"Paris", industry:"Constructeur Général", owner:"Micka", phone:"+33 1 44 20 10 00", revenue:"37.5B€", employees:58000, status:"Client", created:"2024-01-15", website:"bouygues-construction.com", address:"1 Av Eugène Freyssinet, 78280 Guyancourt" },
+  { id:"a2", name:"Vinci Construction", city:"Nanterre", industry:"BTP & Concessions", owner:"Micka", phone:"+33 1 47 16 35 00", revenue:"58.4B€", employees:272000, status:"Client", created:"2024-02-03", website:"vinci-construction.com", address:"1 Cours Ferdinand de Lesseps, 92851 Rueil-Malmaison" },
+  { id:"a3", name:"Eiffage Construction", city:"Vélizy", industry:"BTP & Infrastructure", owner:"Micka", phone:"+33 1 34 65 89 89", revenue:"20.4B€", employees:73500, status:"Prospect", created:"2024-03-10", website:"eiffage.com", address:"3-7 Place de l'Europe, 78140 Vélizy" },
+  { id:"a4", name:"Colas Group", city:"Paris", industry:"Routes & Infra", owner:"Micka", phone:"+33 1 47 61 75 00", revenue:"15.8B€", employees:65000, status:"Client", created:"2024-01-28", website:"colas.com", address:"7 Place René Clair, 92653 Boulogne" },
+  { id:"a5", name:"Spie Batignolles", city:"Neuilly", industry:"Constructeur Général", owner:"Micka", phone:"+33 1 47 47 47 47", revenue:"2.1B€", employees:8500, status:"Prospect", created:"2024-04-12", website:"spiebatignolles.com", address:"10 Av de l'Entreprise, 95863 Cergy" },
+  { id:"a6", name:"Demathieu Bard", city:"Metz", industry:"BTP & Génie Civil", owner:"Micka", phone:"+33 3 87 34 85 85", revenue:"1.4B€", employees:4200, status:"Client", created:"2024-05-01", website:"demathieu-bard.com", address:"1 Rue de Pont-à-Mousson, 57000 Metz" },
+];
 
-  accounts: [
-    { id:'a1', name:'Bouygues Construction', industry:'Gros Œuvre', type:'Client', phone:'01 30 60 33 00', email:'contact@bouygues-construction.com', city:'Guyancourt', revenue:12800000, employees:52000, status:'Active', website:'bouygues-construction.com', address:'1 av. Eugène Freyssinet, 78280 Guyancourt' },
-    { id:'a2', name:'Vinci Construction', industry:'Travaux Publics', type:'Client', phone:'01 47 16 35 00', email:'info@vinci-construction.fr', city:'Nanterre', revenue:25400000, employees:68000, status:'Active', website:'vinci-construction.com', address:'5 cours Ferdinand de Lesseps, 92500 Rueil-Malmaison' },
-    { id:'a3', name:'Eiffage BTP', industry:'Bâtiment', type:'Client', phone:'01 71 59 10 00', email:'contact@eiffage.com', city:'Vélizy', revenue:8500000, employees:38000, status:'Active', website:'eiffage.com', address:'3 av. Morane-Saulnier, 78140 Vélizy' },
-    { id:'a4', name:'Colas Rail', industry:'Infrastructure', type:'Prospect', phone:'01 47 61 75 00', email:'info@colasrail.com', city:'Courbevoie', revenue:3200000, employees:12000, status:'Active', website:'colasrail.com', address:'18 rue de Mantes, 92700 Colombes' },
-    { id:'a5', name:'Spie Batignolles', industry:'Génie Civil', type:'Client', phone:'01 44 20 10 00', email:'contact@spiebatignolles.fr', city:'Neuilly', revenue:2100000, employees:8400, status:'Active', website:'spiebatignolles.fr', address:'10 av. de l\'Arche, 92400 Courbevoie' },
-    { id:'a6', name:'Legrand SA', industry:'Électricité', type:'Partenaire', phone:'05 55 06 87 87', email:'info@legrand.fr', city:'Limoges', revenue:6700000, employees:37000, status:'Active', website:'legrand.fr', address:'128 av. du Maréchal de Lattre de Tassigny, 87000 Limoges' },
-    { id:'a7', name:'Lafarge Holcim', industry:'Matériaux', type:'Fournisseur', phone:'01 58 86 86 86', email:'contact@lafargeholcim.com', city:'Paris', revenue:21000000, employees:70000, status:'Active', website:'lafargeholcim.com', address:'12 place de l\'Iris, 92062 Paris La Défense' },
-    { id:'a8', name:'Chantiers Rénovation Sud', industry:'Rénovation', type:'Prospect', phone:'04 67 92 44 10', email:'contact@renovsud.fr', city:'Montpellier', revenue:890000, employees:120, status:'Inactive', website:'renovsud.fr', address:'25 rue de la Loge, 34000 Montpellier' },
-  ],
+const CONTACTS = [
+  { id:"c1", firstName:"Pierre", lastName:"Dupont", email:"p.dupont@bouygues.com", phone:"+33 6 12 34 56 78", title:"Directeur Achats", accountId:"a1", accountName:"Bouygues Construction", created:"2024-01-15" },
+  { id:"c2", firstName:"Marie", lastName:"Laurent", email:"m.laurent@vinci.com", phone:"+33 6 23 45 67 89", title:"Chef de Projet", accountId:"a2", accountName:"Vinci Construction", created:"2024-02-10" },
+  { id:"c3", firstName:"Jean", lastName:"Martin", email:"j.martin@eiffage.com", phone:"+33 6 34 56 78 90", title:"Resp. Technique", accountId:"a3", accountName:"Eiffage Construction", created:"2024-03-15" },
+  { id:"c4", firstName:"Sophie", lastName:"Bernard", email:"s.bernard@colas.com", phone:"+33 6 45 67 89 01", title:"Dir. Commerciale", accountId:"a4", accountName:"Colas Group", created:"2024-02-20" },
+  { id:"c5", firstName:"Luc", lastName:"Moreau", email:"l.moreau@spiebat.com", phone:"+33 6 56 78 90 12", title:"Ingénieur Travaux", accountId:"a5", accountName:"Spie Batignolles", created:"2024-04-18" },
+  { id:"c6", firstName:"Claire", lastName:"Petit", email:"c.petit@demathieu.com", phone:"+33 6 67 89 01 23", title:"Resp. Appels d'Offres", accountId:"a6", accountName:"Demathieu Bard", created:"2024-05-05" },
+];
 
-  contacts: [
-    { id:'c1', firstName:'Jean-Pierre', lastName:'Dumont', title:'Directeur Achats', accountId:'a1', account:'Bouygues Construction', email:'jp.dumont@bouygues-construction.com', phone:'06 12 34 56 78', city:'Guyancourt', status:'Active' },
-    { id:'c2', firstName:'Sophie', lastName:'Martin', title:'Chef de Projet', accountId:'a2', account:'Vinci Construction', email:'s.martin@vinci-construction.fr', phone:'06 23 45 67 89', city:'Nanterre', status:'Active' },
-    { id:'c3', firstName:'Pierre', lastName:'Lefèvre', title:'Responsable Technique', accountId:'a3', account:'Eiffage BTP', email:'p.lefevre@eiffage.com', phone:'06 34 56 78 90', city:'Vélizy', status:'Active' },
-    { id:'c4', firstName:'Marie', lastName:'Bernard', title:'Directrice Commerciale', accountId:'a4', account:'Colas Rail', email:'m.bernard@colasrail.com', phone:'06 45 67 89 01', city:'Courbevoie', status:'Active' },
-    { id:'c5', firstName:'Thomas', lastName:'Girard', title:'Ingénieur BIM', accountId:'a5', account:'Spie Batignolles', email:'t.girard@spiebatignolles.fr', phone:'06 56 78 90 12', city:'Neuilly', status:'Active' },
-    { id:'c6', firstName:'Isabelle', lastName:'Moreau', title:'Responsable Achats', accountId:'a6', account:'Legrand SA', email:'i.moreau@legrand.fr', phone:'06 67 89 01 23', city:'Limoges', status:'Active' },
-    { id:'c7', firstName:'François', lastName:'Petit', title:'Directeur Général', accountId:'a8', account:'Chantiers Rénovation Sud', email:'f.petit@renovsud.fr', phone:'06 78 90 12 34', city:'Montpellier', status:'Inactive' },
-    { id:'c8', firstName:'Nathalie', lastName:'Robert', title:'Acheteuse Matériaux', accountId:'a7', account:'Lafarge Holcim', email:'n.robert@lafargeholcim.com', phone:'06 89 01 23 45', city:'Paris', status:'Active' },
-    { id:'c9', firstName:'Luc', lastName:'Dubois', title:'Conducteur de Travaux', accountId:'a1', account:'Bouygues Construction', email:'l.dubois@bouygues-construction.com', phone:'06 90 12 34 56', city:'Lyon', status:'Active' },
-    { id:'c10', firstName:'Camille', lastName:'Fournier', title:'Architecte', accountId:'a2', account:'Vinci Construction', email:'c.fournier@vinci-construction.fr', phone:'06 01 23 45 67', city:'Marseille', status:'Active' },
-    { id:'c11', firstName:'Antoine', lastName:'Blanc', title:'Chef de Chantier', accountId:'a3', account:'Eiffage BTP', email:'a.blanc@eiffage.com', phone:'06 11 22 33 44', city:'Toulouse', status:'Active' },
-    { id:'c12', firstName:'Julie', lastName:'Mercier', title:'Responsable QSE', accountId:'a5', account:'Spie Batignolles', email:'j.mercier@spiebatignolles.fr', phone:'06 55 66 77 88', city:'Bordeaux', status:'Active' },
-  ],
+const OPPORTUNITIES = [
+  { id:"o1", name:"Grand Paris Express - Lot 7", accountId:"a1", accountName:"Bouygues Construction", amount:"45M€", amountNum:45, stage:"Négociation", probability:70, closeDate:"2025-06-30", owner:"Micka", created:"2024-06-01" },
+  { id:"o2", name:"Tour Triangle - Façades", accountId:"a2", accountName:"Vinci Construction", amount:"12M€", amountNum:12, stage:"Proposition soumise", probability:50, closeDate:"2025-04-15", owner:"Micka", created:"2024-07-10" },
+  { id:"o3", name:"Rénovation Gare du Nord", accountId:"a3", accountName:"Eiffage Construction", amount:"8.5M€", amountNum:8.5, stage:"Étude préalable", probability:30, closeDate:"2025-09-01", owner:"Micka", created:"2024-08-05" },
+  { id:"o4", name:"Autoroute A69 - Section 2", accountId:"a4", accountName:"Colas Group", amount:"32M€", amountNum:32, stage:"Contrat signé", probability:95, closeDate:"2025-03-01", owner:"Micka", created:"2024-05-20" },
+  { id:"o5", name:"Campus Saclay - Bât. R", accountId:"a5", accountName:"Spie Batignolles", amount:"18M€", amountNum:18, stage:"Appel d'offres", probability:40, closeDate:"2025-07-15", owner:"Micka", created:"2024-09-01" },
+  { id:"o6", name:"Pont Flaubert Phase 2", accountId:"a6", accountName:"Demathieu Bard", amount:"22M€", amountNum:22, stage:"Lead identifié", probability:15, closeDate:"2025-12-01", owner:"Micka", created:"2024-10-01" },
+  { id:"o7", name:"Data Center Marseille", accountId:"a1", accountName:"Bouygues Construction", amount:"56M€", amountNum:56, stage:"Négociation", probability:65, closeDate:"2025-05-15", owner:"Micka", created:"2024-08-20" },
+  { id:"o8", name:"Résidence Les Jardins", accountId:"a2", accountName:"Vinci Construction", amount:"6M€", amountNum:6, stage:"Contrat signé", probability:100, closeDate:"2025-02-01", owner:"Micka", created:"2024-04-10" },
+];
 
-  leads: [
-    { id:'l1', firstName:'Marc', lastName:'Delcourt', company:'BTP Normandie', title:'Gérant', email:'m.delcourt@btpnormandie.fr', phone:'06 11 22 33 44', source:'Salon BatiExpo', status:'Nouveau', city:'Rouen', notes:'Intéressé par solutions isolation thermique' },
-    { id:'l2', firstName:'Audrey', lastName:'Voisin', company:'Constructions Alpines', title:'Directrice', email:'a.voisin@constalp.fr', phone:'06 22 33 44 55', source:'LinkedIn', status:'Contacté', city:'Grenoble', notes:'Besoin devis matériaux toiture 200+ logements' },
-    { id:'l3', firstName:'Éric', lastName:'Renard', company:'Atelier Bois & Co', title:'Fondateur', email:'e.renard@atelierbois.fr', phone:'06 33 44 55 66', source:'Site web', status:'Qualifié', city:'Nantes', notes:'Projet construction bois éco-responsable' },
-    { id:'l4', firstName:'Sarah', lastName:'Karim', company:'Méditerranée Travaux', title:'Responsable Projets', email:'s.karim@medtravaux.com', phone:'06 44 55 66 77', source:'Recommandation', status:'Nouveau', city:'Nice', notes:'Recherche partenaire béton préfabriqué' },
-    { id:'l5', firstName:'Philippe', lastName:'Roux', company:'Éco-Habitat 2030', title:'Directeur Technique', email:'p.roux@ecohabitat.fr', phone:'06 55 66 77 88', source:'Conférence RE2020', status:'Contacté', city:'Strasbourg', notes:'Intéressé par solutions bas carbone' },
-    { id:'l6', firstName:'Laura', lastName:'Sanchez', company:'TP Express Aquitaine', title:'Gérante', email:'l.sanchez@tpexpress.fr', phone:'06 66 77 88 99', source:'Appel entrant', status:'Qualifié', city:'Bordeaux', notes:'Besoin urgence en matériaux VRD' },
-  ],
+const PROJECTS = [
+  { id:"p1", name:"Grand Paris Express - Lot 7", accountId:"a1", accountName:"Bouygues Construction", address:"Saint-Denis, 93200", budget:"45M€", startDate:"2025-03-01", endDate:"2027-06-30", manager:"Micka", status:"Construction", phase:"Gros œuvre" },
+  { id:"p2", name:"Résidence Les Jardins", accountId:"a2", accountName:"Vinci Construction", address:"Lyon 3ème, 69003", budget:"6M€", startDate:"2025-02-15", endDate:"2026-08-30", manager:"Micka", status:"Construction", phase:"Fondations" },
+  { id:"p3", name:"Autoroute A69 - Section 2", accountId:"a4", accountName:"Colas Group", address:"Toulouse - Castres", budget:"32M€", startDate:"2025-04-01", endDate:"2027-12-31", manager:"Micka", status:"Pré-étude", phase:"Études techniques" },
+];
 
-  opportunities: [
-    { id:'o1', name:'Fourniture béton Tour Montparnasse II', accountId:'a1', account:'Bouygues Construction', amount:2450000, stage:'Négociation', probability:60, closeDate:'2026-06-15', contact:'Jean-Pierre Dumont', type:'Fourniture' },
-    { id:'o2', name:'Lot Électricité Campus RATP', accountId:'a2', account:'Vinci Construction', amount:890000, stage:'Proposition', probability:40, closeDate:'2026-07-30', contact:'Sophie Martin', type:'Sous-traitance' },
-    { id:'o3', name:'Réhab Gare du Nord - Matériaux', accountId:'a3', account:'Eiffage BTP', amount:1800000, stage:'Qualification', probability:25, closeDate:'2026-09-01', contact:'Pierre Lefèvre', type:'Fourniture' },
-    { id:'o4', name:'Contrat cadre Canalisation IDF', accountId:'a4', account:'Colas Rail', amount:3200000, stage:'Prospection', probability:15, closeDate:'2026-12-31', contact:'Marie Bernard', type:'Contrat cadre' },
-    { id:'o5', name:'Isolation thermique Résidence Soleil', accountId:'a5', account:'Spie Batignolles', amount:420000, stage:'Gagné', probability:100, closeDate:'2026-03-01', contact:'Thomas Girard', type:'Fourniture' },
-  ],
+const LEADS = [
+  { id:"l1", firstName:"Antoine", lastName:"Roux", company:"BTP Innovations", email:"a.roux@btpinnov.fr", phone:"+33 6 78 90 12 34", source:"Salon BatiMat", status:"Nouveau", created:"2025-01-10" },
+  { id:"l2", firstName:"Isabelle", lastName:"Girard", company:"EcoConstruct", email:"i.girard@ecoconstruct.fr", phone:"+33 6 89 01 23 45", source:"Site Web", status:"Contacté", created:"2025-01-18" },
+  { id:"l3", firstName:"Thomas", lastName:"Leroy", company:"Matériaux Plus", email:"t.leroy@matplus.fr", phone:"+33 6 90 12 34 56", source:"Recommandation", status:"Qualifié", created:"2025-02-01" },
+  { id:"l4", firstName:"Nathalie", lastName:"Simon", company:"ArchiDesign Studio", email:"n.simon@archidesign.fr", phone:"+33 6 01 23 45 67", source:"LinkedIn", status:"Nouveau", created:"2025-02-15" },
+];
 
-  projects: [
-    { id:'p1', name:'Tour Triangle - La Défense', accountId:'a1', account:'Bouygues Construction', status:'En cours', startDate:'2025-09-01', endDate:'2027-06-30', budget:45000000, manager:'Luc Dubois', phase:'Gros Œuvre', progress:35 },
-    { id:'p2', name:'Extension Ligne 15 Sud', accountId:'a2', account:'Vinci Construction', status:'En cours', startDate:'2024-01-15', endDate:'2026-12-31', budget:120000000, manager:'Camille Fournier', phase:'Terrassement', progress:62 },
-    { id:'p3', name:'Éco-Quartier Belvédère', accountId:'a3', account:'Eiffage BTP', status:'Planifié', startDate:'2026-06-01', endDate:'2028-12-31', budget:28000000, manager:'Antoine Blanc', phase:'Études', progress:10 },
-    { id:'p4', name:'Rénovation Lycée Victor Hugo', accountId:'a5', account:'Spie Batignolles', status:'En cours', startDate:'2025-11-01', endDate:'2026-08-31', budget:4200000, manager:'Julie Mercier', phase:'Second Œuvre', progress:78 },
-  ],
+const QUOTES = [
+  { id:"q1", name:"Devis GPE Lot 7 - Rev.3", opportunityName:"Grand Paris Express - Lot 7", accountName:"Bouygues Construction", amount:"44.8M€", status:"Envoyé", validUntil:"2025-04-30", created:"2025-01-20" },
+  { id:"q2", name:"Devis Tour Triangle", opportunityName:"Tour Triangle - Façades", accountName:"Vinci Construction", amount:"12.2M€", status:"Brouillon", validUntil:"2025-05-15", created:"2025-02-10" },
+  { id:"q3", name:"Devis A69 Section 2", opportunityName:"Autoroute A69 - Section 2", accountName:"Colas Group", amount:"31.5M€", status:"Accepté", validUntil:"2025-03-30", created:"2024-12-15" },
+];
 
-  quotes: [
-    { id:'q1', number:'DEV-2026-001', accountId:'a1', account:'Bouygues Construction', opportunity:'Fourniture béton Tour Montparnasse II', amount:2450000, status:'Envoyé', date:'2026-02-15', validUntil:'2026-04-15', contact:'Jean-Pierre Dumont' },
-    { id:'q2', number:'DEV-2026-002', accountId:'a2', account:'Vinci Construction', opportunity:'Lot Électricité Campus RATP', amount:890000, status:'Brouillon', date:'2026-03-01', validUntil:'2026-05-01', contact:'Sophie Martin' },
-    { id:'q3', number:'DEV-2026-003', accountId:'a3', account:'Eiffage BTP', opportunity:'Réhab Gare du Nord - Matériaux', amount:1800000, status:'Envoyé', date:'2026-02-28', validUntil:'2026-04-28', contact:'Pierre Lefèvre' },
-    { id:'q4', number:'DEV-2026-004', accountId:'a5', account:'Spie Batignolles', opportunity:'Isolation thermique Résidence Soleil', amount:420000, status:'Accepté', date:'2026-01-10', validUntil:'2026-03-10', contact:'Thomas Girard' },
-    { id:'q5', number:'DEV-2026-005', accountId:'a4', account:'Colas Rail', opportunity:'Contrat cadre Canalisation IDF', amount:3200000, status:'Envoyé', date:'2026-03-05', validUntil:'2026-05-05', contact:'Marie Bernard' },
-  ],
+const ACTIVITIES = [
+  { id:"ac1", type:"Appel", subject:"Suivi devis GPE", date:"2025-03-10", time:"14:30", accountName:"Bouygues Construction", contactName:"Pierre Dupont", notes:"Dupont confirme intérêt, demande révision budget façades." },
+  { id:"ac2", type:"Réunion", subject:"Revue projet Résidence", date:"2025-03-08", time:"10:00", accountName:"Vinci Construction", contactName:"Marie Laurent", notes:"Point d'avancement chantier. RAS sur planning." },
+  { id:"ac3", type:"Visite chantier", subject:"Inspection fondations A69", date:"2025-03-06", time:"09:00", accountName:"Colas Group", contactName:"Sophie Bernard", notes:"Fondations conformes. Prochaine étape : coulage dalle." },
+  { id:"ac4", type:"Email", subject:"Envoi doc technique", date:"2025-03-05", time:"16:45", accountName:"Eiffage Construction", contactName:"Jean Martin", notes:"Fiches techniques isolation envoyées." },
+  { id:"ac5", type:"Réunion", subject:"Kick-off Campus Saclay", date:"2025-03-04", time:"11:00", accountName:"Spie Batignolles", contactName:"Luc Moreau", notes:"Réunion de lancement. Équipes mobilisées." },
+];
 
-  orders: [
-    { id:'or1', number:'CMD-2026-001', accountId:'a5', account:'Spie Batignolles', quote:'DEV-2026-004', amount:420000, status:'Livrée', date:'2026-02-01', deliveryDate:'2026-02-28', items:'Panneaux isolation thermique x 2400 unités' },
-    { id:'or2', number:'CMD-2026-002', accountId:'a1', account:'Bouygues Construction', quote:'DEV-2025-018', amount:1250000, status:'En production', date:'2026-01-20', deliveryDate:'2026-04-15', items:'Béton spécial haute performance 3500m³' },
-    { id:'or3', number:'CMD-2026-003', accountId:'a3', account:'Eiffage BTP', quote:'DEV-2025-022', amount:680000, status:'Confirmée', date:'2026-03-01', deliveryDate:'2026-05-20', items:'Armatures acier + coffrages modulaires' },
-    { id:'or4', number:'CMD-2026-004', accountId:'a6', account:'Legrand SA', quote:'DEV-2025-025', amount:320000, status:'En livraison', date:'2026-02-15', deliveryDate:'2026-03-15', items:'Appareillage électrique chantier lot 7' },
-  ],
+const TASKS = [
+  { id:"t1", subject:"Finaliser devis Tour Triangle", dueDate:"2025-03-15", priority:"Haute", status:"En cours", relatedTo:"Tour Triangle - Façades", owner:"Micka" },
+  { id:"t2", subject:"Relancer Eiffage Gare du Nord", dueDate:"2025-03-12", priority:"Moyenne", status:"À faire", relatedTo:"Rénovation Gare du Nord", owner:"Micka" },
+  { id:"t3", subject:"Présentation Campus Saclay", dueDate:"2025-03-20", priority:"Haute", status:"À faire", relatedTo:"Campus Saclay - Bât. R", owner:"Micka" },
+  { id:"t4", subject:"MAJ contacts Colas", dueDate:"2025-03-18", priority:"Basse", status:"En cours", relatedTo:"Autoroute A69", owner:"Micka" },
+];
 
-  invoices: [
-    { id:'i1', number:'FAC-2026-001', accountId:'a5', account:'Spie Batignolles', order:'CMD-2026-001', amount:420000, status:'Payée', date:'2026-02-28', dueDate:'2026-03-30', paidDate:'2026-03-15' },
-    { id:'i2', number:'FAC-2026-002', accountId:'a1', account:'Bouygues Construction', order:'CMD-2026-002', amount:625000, status:'En attente', date:'2026-03-01', dueDate:'2026-04-01', paidDate:null },
-    { id:'i3', number:'FAC-2026-003', accountId:'a6', account:'Legrand SA', order:'CMD-2026-004', amount:320000, status:'En attente', date:'2026-03-05', dueDate:'2026-04-05', paidDate:null },
-    { id:'i4', number:'FAC-2025-042', accountId:'a2', account:'Vinci Construction', order:'CMD-2025-019', amount:1450000, status:'Payée', date:'2025-12-15', dueDate:'2026-01-15', paidDate:'2026-01-10' },
-    { id:'i5', number:'FAC-2025-045', accountId:'a3', account:'Eiffage BTP', order:'CMD-2025-021', amount:780000, status:'En retard', date:'2025-11-30', dueDate:'2025-12-30', paidDate:null },
-  ],
+const CASES = [
+  { id:"cs1", subject:"Retard livraison Lot 7", accountName:"Bouygues Construction", priority:"Haute", status:"Ouvert", created:"2025-03-01", type:"Réclamation" },
+  { id:"cs2", subject:"Non-conformité béton", accountName:"Vinci Construction", priority:"Critique", status:"En cours", created:"2025-02-28", type:"Qualité" },
+  { id:"cs3", subject:"Modif devis A69", accountName:"Colas Group", priority:"Moyenne", status:"Résolu", created:"2025-02-15", type:"Demande" },
+];
 
-  campaigns: [
-    { id:'ca1', name:'Salon BatiExpo 2026', type:'Événement', status:'Active', startDate:'2026-04-10', endDate:'2026-04-13', budget:85000, leadsGenerated:45, costPerLead:1889, channel:'Salon professionnel' },
-    { id:'ca2', name:'Webinar RE2020 Solutions', type:'Digital', status:'Planifiée', startDate:'2026-05-15', endDate:'2026-05-15', budget:5000, leadsGenerated:0, costPerLead:0, channel:'Webinar' },
-    { id:'ca3', name:'Email Promo Matériaux Q1', type:'Email', status:'Terminée', startDate:'2026-01-10', endDate:'2026-02-28', budget:2500, leadsGenerated:22, costPerLead:114, channel:'Emailing' },
-  ],
-
-  cases: [
-    { id:'cs1', number:'TIC-2026-001', subject:'Retard livraison béton chantier Défense', accountId:'a1', account:'Bouygues Construction', contact:'Luc Dubois', priority:'Haute', status:'Ouvert', createdDate:'2026-03-05', category:'Logistique' },
-    { id:'cs2', number:'TIC-2026-002', subject:'Non-conformité panneaux lot 12', accountId:'a5', account:'Spie Batignolles', contact:'Julie Mercier', priority:'Critique', status:'En cours', createdDate:'2026-03-08', category:'Qualité' },
-    { id:'cs3', number:'TIC-2026-003', subject:'Demande avoir facture FAC-2025-045', accountId:'a3', account:'Eiffage BTP', contact:'Pierre Lefèvre', priority:'Moyenne', status:'Ouvert', createdDate:'2026-03-10', category:'Facturation' },
-    { id:'cs4', number:'TIC-2026-004', subject:'Info technique gamme coffrages', accountId:'a4', account:'Colas Rail', contact:'Marie Bernard', priority:'Basse', status:'Résolu', createdDate:'2026-02-20', category:'Information' },
-  ],
-
-  calendarEvents: [
-    { day:5, month:3, label:'Visite chantier Défense', color:'var(--blue-light)' },
-    { day:8, month:3, label:'Réunion Eiffage QSE', color:'var(--teal)' },
-    { day:10, month:3, label:'Salon BatiExpo prep', color:'var(--orange)' },
-    { day:11, month:3, label:'Revue pipeline Q1', color:'var(--blue-imperial)' },
-    { day:15, month:3, label:'Livraison CMD-002', color:'var(--raspberry)' },
-    { day:18, month:3, label:'Demo produit Colas', color:'var(--teal)' },
-    { day:22, month:3, label:'Comité projet Tour Triangle', color:'var(--blue-light)' },
-    { day:25, month:3, label:'Deadline devis DEV-005', color:'var(--red)' },
-    { day:28, month:3, label:'Bilan campagne email', color:'var(--orange)' },
-  ]
-};
+const CAMPAIGNS = [
+  { id:"cm1", name:"Salon BatiMat 2025", type:"Salon", status:"Planifié", startDate:"2025-09-29", endDate:"2025-10-03", budget:"45 000€", leads:0 },
+  { id:"cm2", name:"Webinar Isolation", type:"Webinar", status:"Terminé", startDate:"2025-01-15", endDate:"2025-01-15", budget:"2 500€", leads:34 },
+  { id:"cm3", name:"LinkedIn BTP", type:"Digital", status:"Actif", startDate:"2025-02-01", endDate:"2025-04-30", budget:"8 000€", leads:12 },
+];

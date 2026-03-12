@@ -1,54 +1,246 @@
-/* ============================================
-   MickaCRM — nav.js
-   Sidebar navigation rendering
-   ============================================ */
+// ============================================================
+// MICKACRM 360 — NAV.JS
+// Navigation, routing, breadcrumbs, TopBar interactivity
+// ============================================================
 
-MickaCRM.nav = (() => {
+// ─── App State ─────────────────────────────────────────────────
+var APP = {
+  page: "home",        // home | list | record | pipeline
+  currentObj: null,    // current object key (e.g. "accounts")
+  currentRec: null,    // current record ID
+  breadcrumbs: [{ label: "Accueil", page: "home" }],
+};
 
-  const menuItems = [
-    { section: 'Principal', items: [
-      { id:'dashboard', label:'Dashboard', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>', href:'index.html' },
-    ]},
-    { section: 'Commercial', items: [
-      { id:'accounts', label:'Comptes', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/></svg>', href:'pages/accounts.html', badge:8 },
-      { id:'contacts', label:'Contacts', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>', href:'pages/contacts.html', badge:12 },
-      { id:'leads', label:'Leads', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', href:'pages/leads.html', badge:6 },
-      { id:'opportunities', label:'Opportunités', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>', href:'pages/opportunities.html', badge:5 },
-    ]},
-    { section: 'Projets & Ops', items: [
-      { id:'projects', label:'Projets', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7-6H4a2 2 0 0 0-2 2Z"/><path d="M14 2v6h6"/></svg>', href:'pages/projects.html', badge:4 },
-      { id:'quotes', label:'Devis', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>', href:'pages/quotes.html', badge:5 },
-      { id:'orders', label:'Commandes', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>', href:'pages/orders.html', badge:4 },
-      { id:'invoices', label:'Factures', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>', href:'pages/invoices.html', badge:5 },
-    ]},
-    { section: 'Marketing & Support', items: [
-      { id:'campaigns', label:'Campagnes', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 11 18-5v12L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>', href:'pages/campaigns.html', badge:3 },
-      { id:'cases', label:'Tickets', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>', href:'pages/cases.html', badge:4 },
-      { id:'calendar', label:'Calendrier', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>', href:'pages/calendar.html' },
-    ]}
-  ];
+// ─── Navigate ──────────────────────────────────────────────────
+function navigate(page, objKey, recId) {
+  APP.page = page;
 
-  function init(activeId) {
-    const sidebar = document.getElementById('sidebar');
-    if (!sidebar) return;
-
-    // Determine base path (are we in /pages/ or root?)
-    const inPages = window.location.pathname.includes('/pages/');
-    const prefix = inPages ? '../' : '';
-
-    sidebar.innerHTML = menuItems.map(section => `
-      <div class="sidebar-section">
-        <div class="sidebar-label">${section.section}</div>
-        ${section.items.map(item => `
-          <a href="${prefix}${item.href}" class="sidebar-item ${item.id === activeId ? 'active' : ''}">
-            ${item.icon}
-            ${item.label}
-            ${item.badge ? `<span class="sidebar-badge">${item.badge}</span>` : ''}
-          </a>
-        `).join('')}
-      </div>
-    `).join('');
+  if (page === "home") {
+    APP.currentObj = null;
+    APP.currentRec = null;
+    APP.breadcrumbs = [{ label: "Accueil", page: "home" }];
+  }
+  else if (page === "pipeline") {
+    APP.currentObj = "opportunities";
+    APP.currentRec = null;
+    APP.breadcrumbs = [
+      { label: "Accueil", page: "home" },
+      { label: "Pipeline", page: "pipeline" }
+    ];
+  }
+  else if (page === "list" && objKey) {
+    APP.currentObj = objKey;
+    APP.currentRec = null;
+    APP.breadcrumbs = [
+      { label: "Accueil", page: "home" },
+      { label: OBJ[objKey].label, page: "list", obj: objKey }
+    ];
+  }
+  else if (page === "record" && objKey && recId) {
+    APP.currentObj = objKey;
+    APP.currentRec = recId;
+    var rec = findRecord(objKey, recId);
+    var name = rec ? getRecordName(rec) : recId;
+    APP.breadcrumbs = [
+      { label: "Accueil", page: "home" },
+      { label: OBJ[objKey].label, page: "list", obj: objKey },
+      { label: name, page: "record" }
+    ];
   }
 
-  return { init };
-})();
+  renderApp();
+}
+
+// ─── Breadcrumbs Renderer ──────────────────────────────────────
+function renderBreadcrumbs() {
+  var container = document.getElementById("breadcrumbs");
+  container.innerHTML = "";
+
+  APP.breadcrumbs.forEach(function(bc, i) {
+    if (i > 0) {
+      var sep = document.createElement("span");
+      sep.textContent = " › ";
+      container.appendChild(sep);
+    }
+
+    var span = document.createElement("span");
+    span.textContent = bc.label;
+    var isLast = i === APP.breadcrumbs.length - 1;
+
+    if (!isLast) {
+      span.className = "bc-link";
+      span.onclick = (function(b) {
+        return function() {
+          if (b.page === "home") navigate("home");
+          else if (b.page === "pipeline") navigate("pipeline");
+          else if (b.page === "list" && b.obj) navigate("list", b.obj);
+        };
+      })(bc);
+    } else {
+      span.className = "bc-current";
+    }
+    container.appendChild(span);
+  });
+}
+
+// ─── TopBar Setup ──────────────────────────────────────────────
+function setupTopBar() {
+  // Logo click → home
+  document.getElementById("logo").onclick = function() { navigate("home"); };
+
+  // Nav pills
+  document.getElementById("nav-home").onclick = function() { navigate("home"); };
+  document.getElementById("nav-pipeline").onclick = function() { navigate("pipeline"); };
+
+  // Objects dropdown
+  setupObjectsDropdown();
+
+  // Search
+  setupSearch();
+
+  // Quick create
+  setupQuickCreate();
+}
+
+function updateNavPills() {
+  var homeBtn = document.getElementById("nav-home");
+  var pipeBtn = document.getElementById("nav-pipeline");
+  homeBtn.className = "topbar-pill" + (APP.page === "home" ? " active" : "");
+  pipeBtn.className = "topbar-pill" + (APP.page === "pipeline" ? " active" : "");
+}
+
+// ─── Objects Dropdown ──────────────────────────────────────────
+function setupObjectsDropdown() {
+  var btn = document.getElementById("menu-btn");
+  var dd = document.getElementById("menu-dropdown");
+
+  // Build items
+  dd.innerHTML = "";
+  Object.keys(OBJ).forEach(function(key) {
+    var obj = OBJ[key];
+    var item = document.createElement("button");
+    item.className = "dropdown-item";
+    item.innerHTML = '<span class="icon">' + obj.icon + '</span>' +
+                     '<span class="label">' + obj.label + '</span>' +
+                     '<span class="count">' + obj.data.length + '</span>';
+    item.onclick = function() {
+      dd.style.display = "none";
+      navigate("list", key);
+    };
+    dd.appendChild(item);
+  });
+
+  btn.onclick = function(e) {
+    e.stopPropagation();
+    dd.style.display = dd.style.display === "none" ? "block" : "none";
+  };
+
+  document.addEventListener("click", function(e) {
+    if (!btn.contains(e.target) && !dd.contains(e.target)) {
+      dd.style.display = "none";
+    }
+  });
+}
+
+// ─── Global Search ─────────────────────────────────────────────
+function setupSearch() {
+  var wrapper = document.getElementById("search-wrapper");
+  var icon = document.getElementById("search-icon");
+  var input = document.getElementById("search-input");
+  var results = document.getElementById("search-results");
+  var isOpen = false;
+
+  icon.onclick = function() {
+    isOpen = !isOpen;
+    wrapper.className = "search-wrapper " + (isOpen ? "open" : "closed");
+    if (isOpen) {
+      input.style.display = "block";
+      input.focus();
+    } else {
+      input.style.display = "none";
+      input.value = "";
+      results.style.display = "none";
+    }
+  };
+
+  input.oninput = function() {
+    var q = input.value.toLowerCase();
+    results.innerHTML = "";
+    if (q.length < 2) { results.style.display = "none"; return; }
+
+    var hits = [];
+    Object.keys(OBJ).forEach(function(key) {
+      var obj = OBJ[key];
+      obj.data.forEach(function(rec) {
+        var match = Object.values(rec).some(function(v) {
+          return String(v).toLowerCase().includes(q);
+        });
+        if (match && hits.length < 8) {
+          hits.push({ objKey: key, record: rec, objLabel: obj.label, icon: obj.icon });
+        }
+      });
+    });
+
+    if (hits.length === 0) { results.style.display = "none"; return; }
+    results.style.display = "block";
+
+    hits.forEach(function(hit) {
+      var item = document.createElement("button");
+      item.className = "dropdown-item";
+      var name = getRecordName(hit.record);
+      item.innerHTML = '<span>' + hit.icon + '</span>' +
+                       '<div><div class="search-result-name">' + name + '</div>' +
+                       '<div class="search-result-type">' + hit.objLabel + '</div></div>';
+      item.onclick = function() {
+        navigate("record", hit.objKey, hit.record.id);
+        input.value = "";
+        results.style.display = "none";
+        isOpen = false;
+        wrapper.className = "search-wrapper closed";
+        input.style.display = "none";
+      };
+      results.appendChild(item);
+    });
+  };
+
+  input.onblur = function() {
+    setTimeout(function() {
+      if (!input.value) {
+        isOpen = false;
+        wrapper.className = "search-wrapper closed";
+        input.style.display = "none";
+        results.style.display = "none";
+      }
+    }, 200);
+  };
+}
+
+// ─── Quick Create Dropdown ─────────────────────────────────────
+function setupQuickCreate() {
+  var btn = document.getElementById("create-btn");
+  var dd = document.getElementById("create-dropdown");
+
+  dd.innerHTML = "";
+  QUICK_CREATE.forEach(function(key) {
+    var obj = OBJ[key];
+    var item = document.createElement("button");
+    item.className = "dropdown-item";
+    item.innerHTML = '<span>' + obj.icon + '</span> Nouveau ' + obj.label.slice(0, -1);
+    item.onclick = function() {
+      dd.style.display = "none";
+      showToast("Création " + obj.label.slice(0, -1) + " — bientôt disponible", "info");
+    };
+    dd.appendChild(item);
+  });
+
+  btn.onclick = function(e) {
+    e.stopPropagation();
+    dd.style.display = dd.style.display === "none" ? "block" : "none";
+  };
+
+  document.addEventListener("click", function(e) {
+    if (!btn.contains(e.target) && !dd.contains(e.target)) {
+      dd.style.display = "none";
+    }
+  });
+}

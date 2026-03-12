@@ -1,102 +1,79 @@
-/* ============================================
-   MickaCRM — ui.js
-   Shared UI utilities: toasts, modals, badges,
-   formatters, helpers
-   ============================================ */
+// ============================================================
+// MICKACRM 360 — UI.JS
+// Reusable UI components
+// Badge, Card, KPI, RelCard, Toast, helpers
+// ============================================================
 
-MickaCRM.ui = (() => {
+// ─── Badge Generator ───────────────────────────────────────────
+function createBadge(text, size) {
+  size = size || "sm";
+  const color = BADGE_COLORS[text] || COLORS.text2;
+  const span = document.createElement("span");
+  span.className = "badge badge-" + size;
+  span.textContent = text;
+  span.style.background = color + "14";
+  span.style.color = color;
+  return span;
+}
 
-  // ---- FORMATTERS ----
-  function fmt(n) {
-    return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 }).format(n);
+// ─── Check if field should be a badge ──────────────────────────
+function isBadgeField(fieldName) {
+  return ["status", "priority", "stage"].includes(fieldName);
+}
+
+// ─── Format field value ────────────────────────────────────────
+function formatFieldValue(key, value) {
+  if (value === undefined || value === null || value === "") return "—";
+  return String(value);
+}
+
+// ─── Get record display name ───────────────────────────────────
+function getRecordName(record) {
+  if (record.name) return record.name;
+  if (record.firstName || record.lastName) {
+    return ((record.firstName || "") + " " + (record.lastName || "")).trim();
   }
+  if (record.subject) return record.subject;
+  return record.id;
+}
 
-  function fmtDate(d) {
-    if (!d) return '-';
-    return new Date(d).toLocaleDateString('fr-FR');
+// ─── Find record by ID in an object ────────────────────────────
+function findRecord(objKey, recId) {
+  const obj = OBJ[objKey];
+  if (!obj) return null;
+  return obj.data.find(function(r) { return r.id === recId; }) || null;
+}
+
+// ─── Get related records for a given record ────────────────────
+function getRelatedRecords(objKey, record) {
+  var related = {};
+  var accountName = record.accountName || record.name;
+
+  if (objKey === "accounts") {
+    related.contacts = CONTACTS.filter(function(c) { return c.accountId === record.id; });
+    related.opportunities = OPPORTUNITIES.filter(function(o) { return o.accountId === record.id; });
   }
+  related.activities = ACTIVITIES.filter(function(a) { return a.accountName === accountName; });
+  related.tasks = TASKS.filter(function(t) { return t.relatedTo === record.name; });
+  related.quotes = QUOTES.filter(function(q) { return q.accountName === accountName; });
 
-  function initials(str) {
-    return str.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
-  }
+  return related;
+}
 
-  // ---- GRADIENTS ----
-  const gradients = [
-    'linear-gradient(135deg,#0F5299,#0195D6)',
-    'linear-gradient(135deg,#4DB1B3,#0195D6)',
-    'linear-gradient(135deg,#E66407,#f59e0b)',
-    'linear-gradient(135deg,#C5284C,#E83430)',
-    'linear-gradient(135deg,#0195D6,#4DB1B3)',
-  ];
+// ─── Simple Toast ──────────────────────────────────────────────
+function showToast(message, type) {
+  type = type || "info";
+  var toast = document.createElement("div");
+  toast.style.cssText = "position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;color:#fff;z-index:9999;box-shadow:var(--sh3);animation:fadeSlide .2s ease;font-family:var(--font-display);";
 
-  function getGrad(i) {
-    return gradients[i % gradients.length];
-  }
+  var bgMap = { info: COLORS.blu, success: COLORS.success, error: COLORS.red, warn: COLORS.warn };
+  toast.style.background = bgMap[type] || bgMap.info;
+  toast.textContent = message;
+  document.body.appendChild(toast);
 
-  // ---- STATUS BADGE ----
-  const badgeMap = {
-    'Active':'badge-green', 'Inactive':'badge-gray',
-    'Nouveau':'badge-blue', 'Contacté':'badge-orange', 'Qualifié':'badge-teal',
-    'Prospection':'badge-gray', 'Qualification':'badge-blue', 'Proposition':'badge-orange',
-    'Négociation':'badge-teal', 'Gagné':'badge-green', 'Perdu':'badge-red',
-    'En cours':'badge-blue', 'Planifié':'badge-orange', 'Terminé':'badge-green',
-    'Brouillon':'badge-gray', 'Envoyé':'badge-blue', 'Accepté':'badge-green', 'Refusé':'badge-red',
-    'Confirmée':'badge-blue', 'En production':'badge-orange', 'En livraison':'badge-teal', 'Livrée':'badge-green',
-    'En attente':'badge-orange', 'Payée':'badge-green', 'En retard':'badge-red',
-    'Planifiée':'badge-orange', 'Terminée':'badge-gray',
-    'Ouvert':'badge-orange', 'Résolu':'badge-green',
-    'Critique':'badge-red', 'Haute':'badge-orange', 'Moyenne':'badge-blue', 'Basse':'badge-gray',
-    'Client':'badge-green', 'Prospect':'badge-blue', 'Partenaire':'badge-teal', 'Fournisseur':'badge-orange',
-  };
-
-  function badge(status) {
-    const cls = badgeMap[status] || 'badge-gray';
-    return `<span class="badge ${cls}">${status}</span>`;
-  }
-
-  // ---- TOAST ----
-  function showToast(msg, type = 'success') {
-    const c = document.getElementById('toastContainer');
-    const t = document.createElement('div');
-    t.className = `toast toast-${type}`;
-    t.textContent = msg;
-    c.appendChild(t);
-    setTimeout(() => t.remove(), 3000);
-  }
-
-  // ---- MODAL ----
-  function openModal(title, bodyHTML, footerHTML) {
-    document.getElementById('modalTitle').textContent = title;
-    document.getElementById('modalBody').innerHTML = bodyHTML;
-    document.getElementById('modalFooter').innerHTML = footerHTML || '';
-    document.getElementById('modal').classList.add('show');
-  }
-
-  function closeModal() {
-    document.getElementById('modal').classList.remove('show');
-  }
-
-  // ---- TABLE RENDERER ----
-  function renderTable(containerId, items, columns, onRowClick) {
-    const el = document.getElementById(containerId);
-    if (!el) return;
-    el.innerHTML = items.map((item, i) =>
-      `<tr ${onRowClick ? `onclick="${onRowClick(item)}"` : ''}>${
-        columns.map(c => `<td>${c.render ? c.render(item, i) : (item[c.key] || '-')}</td>`).join('')
-      }</tr>`
-    ).join('');
-  }
-
-  // ---- AVATAR ----
-  function avatar(name, index, size = 32) {
-    return `<div style="width:${size}px;height:${size}px;border-radius:${size > 40 ? '12px' : '50%'};background:${getGrad(index)};display:flex;align-items:center;justify-content:center;color:#fff;font-size:${Math.round(size*0.35)}px;font-weight:700;font-family:Outfit;flex-shrink:0">${initials(name)}</div>`;
-  }
-
-  // Close modal on overlay click
-  document.addEventListener('click', (e) => {
-    if (e.target.id === 'modal') closeModal();
-  });
-
-  // Public API
-  return { fmt, fmtDate, initials, getGrad, badge, showToast, openModal, closeModal, renderTable, avatar };
-})();
+  setTimeout(function() {
+    toast.style.opacity = "0";
+    toast.style.transition = "opacity .3s";
+    setTimeout(function() { toast.remove(); }, 300);
+  }, 2500);
+}
