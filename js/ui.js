@@ -52,7 +52,17 @@ function getRelatedRecords(objKey, record) {
     related.contacts = CONTACTS.filter(function(c) { return c.accountId === record.id; });
     related.opportunities = OPPORTUNITIES.filter(function(o) { return o.accountId === record.id; });
   }
-  related.activities = ACTIVITIES.filter(function(a) { return a.accountName === accountName; });
+  // Activities: match by accountName OR by direct relatedObjKey/relatedRecId link
+  related.activities = ACTIVITIES.filter(function(a) {
+    if (a.relatedObjKey === objKey && a.relatedRecId === record.id) return true;
+    if (a.accountName === accountName) return true;
+    // Also match contacts by name
+    if (objKey === "contacts" && record.firstName) {
+      var fullName = (record.firstName + " " + (record.lastName || "")).trim();
+      if (a.contactName === fullName) return true;
+    }
+    return false;
+  });
   related.tasks = TASKS.filter(function(t) { return t.relatedTo === record.name; });
   related.quotes = QUOTES.filter(function(q) { return q.accountName === accountName; });
   return related;
