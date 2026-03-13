@@ -297,3 +297,51 @@ function fbCompressAndSavePhoto(file, collectionKey, docId, maxSize, quality) {
     reader.readAsDataURL(file);
   });
 }
+
+
+/* ═══════════════════════════════════════════════════════
+   PHOTO PREVIEW — Full-screen lightbox on avatar click
+   
+   Usage: fbShowPhotoPreview(imageUrl, altText)
+   Shows a centered modal with the full image.
+   Click backdrop or X to close.
+   ═══════════════════════════════════════════════════════ */
+
+function fbShowPhotoPreview(imageUrl, altText) {
+  if (!imageUrl) return;
+  /* Inject CSS once */
+  if (!document.getElementById('fb-preview-css')) {
+    var s = document.createElement('style');
+    s.id = 'fb-preview-css';
+    s.textContent = '\
+.fb-preview-backdrop{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s ease;cursor:pointer}\
+.fb-preview-backdrop.fb-preview-show{opacity:1}\
+.fb-preview-img{max-width:min(420px,85vw);max-height:min(420px,85vh);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.35);border:3px solid #fff;object-fit:cover;transform:scale(.9);transition:transform .25s ease}\
+.fb-preview-backdrop.fb-preview-show .fb-preview-img{transform:scale(1)}\
+.fb-preview-close{position:absolute;top:20px;right:24px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}\
+.fb-preview-close:hover{background:rgba(255,255,255,.3)}\
+';
+    document.head.appendChild(s);
+  }
+
+  var backdrop = document.createElement('div');
+  backdrop.className = 'fb-preview-backdrop';
+  backdrop.innerHTML = '<img class="fb-preview-img" src="'+imageUrl+'" alt="'+(altText||'Photo')+'" />' +
+    '<button class="fb-preview-close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>';
+  document.body.appendChild(backdrop);
+
+  requestAnimationFrame(function() { backdrop.classList.add('fb-preview-show'); });
+
+  function closePreview() {
+    backdrop.classList.remove('fb-preview-show');
+    setTimeout(function() { backdrop.remove(); }, 200);
+  }
+  backdrop.addEventListener('click', function(e) {
+    if (e.target === backdrop || e.target.classList.contains('fb-preview-close') || e.target.closest('.fb-preview-close')) {
+      closePreview();
+    }
+  });
+  document.addEventListener('keydown', function onKey(e) {
+    if (e.key === 'Escape') { closePreview(); document.removeEventListener('keydown', onKey); }
+  });
+}

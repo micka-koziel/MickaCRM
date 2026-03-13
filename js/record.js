@@ -9,12 +9,6 @@ function renderRecordPage(objKey, recId, headerEl, contentEl) {
   var rec = data.find(function(r) { return r.id === recId; });
   if (!rec) { contentEl.innerHTML = '<div class="placeholder-view">Record not found</div>'; return; }
 
-  // Track for "Recently Viewed" on dashboard
-  if (typeof trackRecentlyViewed === 'function') {
-    var recName = rec.name || rec.subject || rec.title || ((rec.firstName || '') + ' ' + (rec.lastName || '')).trim() || ('Record #' + recId);
-    trackRecentlyViewed(objKey, recId, recName);
-  }
-
   if (objKey === 'accounts') {
     headerEl.style.display = 'none';
     renderAccount360(contentEl, rec);
@@ -107,13 +101,13 @@ function renderAccount360(container, rec) {
   // Header card
   h += '<div class="a360-header-card">';
   h += '<div class="a360-header-top">';
-  // Photo avatar (click to upload)
+  // Photo avatar 92px (click to upload, click to preview)
   var accPhotoUrl = rec.photoURL || rec.photo || '';
   h += '<div class="a360-photo-wrap" id="a360-photo-wrap" title="Click to change photo">';
-  if (accPhotoUrl && accPhotoUrl.indexOf('data:') !== 0) {
+  if (accPhotoUrl) {
     h += '<div class="a360-avatar a360-avatar-img" id="a360-avatar"><img src="'+accPhotoUrl+'" alt="'+accName+'" /></div>';
   } else {
-    h += '<div class="a360-avatar" id="a360-avatar">' + initials + '</div>';
+    h += '<div class="a360-avatar a360-avatar-initials" id="a360-avatar">' + initials + '</div>';
   }
   h += '<div class="a360-photo-overlay">' + svgIcon('plus',16,'#fff') + '</div>';
   h += '<input type="file" id="a360-photo-input" accept="image/*" style="display:none" />';
@@ -123,7 +117,12 @@ function renderAccount360(container, rec) {
   var sc = rec.status==='Active' ? 'var(--success)' : 'var(--text-light)';
   h += '<span class="stage-badge" style="color:'+sc+'"><span class="dot" style="background:'+sc+'"></span>'+rec.status+'</span>';
   h += '</div>';
-  h += '<div class="a360-meta"><span>' + (rec.industry||'—') + '</span><span class="a360-dot">·</span><span>' + (rec.city||'—') + '</span></div>';
+  h += '<div class="a360-subtitle">' + (rec.industry||'—') + '</div>';
+  h += '<div class="a360-detail-chips">';
+  if (rec.city) h += '<span class="a360-chip">' + svgIcon('mapPin',12,'var(--text-light)') + ' ' + rec.city + '</span>';
+  if (rec.phone) h += '<span class="a360-chip">' + svgIcon('phone',12,'var(--text-light)') + ' ' + rec.phone + '</span>';
+  if (rec.website) h += '<span class="a360-chip">' + svgIcon('link',12,'var(--text-light)') + ' ' + rec.website + '</span>';
+  h += '</div>';
   h += '</div>';
 
   h += '<div class="a360-header-metrics">';
@@ -228,22 +227,38 @@ function renderAccount360(container, rec) {
   // Bind events
   document.getElementById('a360-back').addEventListener('click', function(){ navigate('accounts'); });
 
-  // Photo upload (Firebase Storage)
+  // Photo: overlay click = upload, avatar click = preview
   var a360PhotoWrap = document.getElementById('a360-photo-wrap');
   var a360PhotoInput = document.getElementById('a360-photo-input');
   if (a360PhotoWrap && a360PhotoInput) {
-    a360PhotoWrap.addEventListener('click', function(){ a360PhotoInput.click(); });
+    // Overlay "+" triggers file picker
+    var a360Overlay = a360PhotoWrap.querySelector('.a360-photo-overlay');
+    if (a360Overlay) {
+      a360Overlay.addEventListener('click', function(e){ e.stopPropagation(); a360PhotoInput.click(); });
+    }
+    // Avatar click = preview if photo exists, else upload
+    var a360AvatarEl = document.getElementById('a360-avatar');
+    if (a360AvatarEl) {
+      a360AvatarEl.addEventListener('click', function(e){
+        e.stopPropagation();
+        var currentUrl = rec.photoURL || rec.photo || '';
+        if (currentUrl && typeof fbShowPhotoPreview === 'function') {
+          fbShowPhotoPreview(currentUrl, accName);
+        } else {
+          a360PhotoInput.click();
+        }
+      });
+    }
     a360PhotoInput.addEventListener('change', function(e) {
       var file = e.target.files && e.target.files[0];
       if (!file) return;
-      // Show spinner on avatar
       var avatar = document.getElementById('a360-avatar');
       if (avatar) {
         avatar.classList.add('a360-avatar-loading');
         avatar.innerHTML = '<div class="a360-spinner"></div>';
       }
-      if (typeof fbUploadPhoto === 'function') {
-        fbUploadPhoto(file, 'accounts', accId).then(function(url) {
+      if (typeof fbCompressAndSavePhoto === 'function') {
+        fbCompressAndSavePhoto(file, 'accounts', accId).then(function(url) {
           if (avatar) {
             avatar.classList.remove('a360-avatar-loading');
             avatar.className = 'a360-avatar a360-avatar-img';
@@ -251,7 +266,7 @@ function renderAccount360(container, rec) {
           }
           fbShowStatus('Photo uploaded');
         }).catch(function(err) {
-          console.error('[A360] Photo upload error:', err);
+          console.error('[A360] Photo error:', err);
           if (avatar) {
             avatar.classList.remove('a360-avatar-loading');
             avatar.innerHTML = initials;
@@ -259,14 +274,10 @@ function renderAccount360(container, rec) {
           fbShowStatus('Photo upload failed', true);
         });
       } else {
-        // Fallback: base64 in memory only
         var reader = new FileReader();
         reader.onload = function(ev) {
           rec.photo = ev.target.result;
-          if (avatar) {
-            avatar.className = 'a360-avatar a360-avatar-img';
-            avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+accName+'" />';
-          }
+          if (avatar) { avatar.className = 'a360-avatar a360-avatar-img'; avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+accName+'" />'; }
         };
         reader.readAsDataURL(file);
       }
@@ -520,11 +531,26 @@ function renderContact360(container, rec) {
   // Bind events
   document.getElementById('c360-back').addEventListener('click', function(){ navigate('contacts'); });
 
-  // Photo upload (Firebase Storage)
+  // Photo: overlay click = upload, avatar click = preview
   var photoWrap = document.getElementById('c360-photo-wrap');
   var photoInput = document.getElementById('c360-photo-input');
   if (photoWrap && photoInput) {
-    photoWrap.addEventListener('click', function(){ photoInput.click(); });
+    var c360Overlay = photoWrap.querySelector('.c360-photo-overlay');
+    if (c360Overlay) {
+      c360Overlay.addEventListener('click', function(e){ e.stopPropagation(); photoInput.click(); });
+    }
+    var c360AvatarEl = document.getElementById('c360-avatar');
+    if (c360AvatarEl) {
+      c360AvatarEl.addEventListener('click', function(e){
+        e.stopPropagation();
+        var currentUrl = rec.photoURL || rec.photo || '';
+        if (currentUrl && typeof fbShowPhotoPreview === 'function') {
+          fbShowPhotoPreview(currentUrl, contactName);
+        } else {
+          photoInput.click();
+        }
+      });
+    }
     photoInput.addEventListener('change', function(e) {
       var file = e.target.files && e.target.files[0];
       if (!file) return;
@@ -533,30 +559,20 @@ function renderContact360(container, rec) {
         avatar.className = 'c360-photo c360-photo-loading';
         avatar.innerHTML = '<div class="c360-spinner"></div>';
       }
-      if (typeof fbUploadPhoto === 'function') {
-        fbUploadPhoto(file, 'contacts', contactId).then(function(url) {
-          if (avatar) {
-            avatar.className = 'c360-photo';
-            avatar.innerHTML = '<img src="'+url+'" alt="'+contactName+'" />';
-          }
+      if (typeof fbCompressAndSavePhoto === 'function') {
+        fbCompressAndSavePhoto(file, 'contacts', contactId).then(function(url) {
+          if (avatar) { avatar.className = 'c360-photo'; avatar.innerHTML = '<img src="'+url+'" alt="'+contactName+'" />'; }
           fbShowStatus('Photo uploaded');
         }).catch(function(err) {
-          console.error('[C360] Photo upload error:', err);
-          if (avatar) {
-            avatar.className = 'c360-photo c360-photo-initials';
-            avatar.innerHTML = initials;
-          }
+          console.error('[C360] Photo error:', err);
+          if (avatar) { avatar.className = 'c360-photo c360-photo-initials'; avatar.innerHTML = initials; }
           fbShowStatus('Photo upload failed', true);
         });
       } else {
-        // Fallback: base64 in memory only
         var reader = new FileReader();
         reader.onload = function(ev) {
           rec.photo = ev.target.result;
-          if (avatar) {
-            avatar.className = 'c360-photo';
-            avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+contactName+'" />';
-          }
+          if (avatar) { avatar.className = 'c360-photo'; avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+contactName+'" />'; }
         };
         reader.readAsDataURL(file);
       }
@@ -873,11 +889,26 @@ function renderLead360(container, rec) {
   /* ── Bind Events ── */
   document.getElementById('l360-back').addEventListener('click', function(){ navigate('leads'); });
 
-  /* Photo upload (Firebase Storage) */
+  /* Photo: overlay click = upload, avatar click = preview */
   var l360PhotoWrap = document.getElementById('l360-photo-wrap');
   var l360PhotoInput = document.getElementById('l360-photo-input');
   if (l360PhotoWrap && l360PhotoInput) {
-    l360PhotoWrap.addEventListener('click', function(){ l360PhotoInput.click(); });
+    var l360Overlay = l360PhotoWrap.querySelector('.l360-photo-overlay');
+    if (l360Overlay) {
+      l360Overlay.addEventListener('click', function(e){ e.stopPropagation(); l360PhotoInput.click(); });
+    }
+    var l360AvatarEl = document.getElementById('l360-avatar');
+    if (l360AvatarEl) {
+      l360AvatarEl.addEventListener('click', function(e){
+        e.stopPropagation();
+        var currentUrl = rec.photoURL || rec.photo || '';
+        if (currentUrl && typeof fbShowPhotoPreview === 'function') {
+          fbShowPhotoPreview(currentUrl, rec.name);
+        } else {
+          l360PhotoInput.click();
+        }
+      });
+    }
     l360PhotoInput.addEventListener('change', function(e) {
       var file = e.target.files && e.target.files[0];
       if (!file) return;
@@ -886,12 +917,12 @@ function renderLead360(container, rec) {
         avatar.className = 'l360-photo l360-photo-loading';
         avatar.innerHTML = '<div class="l360-spinner"></div>';
       }
-      if (typeof fbUploadPhoto === 'function') {
-        fbUploadPhoto(file, 'leads', rec.id).then(function(url) {
+      if (typeof fbCompressAndSavePhoto === 'function') {
+        fbCompressAndSavePhoto(file, 'leads', rec.id).then(function(url) {
           if (avatar) { avatar.className = 'l360-photo'; avatar.innerHTML = '<img src="'+url+'" alt="'+rec.name+'" />'; }
           fbShowStatus('Photo uploaded');
         }).catch(function(err) {
-          console.error('[L360] Photo upload error:', err);
+          console.error('[L360] Photo error:', err);
           if (avatar) { avatar.className = 'l360-photo l360-photo-initials'; avatar.innerHTML = initials; }
           fbShowStatus('Photo upload failed', true);
         });
@@ -1223,11 +1254,26 @@ function renderOpp360(container, rec) {
   /* ── Bind Events ── */
   document.getElementById('o360-back').addEventListener('click', function(){ navigate('opportunities'); });
 
-  /* Photo upload (Firebase Storage) */
+  /* Photo: overlay click = upload, avatar click = preview */
   var photoWrap = document.getElementById('o360-photo-wrap');
   var photoInput = document.getElementById('o360-photo-input');
   if (photoWrap && photoInput) {
-    photoWrap.addEventListener('click', function(){ photoInput.click(); });
+    var o360Overlay = photoWrap.querySelector('.o360-photo-overlay');
+    if (o360Overlay) {
+      o360Overlay.addEventListener('click', function(e){ e.stopPropagation(); photoInput.click(); });
+    }
+    var o360AvatarEl = document.getElementById('o360-avatar');
+    if (o360AvatarEl) {
+      o360AvatarEl.addEventListener('click', function(e){
+        e.stopPropagation();
+        var currentUrl = rec.photoURL || rec.photo || '';
+        if (currentUrl && typeof fbShowPhotoPreview === 'function') {
+          fbShowPhotoPreview(currentUrl, rec.name);
+        } else {
+          photoInput.click();
+        }
+      });
+    }
     photoInput.addEventListener('change', function(e) {
       var file = e.target.files && e.target.files[0];
       if (!file) return;
@@ -1236,12 +1282,12 @@ function renderOpp360(container, rec) {
         avatar.className = 'o360-photo o360-photo-loading';
         avatar.innerHTML = '<div class="o360-spinner"></div>';
       }
-      if (typeof fbUploadPhoto === 'function') {
-        fbUploadPhoto(file, 'opportunities', oppId).then(function(url) {
+      if (typeof fbCompressAndSavePhoto === 'function') {
+        fbCompressAndSavePhoto(file, 'opportunities', oppId).then(function(url) {
           if (avatar) { avatar.className = 'o360-photo'; avatar.innerHTML = '<img src="'+url+'" alt="'+rec.name+'" />'; }
           fbShowStatus('Photo uploaded');
         }).catch(function(err) {
-          console.error('[O360] Photo upload error:', err);
+          console.error('[O360] Photo error:', err);
           if (avatar) { avatar.className = 'o360-photo o360-photo-initials'; avatar.innerHTML = svgIcon('opportunities',24,'#fff'); }
           fbShowStatus('Photo upload failed', true);
         });
@@ -1342,10 +1388,11 @@ function injectO360Styles() {
 .o360-header-top{padding:22px 26px 18px;display:flex;gap:20px;align-items:flex-start}\
 \
 /* Photo/Avatar */\
-.o360-photo{width:64px;height:64px;border-radius:50%;flex-shrink:0;overflow:hidden;border:2.5px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.08)}\
+.o360-photo{width:92px;height:92px;border-radius:50%;flex-shrink:0;overflow:hidden;border:1px solid #E6E8EC;box-shadow:0 2px 8px rgba(0,0,0,.06);background:#fff;transition:transform .18s ease,box-shadow .18s ease}\
 .o360-photo img{width:100%;height:100%;object-fit:cover}\
-.o360-photo.o360-photo-initials{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent),var(--accent-hover));font-size:20px;font-weight:800;color:#fff;letter-spacing:-.5px}\
+.o360-photo.o360-photo-initials{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent),var(--accent-hover));font-size:28px;font-weight:800;color:#fff;letter-spacing:-.5px}\
 .o360-photo-wrap{position:relative;cursor:pointer;flex-shrink:0}\
+.o360-photo-wrap:hover .o360-photo{transform:scale(1.05);box-shadow:0 6px 20px rgba(0,0,0,.12)}\
 .o360-photo-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}\
 .o360-photo-wrap:hover .o360-photo-overlay{opacity:1}\
 .o360-photo-loading{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent),var(--accent-hover))}\
@@ -1527,15 +1574,20 @@ function injectA360Styles() {
 .a360-back{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer;padding:4px 0;margin-bottom:10px;transition:color .12s}\
 .a360-back:hover{color:var(--accent)}\
 .a360-header-card{background:var(--card);border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);border:1px solid var(--border);margin-bottom:14px;overflow:hidden}\
-.a360-header-top{padding:22px 26px 18px;display:flex;gap:20px;align-items:center}\
-.a360-avatar{width:60px;height:60px;border-radius:14px;background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 100%);border:2px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:19px;font-weight:800;color:var(--accent);letter-spacing:-.5px;overflow:hidden}\
+.a360-header-top{padding:22px 26px 18px;display:flex;gap:22px;align-items:center}\
+.a360-avatar{width:92px;height:92px;border-radius:50%;background:#fff;border:1px solid #E6E8EC;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;transition:transform .18s ease,box-shadow .18s ease}\
+.a360-avatar-initials{background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 100%);font-size:28px;font-weight:800;color:var(--accent);letter-spacing:-.5px}\
 .a360-avatar-img img{width:100%;height:100%;object-fit:cover}\
 .a360-photo-wrap{position:relative;cursor:pointer;flex-shrink:0}\
-.a360-photo-overlay{position:absolute;inset:0;border-radius:14px;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}\
+.a360-photo-wrap:hover .a360-avatar{transform:scale(1.05);box-shadow:0 6px 20px rgba(0,0,0,.12)}\
+.a360-photo-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}\
 .a360-photo-wrap:hover .a360-photo-overlay{opacity:1}\
 .a360-avatar-loading{background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 100%)}\
 .a360-spinner{width:22px;height:22px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:a360spin .6s linear infinite}\
 @keyframes a360spin{to{transform:rotate(360deg)}}\
+.a360-subtitle{font-size:13px;color:var(--text-muted);font-weight:500;margin-top:2px}\
+.a360-detail-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}\
+.a360-chip{display:inline-flex;align-items:center;gap:5px;background:#f8f9fb;border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-size:11px;color:var(--text-muted);font-weight:500}\
 .a360-header-info{flex:1;min-width:0}\
 .a360-name-row{display:flex;align-items:center;gap:10px;margin-bottom:5px}\
 .a360-name{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.6px;margin:0;line-height:1}\
@@ -1626,11 +1678,12 @@ function injectC360Styles() {
 .c360-header-card{background:var(--card);border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);border:1px solid var(--border);margin-bottom:14px;overflow:hidden}\
 .c360-header-top{padding:22px 26px 18px;display:flex;gap:20px;align-items:flex-start}\
 \
-.c360-photo{width:72px;height:72px;border-radius:50%;flex-shrink:0;overflow:hidden;border:2.5px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.08)}\
+.c360-photo{width:92px;height:92px;border-radius:50%;flex-shrink:0;overflow:hidden;border:1px solid #E6E8EC;box-shadow:0 2px 8px rgba(0,0,0,.06);background:#fff;transition:transform .18s ease,box-shadow .18s ease}\
 .c360-photo img{width:100%;height:100%;object-fit:cover}\
-.c360-photo.c360-photo-initials{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 100%);font-size:22px;font-weight:800;color:var(--accent);letter-spacing:-.5px}\
+.c360-photo.c360-photo-initials{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 100%);font-size:28px;font-weight:800;color:var(--accent);letter-spacing:-.5px}\
 \
 .c360-photo-wrap{position:relative;cursor:pointer;flex-shrink:0}\
+.c360-photo-wrap:hover .c360-photo{transform:scale(1.05);box-shadow:0 6px 20px rgba(0,0,0,.12)}\
 .c360-photo-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}\
 .c360-photo-wrap:hover .c360-photo-overlay{opacity:1}\
 .c360-photo-loading{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 100%)}\
@@ -1740,10 +1793,11 @@ function injectL360Styles() {
 .l360-header-card{background:var(--card);border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);border:1px solid var(--border);margin-bottom:14px;overflow:hidden}\
 .l360-header-top{padding:22px 26px 18px;display:flex;gap:20px;align-items:flex-start}\
 .l360-avatar{width:64px;height:64px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 50%,#fbbf24 100%);border:2.5px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#92400e;letter-spacing:-.5px}\
-.l360-photo{width:64px;height:64px;border-radius:50%;flex-shrink:0;overflow:hidden;border:2.5px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.08)}\
+.l360-photo{width:92px;height:92px;border-radius:50%;flex-shrink:0;overflow:hidden;border:1px solid #E6E8EC;box-shadow:0 2px 8px rgba(0,0,0,.06);background:#fff;transition:transform .18s ease,box-shadow .18s ease}\
 .l360-photo img{width:100%;height:100%;object-fit:cover}\
-.l360-photo.l360-photo-initials{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 50%,#fbbf24 100%);font-size:20px;font-weight:800;color:#92400e;letter-spacing:-.5px}\
+.l360-photo.l360-photo-initials{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 50%,#fbbf24 100%);font-size:28px;font-weight:800;color:#92400e;letter-spacing:-.5px}\
 .l360-photo-wrap{position:relative;cursor:pointer;flex-shrink:0}\
+.l360-photo-wrap:hover .l360-photo{transform:scale(1.05);box-shadow:0 6px 20px rgba(0,0,0,.12)}\
 .l360-photo-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}\
 .l360-photo-wrap:hover .l360-photo-overlay{opacity:1}\
 .l360-photo-loading{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 100%)}\
