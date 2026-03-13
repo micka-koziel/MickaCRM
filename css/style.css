@@ -73,21 +73,22 @@ body {
 }
 
 .sb-logo {
-  height: 48px;
+  height: 72px;
   display: flex;
   align-items: center;
-  padding: 0 12px;
+  padding: 0 16px;
   gap: 9px;
   border-bottom: 1px solid rgba(255,255,255,.07);
   overflow: hidden;
   white-space: nowrap;
-  margin-bottom: 4px;
+  margin-bottom: 0;
 }
 
 .collapsed .sb-logo {
   justify-content: center;
   padding: 0 8px;
   gap: 0;
+  height: 52px;
 }
 
 .sb-logo-icon {
@@ -105,21 +106,22 @@ body {
 }
 
 .sb-logo-text {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 800;
   color: #fff;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   line-height: 1;
 }
 
 .sb-logo-360 {
-  color: rgba(255,255,255,0.4);
+  color: rgba(255,255,255,0.3);
   font-weight: 500;
+  font-size: 15px;
 }
 
 .sb-nav {
   flex: 1;
-  padding: 6px 5px;
+  padding: 14px 5px 6px;
   display: flex;
   flex-direction: column;
   gap: 1px;
