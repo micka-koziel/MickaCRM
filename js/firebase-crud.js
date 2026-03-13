@@ -229,3 +229,52 @@ function fbShowStatus(msg, isError) {
     setTimeout(function() { toast.remove(); }, 300);
   }, 2500);
 }
+
+
+/* ═══════════════════════════════════════════════════════
+   PHOTO UPLOAD — Firebase Storage + Firestore URL
+   
+   Usage:
+     fbUploadPhoto(file, 'accounts', 'acc1')
+       → uploads to photos/accounts/acc1.jpg
+       → saves photoURL field in Firestore doc
+       → updates window.DATA record
+       → returns Promise<url>
+   ═══════════════════════════════════════════════════════ */
+
+function fbUploadPhoto(file, collectionKey, docId) {
+  if (!file || !collectionKey || !docId) {
+    return Promise.reject(new Error('Missing file, collection, or docId'));
+  }
+
+  /* Build storage path: photos/{collection}/{docId}.jpg */
+  var ext = (file.name || '').split('.').pop() || 'jpg';
+  var storagePath = 'photos/' + collectionKey + '/' + docId + '.' + ext;
+
+  var storageRef = firebase.storage().ref(storagePath);
+
+  /* Metadata for correct content-type */
+  var metadata = { contentType: file.type || 'image/jpeg' };
+
+  return storageRef.put(file, metadata).then(function(snapshot) {
+    return snapshot.ref.getDownloadURL();
+  }).then(function(downloadURL) {
+    /* Persist URL in Firestore */
+    return fbSaveField(collectionKey, docId, 'photoURL', downloadURL).then(function() {
+      /* Update window.DATA in memory */
+      var records = window.DATA[collectionKey] || [];
+      var rec = records.find(function(r) { return r.id === docId; });
+      if (rec) {
+        rec.photoURL = downloadURL;
+        /* Clean up old base64 photo if present */
+        if (rec.photo && rec.photo.indexOf('data:') === 0) {
+          delete rec.photo;
+          /* Also remove base64 from Firestore (async, fire-and-forget) */
+          fbSaveField(collectionKey, docId, 'photo', firebase.firestore.FieldValue.delete()).catch(function(){});
+        }
+      }
+      console.log('[Firebase] Photo uploaded: ' + storagePath);
+      return downloadURL;
+    });
+  });
+}

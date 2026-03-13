@@ -137,7 +137,17 @@ function renderProject360(container, rec) {
 
   /* ═══ HEADER ═══ */
   h += '<div class="p3-hdr"><div class="p3-hdr-row">';
-  h += '<div class="p3-av">' + p3Icon('building',30,'#fff') + '</div>';
+  // Photo avatar (click to upload)
+  var p3PhotoUrl = rec.photoURL || rec.photo || '';
+  h += '<div class="p3-av-wrap" id="p3-photo-wrap" title="Click to change photo">';
+  if (p3PhotoUrl) {
+    h += '<div class="p3-av p3-av-img" id="p3-avatar"><img src="'+p3PhotoUrl+'" alt="'+(rec.name||'')+'" /></div>';
+  } else {
+    h += '<div class="p3-av" id="p3-avatar">' + p3Icon('building',30,'#fff') + '</div>';
+  }
+  h += '<div class="p3-av-overlay">' + p3Icon('plus',16,'#fff') + '</div>';
+  h += '<input type="file" id="p3-photo-input" accept="image/*" style="display:none" />';
+  h += '</div>';
   h += '<div class="p3-hc">';
   h += '<div class="p3-name">' + (rec.name||'Untitled Project');
   h += ' <span class="p3-chip-phase">' + p3Icon('hardHat',13,'var(--accent)') + ' ' + phaseNorm + '</span></div>';
@@ -336,6 +346,49 @@ function renderProject360(container, rec) {
     acctLink.addEventListener('click', function(){ navigate('record','accounts',rec.account); });
   }
 
+  /* Photo upload (Firebase Storage) */
+  var p3PhotoWrap = document.getElementById('p3-photo-wrap');
+  var p3PhotoInput = document.getElementById('p3-photo-input');
+  if (p3PhotoWrap && p3PhotoInput) {
+    p3PhotoWrap.addEventListener('click', function(){ p3PhotoInput.click(); });
+    p3PhotoInput.addEventListener('change', function(e) {
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+      var avatar = document.getElementById('p3-avatar');
+      if (avatar) {
+        avatar.classList.add('p3-av-loading');
+        avatar.innerHTML = '<div class="p3-spinner"></div>';
+      }
+      if (typeof fbUploadPhoto === 'function') {
+        fbUploadPhoto(file, 'projects', rec.id).then(function(url) {
+          if (avatar) {
+            avatar.classList.remove('p3-av-loading');
+            avatar.className = 'p3-av p3-av-img';
+            avatar.innerHTML = '<img src="'+url+'" alt="'+(rec.name||'')+'" />';
+          }
+          fbShowStatus('Photo uploaded');
+        }).catch(function(err) {
+          console.error('[P360] Photo upload error:', err);
+          if (avatar) {
+            avatar.classList.remove('p3-av-loading');
+            avatar.innerHTML = p3Icon('building',30,'#fff');
+          }
+          fbShowStatus('Photo upload failed', true);
+        });
+      } else {
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          rec.photo = ev.target.result;
+          if (avatar) {
+            avatar.className = 'p3-av p3-av-img';
+            avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+(rec.name||'')+'" />';
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
   /* Tab switching */
   container.querySelectorAll('.p3-tab').forEach(function(btn) {
     btn.addEventListener('click', function() {
@@ -384,7 +437,14 @@ function injectP360Styles() {
 '.p3-back:hover{color:var(--accent)}',
 '.p3-hdr{background:#fff;border-bottom:1px solid var(--border);padding:24px 32px 20px}',
 '.p3-hdr-row{display:flex;align-items:flex-start;gap:18px}',
-'.p3-av{width:72px;height:72px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--accent),#1e40af);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 0 0 4px rgba(37,99,235,.12)}',
+'.p3-av{width:72px;height:72px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--accent),#1e40af);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 0 0 4px rgba(37,99,235,.12);overflow:hidden}',
+'.p3-av-img img{width:100%;height:100%;object-fit:cover}',
+'.p3-av-wrap{position:relative;cursor:pointer;flex-shrink:0}',
+'.p3-av-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}',
+'.p3-av-wrap:hover .p3-av-overlay{opacity:1}',
+'.p3-av-loading{background:linear-gradient(135deg,var(--accent),#1e40af)}',
+'.p3-spinner{width:22px;height:22px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:p3spin .6s linear infinite}',
+'@keyframes p3spin{to{transform:rotate(360deg)}}',
 '.p3-hc{flex:1;min-width:0}',
 '.p3-name{font-size:22px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:10px;flex-wrap:wrap}',
 '.p3-chip-phase{display:inline-flex;align-items:center;gap:5px;background:#dbeafe;color:var(--accent);font-size:12px;font-weight:600;padding:3px 12px;border-radius:20px}',

@@ -101,7 +101,17 @@ function renderAccount360(container, rec) {
   // Header card
   h += '<div class="a360-header-card">';
   h += '<div class="a360-header-top">';
-  h += '<div class="a360-avatar">' + initials + '</div>';
+  // Photo avatar (click to upload)
+  var accPhotoUrl = rec.photoURL || rec.photo || '';
+  h += '<div class="a360-photo-wrap" id="a360-photo-wrap" title="Click to change photo">';
+  if (accPhotoUrl && accPhotoUrl.indexOf('data:') !== 0) {
+    h += '<div class="a360-avatar a360-avatar-img" id="a360-avatar"><img src="'+accPhotoUrl+'" alt="'+accName+'" /></div>';
+  } else {
+    h += '<div class="a360-avatar" id="a360-avatar">' + initials + '</div>';
+  }
+  h += '<div class="a360-photo-overlay">' + svgIcon('plus',16,'#fff') + '</div>';
+  h += '<input type="file" id="a360-photo-input" accept="image/*" style="display:none" />';
+  h += '</div>';
   h += '<div class="a360-header-info">';
   h += '<div class="a360-name-row"><h1 class="a360-name">' + accName + '</h1>';
   var sc = rec.status==='Active' ? 'var(--success)' : 'var(--text-light)';
@@ -211,6 +221,52 @@ function renderAccount360(container, rec) {
 
   // Bind events
   document.getElementById('a360-back').addEventListener('click', function(){ navigate('accounts'); });
+
+  // Photo upload (Firebase Storage)
+  var a360PhotoWrap = document.getElementById('a360-photo-wrap');
+  var a360PhotoInput = document.getElementById('a360-photo-input');
+  if (a360PhotoWrap && a360PhotoInput) {
+    a360PhotoWrap.addEventListener('click', function(){ a360PhotoInput.click(); });
+    a360PhotoInput.addEventListener('change', function(e) {
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+      // Show spinner on avatar
+      var avatar = document.getElementById('a360-avatar');
+      if (avatar) {
+        avatar.classList.add('a360-avatar-loading');
+        avatar.innerHTML = '<div class="a360-spinner"></div>';
+      }
+      if (typeof fbUploadPhoto === 'function') {
+        fbUploadPhoto(file, 'accounts', accId).then(function(url) {
+          if (avatar) {
+            avatar.classList.remove('a360-avatar-loading');
+            avatar.className = 'a360-avatar a360-avatar-img';
+            avatar.innerHTML = '<img src="'+url+'" alt="'+accName+'" />';
+          }
+          fbShowStatus('Photo uploaded');
+        }).catch(function(err) {
+          console.error('[A360] Photo upload error:', err);
+          if (avatar) {
+            avatar.classList.remove('a360-avatar-loading');
+            avatar.innerHTML = initials;
+          }
+          fbShowStatus('Photo upload failed', true);
+        });
+      } else {
+        // Fallback: base64 in memory only
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          rec.photo = ev.target.result;
+          if (avatar) {
+            avatar.className = 'a360-avatar a360-avatar-img';
+            avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+accName+'" />';
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
   container.querySelectorAll('.a360-row[data-nav-id]').forEach(function(el) {
     el.addEventListener('click', function(){ navigate('record', el.getAttribute('data-nav-obj'), el.getAttribute('data-nav-id')); });
   });
@@ -278,7 +334,7 @@ function renderContact360(container, rec) {
   h += '<div class="c360-header-top">';
 
   // Photo avatar
-  var photoUrl = rec.photo || '';
+  var photoUrl = rec.photoURL || rec.photo || '';
   h += '<div class="c360-photo-wrap" id="c360-photo-wrap" title="Click to change photo">';
   if (photoUrl) {
     h += '<div class="c360-photo" id="c360-avatar"><img src="'+photoUrl+'" alt="'+contactName+'" /></div>';
@@ -458,7 +514,7 @@ function renderContact360(container, rec) {
   // Bind events
   document.getElementById('c360-back').addEventListener('click', function(){ navigate('contacts'); });
 
-  // Photo upload
+  // Photo upload (Firebase Storage)
   var photoWrap = document.getElementById('c360-photo-wrap');
   var photoInput = document.getElementById('c360-photo-input');
   if (photoWrap && photoInput) {
@@ -466,16 +522,38 @@ function renderContact360(container, rec) {
     photoInput.addEventListener('change', function(e) {
       var file = e.target.files && e.target.files[0];
       if (!file) return;
-      var reader = new FileReader();
-      reader.onload = function(ev) {
-        rec.photo = ev.target.result;
-        var avatar = document.getElementById('c360-avatar');
-        if (avatar) {
-          avatar.className = 'c360-photo';
-          avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+contactName+'" />';
-        }
-      };
-      reader.readAsDataURL(file);
+      var avatar = document.getElementById('c360-avatar');
+      if (avatar) {
+        avatar.className = 'c360-photo c360-photo-loading';
+        avatar.innerHTML = '<div class="c360-spinner"></div>';
+      }
+      if (typeof fbUploadPhoto === 'function') {
+        fbUploadPhoto(file, 'contacts', contactId).then(function(url) {
+          if (avatar) {
+            avatar.className = 'c360-photo';
+            avatar.innerHTML = '<img src="'+url+'" alt="'+contactName+'" />';
+          }
+          fbShowStatus('Photo uploaded');
+        }).catch(function(err) {
+          console.error('[C360] Photo upload error:', err);
+          if (avatar) {
+            avatar.className = 'c360-photo c360-photo-initials';
+            avatar.innerHTML = initials;
+          }
+          fbShowStatus('Photo upload failed', true);
+        });
+      } else {
+        // Fallback: base64 in memory only
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          rec.photo = ev.target.result;
+          if (avatar) {
+            avatar.className = 'c360-photo';
+            avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+contactName+'" />';
+          }
+        };
+        reader.readAsDataURL(file);
+      }
     });
   }
 
@@ -584,7 +662,7 @@ function renderLead360(container, rec) {
 
   /* Avatar with photo upload */
   var initials = contactName.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
-  var l360Photo = rec.photo || '';
+  var l360Photo = rec.photoURL || rec.photo || '';
   h += '<div class="l360-photo-wrap" id="l360-photo-wrap" title="Click to change photo">';
   if (l360Photo) {
     h += '<div class="l360-photo" id="l360-avatar"><img src="'+l360Photo+'" alt="'+rec.name+'" /></div>';
@@ -789,7 +867,7 @@ function renderLead360(container, rec) {
   /* ── Bind Events ── */
   document.getElementById('l360-back').addEventListener('click', function(){ navigate('leads'); });
 
-  /* Photo upload */
+  /* Photo upload (Firebase Storage) */
   var l360PhotoWrap = document.getElementById('l360-photo-wrap');
   var l360PhotoInput = document.getElementById('l360-photo-input');
   if (l360PhotoWrap && l360PhotoInput) {
@@ -797,13 +875,28 @@ function renderLead360(container, rec) {
     l360PhotoInput.addEventListener('change', function(e) {
       var file = e.target.files && e.target.files[0];
       if (!file) return;
-      var reader = new FileReader();
-      reader.onload = function(ev) {
-        rec.photo = ev.target.result;
-        var avatar = document.getElementById('l360-avatar');
-        if (avatar) { avatar.className = 'l360-photo'; avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+rec.name+'" />'; }
-      };
-      reader.readAsDataURL(file);
+      var avatar = document.getElementById('l360-avatar');
+      if (avatar) {
+        avatar.className = 'l360-photo l360-photo-loading';
+        avatar.innerHTML = '<div class="l360-spinner"></div>';
+      }
+      if (typeof fbUploadPhoto === 'function') {
+        fbUploadPhoto(file, 'leads', rec.id).then(function(url) {
+          if (avatar) { avatar.className = 'l360-photo'; avatar.innerHTML = '<img src="'+url+'" alt="'+rec.name+'" />'; }
+          fbShowStatus('Photo uploaded');
+        }).catch(function(err) {
+          console.error('[L360] Photo upload error:', err);
+          if (avatar) { avatar.className = 'l360-photo l360-photo-initials'; avatar.innerHTML = initials; }
+          fbShowStatus('Photo upload failed', true);
+        });
+      } else {
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          rec.photo = ev.target.result;
+          if (avatar) { avatar.className = 'l360-photo'; avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+rec.name+'" />'; }
+        };
+        reader.readAsDataURL(file);
+      }
     });
   }
 
@@ -954,7 +1047,7 @@ function renderOpp360(container, rec) {
   h += '<div class="o360-header-top">';
 
   /* Photo/Avatar with upload */
-  var photoUrl = rec.photo || '';
+  var photoUrl = rec.photoURL || rec.photo || '';
   h += '<div class="o360-photo-wrap" id="o360-photo-wrap" title="Click to change photo">';
   if (photoUrl) {
     h += '<div class="o360-photo" id="o360-avatar"><img src="'+photoUrl+'" alt="'+rec.name+'" /></div>';
@@ -1124,7 +1217,7 @@ function renderOpp360(container, rec) {
   /* ── Bind Events ── */
   document.getElementById('o360-back').addEventListener('click', function(){ navigate('opportunities'); });
 
-  /* Photo upload */
+  /* Photo upload (Firebase Storage) */
   var photoWrap = document.getElementById('o360-photo-wrap');
   var photoInput = document.getElementById('o360-photo-input');
   if (photoWrap && photoInput) {
@@ -1132,13 +1225,28 @@ function renderOpp360(container, rec) {
     photoInput.addEventListener('change', function(e) {
       var file = e.target.files && e.target.files[0];
       if (!file) return;
-      var reader = new FileReader();
-      reader.onload = function(ev) {
-        rec.photo = ev.target.result;
-        var avatar = document.getElementById('o360-avatar');
-        if (avatar) { avatar.className = 'o360-photo'; avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+rec.name+'" />'; }
-      };
-      reader.readAsDataURL(file);
+      var avatar = document.getElementById('o360-avatar');
+      if (avatar) {
+        avatar.className = 'o360-photo o360-photo-loading';
+        avatar.innerHTML = '<div class="o360-spinner"></div>';
+      }
+      if (typeof fbUploadPhoto === 'function') {
+        fbUploadPhoto(file, 'opportunities', oppId).then(function(url) {
+          if (avatar) { avatar.className = 'o360-photo'; avatar.innerHTML = '<img src="'+url+'" alt="'+rec.name+'" />'; }
+          fbShowStatus('Photo uploaded');
+        }).catch(function(err) {
+          console.error('[O360] Photo upload error:', err);
+          if (avatar) { avatar.className = 'o360-photo o360-photo-initials'; avatar.innerHTML = svgIcon('opportunities',24,'#fff'); }
+          fbShowStatus('Photo upload failed', true);
+        });
+      } else {
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          rec.photo = ev.target.result;
+          if (avatar) { avatar.className = 'o360-photo'; avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+rec.name+'" />'; }
+        };
+        reader.readAsDataURL(file);
+      }
     });
   }
 
@@ -1234,6 +1342,9 @@ function injectO360Styles() {
 .o360-photo-wrap{position:relative;cursor:pointer;flex-shrink:0}\
 .o360-photo-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}\
 .o360-photo-wrap:hover .o360-photo-overlay{opacity:1}\
+.o360-photo-loading{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent),var(--accent-hover))}\
+.o360-spinner{width:22px;height:22px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:o360spin .6s linear infinite}\
+@keyframes o360spin{to{transform:rotate(360deg)}}\
 \
 .o360-header-info{flex:1;min-width:0}\
 .o360-name-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:2px}\
@@ -1411,7 +1522,14 @@ function injectA360Styles() {
 .a360-back:hover{color:var(--accent)}\
 .a360-header-card{background:var(--card);border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);border:1px solid var(--border);margin-bottom:14px;overflow:hidden}\
 .a360-header-top{padding:22px 26px 18px;display:flex;gap:20px;align-items:center}\
-.a360-avatar{width:60px;height:60px;border-radius:14px;background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 100%);border:2px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:19px;font-weight:800;color:var(--accent);letter-spacing:-.5px}\
+.a360-avatar{width:60px;height:60px;border-radius:14px;background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 100%);border:2px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:19px;font-weight:800;color:var(--accent);letter-spacing:-.5px;overflow:hidden}\
+.a360-avatar-img img{width:100%;height:100%;object-fit:cover}\
+.a360-photo-wrap{position:relative;cursor:pointer;flex-shrink:0}\
+.a360-photo-overlay{position:absolute;inset:0;border-radius:14px;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}\
+.a360-photo-wrap:hover .a360-photo-overlay{opacity:1}\
+.a360-avatar-loading{background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 100%)}\
+.a360-spinner{width:22px;height:22px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:a360spin .6s linear infinite}\
+@keyframes a360spin{to{transform:rotate(360deg)}}\
 .a360-header-info{flex:1;min-width:0}\
 .a360-name-row{display:flex;align-items:center;gap:10px;margin-bottom:5px}\
 .a360-name{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.6px;margin:0;line-height:1}\
@@ -1509,6 +1627,9 @@ function injectC360Styles() {
 .c360-photo-wrap{position:relative;cursor:pointer;flex-shrink:0}\
 .c360-photo-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}\
 .c360-photo-wrap:hover .c360-photo-overlay{opacity:1}\
+.c360-photo-loading{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 100%)}\
+.c360-spinner{width:22px;height:22px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:c360spin .6s linear infinite}\
+@keyframes c360spin{to{transform:rotate(360deg)}}\
 \
 .c360-header-info{flex:1;min-width:0}\
 .c360-name{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.6px;margin:0 0 2px;line-height:1.1}\
@@ -1619,6 +1740,9 @@ function injectL360Styles() {
 .l360-photo-wrap{position:relative;cursor:pointer;flex-shrink:0}\
 .l360-photo-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}\
 .l360-photo-wrap:hover .l360-photo-overlay{opacity:1}\
+.l360-photo-loading{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 100%)}\
+.l360-spinner{width:22px;height:22px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:l360spin .6s linear infinite}\
+@keyframes l360spin{to{transform:rotate(360deg)}}\
 .l360-header-info{flex:1;min-width:0}\
 .l360-name-row{display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap}\
 .l360-name{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.5px;margin:0;line-height:1.1}\
