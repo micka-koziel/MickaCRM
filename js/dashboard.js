@@ -56,7 +56,7 @@ function renderDashboard(containerEl) {
   html += '<div class="ck-grid4">';
 
   // Cell 1: Pipeline
-  html += cellOpen("Opportunity Pipeline", "Kanban", "navigate('pipeline')");
+  html += cellOpen("Opportunity Pipeline", "Kanban", "navigate('opportunities')");
   html += '<div onclick="navigate(\'opportunities\')" style="cursor:pointer">';
   html += '<div class="ck-big-row"><span class="ck-big">' + _ckAmt(totalPipe) + '</span><span class="ck-trend-up">+12% YOY</span></div>';
   html += miniSparkline([12, 18, 15, 22, 19, 28, 25, 32], "#2563eb", 120, 28);
@@ -64,7 +64,7 @@ function renderDashboard(containerEl) {
   html += '</div>' + cellClose();
 
   // Cell 2: Pipeline Stages
-  html += cellOpen("Pipeline Stages", "Kanban", "navigate('pipeline')");
+  html += cellOpen("Pipeline Stages", "Kanban", "navigate('opportunities')");
   var stgCfg = (STAGES && STAGES.opportunities) || [];
   var maxSt = 1;
   var stData = stgCfg.map(function(st) {
@@ -75,7 +75,7 @@ function renderDashboard(containerEl) {
   html += '<div class="ck-mini-bars">';
   stData.forEach(function(s) {
     var w = Math.max((s.count / maxSt) * 100, s.count > 0 ? 15 : 0);
-    html += '<div class="ck-mini-bar-row ck-clickable" onclick="navigate(\'pipeline\')">';
+    html += '<div class="ck-mini-bar-row ck-clickable" onclick="navigate(\'opportunities\')">';
     html += '<span class="ck-mini-label">' + s.label + '</span>';
     html += '<div class="ck-mini-track"><div class="ck-mini-fill" style="width:' + w + '%;background:' + s.color + '"></div></div>';
     html += '<span class="ck-mini-val">' + s.count + '</span></div>';
