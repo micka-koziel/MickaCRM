@@ -1,15 +1,13 @@
 // ============================================================
-// MICKACRM v4 — DASHBOARD.JS — Construction Cockpit
-// Grid 4x2 + 2col — Fully interactive — English UI
+// MICKACRM v4 — DASHBOARD.JS — Construction Cockpit + Hero
+// Hero header + Grid 4x2 + 2col — English UI
 // ============================================================
 
-// Icon helper — svgIcon from nav.js, with fallback
 function _ckIcon(name, size, color) {
   if (typeof svgIcon === "function") return svgIcon(name, size, color);
   return '';
 }
 
-// Amount formatter — raw number → "45.0M€" or "850K€"
 function _ckAmt(n) {
   if (typeof fmtAmount === "function") return fmtAmount(n);
   if (!n || isNaN(n)) return "0€";
@@ -21,7 +19,6 @@ function _ckAmt(n) {
 function renderDashboard(containerEl) {
   var container = containerEl || document.getElementById("page-content");
 
-  // ─── DATA aliases (window.DATA from Firestore/mock) ───
   var D = window.DATA || {};
   var OPPS = D.opportunities || [];
   var LEADS = D.leads || [];
@@ -31,7 +28,6 @@ function renderDashboard(containerEl) {
   var ACTIVITIES = D.activities || [];
   var ACCOUNTS = D.accounts || [];
 
-  // ─── Computed values ───
   var totalPipe = OPPS.reduce(function(s, o) { return s + (o.amount || 0); }, 0);
   var wonOpps = OPPS.filter(function(o) { return o.stage === "closed_won"; });
   var wonAmt = wonOpps.reduce(function(s, o) { return s + (o.amount || 0); }, 0);
@@ -40,7 +36,6 @@ function renderDashboard(containerEl) {
   var wipClaims = CLAIMS.filter(function(c) { return c.status === "In Progress" || c.status === "Investigation"; }).length;
   var dateStr = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 
-  // Helper: get account name by id
   function acctName(id) {
     var a = ACCOUNTS.find(function(x) { return x.id === id; });
     return a ? a.name : "";
@@ -48,9 +43,26 @@ function renderDashboard(containerEl) {
 
   var html = '<div class="ck">';
 
-  // ─── HEADER ───
-  html += '<div class="ck-head"><div><h1 class="ck-h1">Good morning, Micka</h1>';
-  html += '<p class="ck-sub">Construction Portfolio · ' + dateStr + '</p></div></div>';
+  // ═══ HERO HEADER ═══
+  html += '<div class="ck-hero">';
+  html += '<div class="ck-hero-overlay"></div>';
+  html += '<div class="ck-hero-content">';
+  html += '<div class="ck-hero-left">';
+  html += '<div class="ck-hero-brand">CRM<span>360</span></div>';
+  html += '<div class="ck-hero-greeting">Good morning, Micka</div>';
+  html += '<div class="ck-hero-context">Construction Portfolio</div>';
+  html += '<div class="ck-hero-date">' + dateStr + '</div>';
+  html += '</div>';
+  html += '<div class="ck-hero-metrics">';
+  html += '<div class="ck-hero-metric"><span class="ck-hero-metric-val">' + _ckAmt(totalPipe) + '</span><span class="ck-hero-metric-label">pipeline</span></div>';
+  html += '<div class="ck-hero-metric-sep"></div>';
+  html += '<div class="ck-hero-metric"><span class="ck-hero-metric-val">' + PROJECTS.length + '</span><span class="ck-hero-metric-label">projects</span></div>';
+  html += '<div class="ck-hero-metric-sep"></div>';
+  html += '<div class="ck-hero-metric"><span class="ck-hero-metric-val">' + openClaims.length + '</span><span class="ck-hero-metric-label">open claims</span></div>';
+  html += '<div class="ck-hero-metric-sep"></div>';
+  html += '<div class="ck-hero-metric"><span class="ck-hero-metric-val">' + OPPS.length + '</span><span class="ck-hero-metric-label">opportunities</span></div>';
+  html += '</div>';
+  html += '</div></div>';
 
   // ═══ ROW 1 — 4 CELLS ═══
   html += '<div class="ck-grid4">';
@@ -157,7 +169,6 @@ function renderDashboard(containerEl) {
   });
   var phAssigned = phData.reduce(function(s, p) { return s + p.count; }, 0);
   if (phAssigned === 0 && PROJECTS.length > 0) {
-    // Distribute evenly as fallback
     phData.forEach(function(p, i) { p.count = i === Math.floor(phData.length / 2) ? Math.ceil(PROJECTS.length * 0.4) : Math.ceil(PROJECTS.length * 0.15); });
   }
 
@@ -188,16 +199,16 @@ function renderDashboard(containerEl) {
 
   html += '</div>'; // end row 2
 
-  // ═══ ROW 3 — Recently Viewed + Activities ═══
+  // ═══ ROW 3 — Recently Viewed + Upcoming Activities (4 items each) ═══
   html += '<div class="ck-grid2">';
 
   // Recently Viewed
-  html += cellOpen("Recently Viewed", "", "");
+  html += cellOpen("Recently Viewed", "View all →", "navigate('accounts')");
   var recentItems = getRecentlyViewed();
   if (recentItems.length === 0) {
     html += '<div style="padding:12px 0;text-align:center;color:var(--text-light);font-size:11px">No recently viewed records</div>';
   } else {
-    recentItems.slice(0, 6).forEach(function(item) {
+    recentItems.slice(0, 4).forEach(function(item) {
       var objColors = { accounts: "#2563eb", contacts: "#8b5cf6", opportunities: "#f59e0b", leads: "#d97706", projects: "#059669", quotes: "#818cf8", claims: "#dc2626", activities: "#3b82f6" };
       var objLabels = { accounts: "Account", contacts: "Contact", opportunities: "Opportunity", leads: "Lead", projects: "Project", quotes: "Quote", claims: "Claim", activities: "Activity" };
       var objIcons = { accounts: "accounts", contacts: "contacts", opportunities: "opportunities", leads: "leads", projects: "projects", quotes: "quotes", claims: "claims", activities: "activities" };
@@ -216,8 +227,8 @@ function renderDashboard(containerEl) {
   // Upcoming Activities
   var _actIcons = { Call: "phone", Meeting: "users", "Site Visit": "mapPin", Email: "mail" };
   var _actColorsMap = { Call: "#3b82f6", Meeting: "#8b5cf6", "Site Visit": "#f59e0b", Email: "#10b981" };
-  html += cellOpen("Upcoming Activities", "View all", "navigate('activities')");
-  ACTIVITIES.slice(0, 5).forEach(function(a) {
+  html += cellOpen("Upcoming Activities", "View all →", "navigate('activities')");
+  ACTIVITIES.slice(0, 4).forEach(function(a) {
     var ic = _actIcons[a.type] || "phone";
     var ac = _actColorsMap[a.type] || "#3b82f6";
     html += '<div class="hover-row ck-row-sm ck-clickable" onclick="navigate(\'record\',\'activities\',\'' + a.id + '\')">';
@@ -311,20 +322,39 @@ function injectCKStyles() {
   if (document.getElementById("ck3-css")) return;
   var s = document.createElement("style"); s.id = "ck3-css";
   s.textContent = '\
-.ck{max-width:1280px;margin:0 auto}\
-.ck-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:2px 0}\
-.ck-h1{font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.3px;margin:0}\
-.ck-sub{font-size:11.5px;color:var(--text-light);margin:0}\
+/* ── Hero Header ── */\
+.ck-hero{position:relative;height:144px;border-radius:12px;overflow:hidden;margin-bottom:12px;\
+  background:url(assets/Header.png) center/cover no-repeat}\
+.ck-hero-overlay{position:absolute;inset:0;\
+  background:linear-gradient(135deg,rgba(10,20,45,.88) 0%,rgba(15,23,42,.78) 50%,rgba(30,40,70,.72) 100%);\
+  backdrop-filter:blur(1.5px)}\
+.ck-hero-content{position:relative;z-index:1;height:100%;display:flex;align-items:center;justify-content:space-between;padding:0 28px;gap:24px}\
+.ck-hero-left{display:flex;flex-direction:column;gap:1px}\
+.ck-hero-brand{font-size:11px;font-weight:700;color:rgba(255,255,255,.45);letter-spacing:1.5px;text-transform:uppercase}\
+.ck-hero-brand span{color:rgba(255,255,255,.25);font-weight:500}\
+.ck-hero-greeting{font-size:21px;font-weight:800;color:#fff;letter-spacing:-.3px;margin-top:4px}\
+.ck-hero-context{font-size:12.5px;font-weight:500;color:rgba(255,255,255,.6);margin-top:1px}\
+.ck-hero-date{font-size:11px;font-weight:400;color:rgba(255,255,255,.35);margin-top:2px}\
+.ck-hero-metrics{display:flex;align-items:center;gap:0}\
+.ck-hero-metric{display:flex;flex-direction:column;align-items:center;padding:0 18px}\
+.ck-hero-metric-val{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.5px;line-height:1.1}\
+.ck-hero-metric-label{font-size:9.5px;font-weight:500;color:rgba(255,255,255,.45);margin-top:2px;text-transform:uppercase;letter-spacing:.3px}\
+.ck-hero-metric-sep{width:1px;height:32px;background:rgba(255,255,255,.12)}\
+\
+/* ── Grid ── */\
+.ck{max-width:1280px;margin:0 auto;padding:0 2px}\
 .ck-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}\
 .ck-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}\
 \
+/* ── Cells ── */\
 .ck-cell{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;box-shadow:0 1px 2px rgba(0,0,0,.03);display:flex;flex-direction:column;transition:box-shadow .15s,border-color .15s}\
 .ck-cell:hover{box-shadow:0 3px 12px rgba(0,0,0,.05);border-color:#d0d5dd}\
 .ck-cell-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}\
 .ck-cell-title{font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px}\
-.ck-cell-link{background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;gap:2px;font-size:9.5px;font-weight:600;color:var(--accent);opacity:.8;transition:opacity .15s}\
+.ck-cell-link{background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;gap:2px;font-size:9.5px;font-weight:600;color:var(--accent);opacity:.8;transition:opacity .15s;font-family:inherit}\
 .ck-cell-link:hover{opacity:1}\
 \
+/* ── Typography ── */\
 .ck-big-row{display:flex;align-items:baseline;gap:6px;margin-bottom:2px}\
 .ck-big{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-1px;line-height:1}\
 .ck-trend-up{font-size:10px;font-weight:600;color:#059669}\
@@ -333,6 +363,7 @@ function injectCKStyles() {
 .ck-tiny-label{font-size:9px;color:var(--text-light);font-weight:500}\
 .ck-num-lg{font-size:22px;font-weight:800;color:var(--text)}\
 \
+/* ── Mini bars ── */\
 .ck-mini-bars{display:flex;flex-direction:column;gap:3px}\
 .ck-mini-bar-row{display:flex;align-items:center;gap:5px;padding:1px 2px;border-radius:3px;transition:background .12s}\
 .ck-mini-bar-row:hover{background:#f8f9fb}\
@@ -341,6 +372,7 @@ function injectCKStyles() {
 .ck-mini-fill{height:100%;border-radius:3px;transition:width .4s}\
 .ck-mini-val{font-size:9px;font-weight:700;color:var(--text);width:14px;text-align:right}\
 \
+/* ── Shared ── */\
 .ck-clickable{cursor:pointer}\
 .ck-legend-row{display:flex;gap:10px;margin-top:5px}\
 .ck-legend-item{display:flex;align-items:center;gap:3px;font-size:9px;color:var(--text-muted)}\
@@ -348,6 +380,7 @@ function injectCKStyles() {
 .ck-legend-dot{width:6px;height:6px;border-radius:2px;flex-shrink:0}\
 .ck-phase-grid{display:flex;flex-wrap:wrap;gap:3px 10px;margin-top:6px}\
 \
+/* ── Top list ── */\
 .ck-top-list{display:flex;flex-direction:column;gap:2px}\
 .ck-top-row{display:flex;align-items:center;justify-content:space-between;padding:3px 4px;border-radius:4px;transition:background .12s}\
 .ck-top-row:hover{background:#f8f9fb}\
@@ -356,6 +389,7 @@ function injectCKStyles() {
 .ck-top-meta{font-size:9px;color:var(--text-light)}\
 .ck-top-amt{font-size:11px;font-weight:700;color:var(--text);flex-shrink:0;margin-left:6px}\
 \
+/* ── Row items ── */\
 .ck-row-sm{display:flex;align-items:center;gap:7px;padding:5px 6px;border-radius:5px}\
 .ck-row-body{flex:1;min-width:0}\
 .ck-row-t{font-size:11px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3}\
@@ -366,8 +400,9 @@ function injectCKStyles() {
 .ck-row-date{font-size:9.5px;font-weight:600;color:var(--text-muted)}\
 .ck-row-hour{font-size:9px;color:var(--text-light)}\
 \
-@media(max-width:1100px){.ck-grid4{grid-template-columns:repeat(2,1fr)}}\
-@media(max-width:768px){.ck-grid4{grid-template-columns:1fr}.ck-grid2{grid-template-columns:1fr}}\
+/* ── Responsive ── */\
+@media(max-width:1100px){.ck-grid4{grid-template-columns:repeat(2,1fr)}.ck-hero-metrics{flex-wrap:wrap;gap:8px}}\
+@media(max-width:768px){.ck-grid4{grid-template-columns:1fr}.ck-grid2{grid-template-columns:1fr}.ck-hero{height:auto;padding:16px}.ck-hero-content{flex-direction:column;align-items:flex-start}}\
 ';
   document.head.appendChild(s);
 }
