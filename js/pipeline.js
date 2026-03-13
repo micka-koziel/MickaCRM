@@ -591,6 +591,10 @@ function openCreateModal(objKey, cfg) {
     arr.push(record);
     window.DATA[objKey] = arr;
 
+    /* ── Persist to Firestore ── */
+    fbCreate(objKey, record);
+    fbShowStatus('Created in Firestore');
+
     closeModal();
 
     renderObjHeader(objKey, cfg, document.getElementById('page-header'));
@@ -758,6 +762,11 @@ function bindDragDrop(objKey, cfg, container) {
 
       var oldStage = item.stage;
       item.stage = newStage;
+
+      /* ── Persist stage change to Firestore ── */
+      if (oldStage !== newStage) {
+        fbSaveField(objKey, id, 'stage', newStage);
+      }
 
       /* Re-render kanban */
       renderObjContent(objKey, cfg, 'kanban', document.getElementById('page-content'));

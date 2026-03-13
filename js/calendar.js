@@ -457,8 +457,12 @@ function calOpenModal(existingAct, prefillDate, prefillTime, headerEl, contentEl
     if (isEdit) {
       var idx = window.DATA.activities.findIndex(function(a) { return a.id === act.id; });
       if (idx >= 0) window.DATA.activities[idx] = newAct;
+      /* ── Persist edit to Firestore ── */
+      fbUpdate('activities', newAct.id, newAct);
     } else {
       window.DATA.activities.push(newAct);
+      /* ── Persist create to Firestore ── */
+      fbCreate('activities', newAct);
     }
 
     close();
@@ -470,6 +474,8 @@ function calOpenModal(existingAct, prefillDate, prefillTime, headerEl, contentEl
     document.getElementById('cal-act-delete').addEventListener('click', function() {
       var idx = (window.DATA.activities || []).findIndex(function(a) { return a.id === act.id; });
       if (idx >= 0) window.DATA.activities.splice(idx, 1);
+      /* ── Persist delete to Firestore ── */
+      fbDelete('activities', act.id);
       close();
       renderCalendarPage(headerEl, contentEl);
     });
