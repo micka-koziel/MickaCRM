@@ -21,23 +21,24 @@
 </head>
 <body>
 
-  <!-- ── Sidebar ─────────────────────────────────────────────────── -->
-  <aside id="sidebar">
-    <div id="sidebar-logo">
-      <img src="assets/LogoSG.png" alt="Saint-Gobain" style="height:44px;" />
-    </div>
-    <nav id="sidebar-nav"></nav>
-  </aside>
+  <!-- ── App Shell (flex container for sidebar + main) ────────────── -->
+  <div id="app-shell">
 
-  <!-- ── Main Area ───────────────────────────────────────────────── -->
-  <main id="main-area">
-    <div id="topbar">
-      <div id="topbar-left"></div>
-      <div id="topbar-right"></div>
-    </div>
-    <div id="page-header"></div>
-    <div id="page-content"></div>
-  </main>
+    <!-- ── Sidebar ───────────────────────────────────────────────── -->
+    <aside id="sidebar">
+      <div id="sidebar-logo">
+        <img src="assets/LogoSG.png" alt="Saint-Gobain" style="height:44px;" />
+      </div>
+      <nav id="sidebar-nav"></nav>
+    </aside>
+
+    <!-- ── Main Area ─────────────────────────────────────────────── -->
+    <main id="main-area">
+      <div id="page-header"></div>
+      <div id="page-content"></div>
+    </main>
+
+  </div>
 
   <!-- ── MickaCRM Scripts (order matters) ────────────────────────── -->
   <script src="js/config.js"></script>
