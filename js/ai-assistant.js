@@ -10,7 +10,7 @@
 
   // ── Config ──────────────────────────────────────────────────────────
   var API_KEY = null;
-  var MODEL = 'gemini-2.0-flash';
+  var MODEL = 'gemini-2.0-flash-lite';
   var API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
   // ── Load API Key ────────────────────────────────────────────────────
