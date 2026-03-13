@@ -544,9 +544,18 @@ function renderLead360(container, rec) {
   h += '<div class="l360-header-card">';
   h += '<div class="l360-header-top">';
 
-  /* Avatar */
+  /* Avatar with photo upload */
   var initials = contactName.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
-  h += '<div class="l360-avatar">' + initials + '</div>';
+  var l360Photo = rec.photo || '';
+  h += '<div class="l360-photo-wrap" id="l360-photo-wrap" title="Click to change photo">';
+  if (l360Photo) {
+    h += '<div class="l360-photo" id="l360-avatar"><img src="'+l360Photo+'" alt="'+rec.name+'" /></div>';
+  } else {
+    h += '<div class="l360-photo l360-photo-initials" id="l360-avatar">' + initials + '</div>';
+  }
+  h += '<div class="l360-photo-overlay">' + svgIcon('plus',16,'#fff') + '</div>';
+  h += '<input type="file" id="l360-photo-input" accept="image/*" style="display:none" />';
+  h += '</div>';
 
   h += '<div class="l360-header-info">';
   h += '<div class="l360-name-row">';
@@ -742,6 +751,24 @@ function renderLead360(container, rec) {
   /* ── Bind Events ── */
   document.getElementById('l360-back').addEventListener('click', function(){ navigate('leads'); });
 
+  /* Photo upload */
+  var l360PhotoWrap = document.getElementById('l360-photo-wrap');
+  var l360PhotoInput = document.getElementById('l360-photo-input');
+  if (l360PhotoWrap && l360PhotoInput) {
+    l360PhotoWrap.addEventListener('click', function(){ l360PhotoInput.click(); });
+    l360PhotoInput.addEventListener('change', function(e) {
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        rec.photo = ev.target.result;
+        var avatar = document.getElementById('l360-avatar');
+        if (avatar) { avatar.className = 'l360-photo'; avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+rec.name+'" />'; }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   var compLink = document.getElementById('l360-company-link');
   if (compLink && rec.account) {
     compLink.addEventListener('click', function(){ navigate('record','accounts',rec.account); });
@@ -850,13 +877,11 @@ function renderOpp360(container, rec) {
   /* ── Resolve related data ── */
   var account = (D.accounts||[]).find(function(a){ return a.id === rec.account; });
   var accountName = account ? account.name : '—';
-  var accInitials = accountName.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
 
   var contacts = (D.contacts||[]).filter(function(c){ return c.account === rec.account; });
   var quotes = (D.quotes||[]).filter(function(q){ return q.opportunity === oppId || q.account === rec.account; });
-  var projects = (D.projects||[]).filter(function(p){ return p.account === rec.account; });
 
-  /* Activities — mock from upcoming if none linked */
+  /* Activities */
   var activities = (D.activities||[]).filter(function(a){ return a.opportunity === oppId; });
   if (!activities.length) {
     activities = (D.upcoming||[]).slice(0,4).map(function(u,i){
@@ -864,10 +889,9 @@ function renderOpp360(container, rec) {
     });
   }
 
-  /* Tasks mock */
   var tasks = (D.tasks||[]).slice(0,3);
 
-  /* Computed values */
+  /* Computed */
   var amtStr = typeof fmtAmount==='function' ? fmtAmount(rec.amount||0) : ((rec.amount||0)/1e6).toFixed(1)+'M€';
   var weighted = (rec.amount||0) * ((rec.prob||0)/100);
   var weightedStr = typeof fmtAmount==='function' ? fmtAmount(weighted) : (weighted/1e6).toFixed(1)+'M€';
@@ -875,78 +899,100 @@ function renderOpp360(container, rec) {
   var stages = STAGES.opportunities||[];
   var currentIdx = stages.map(function(s){return s.key;}).indexOf(rec.stage);
   var stObj = stages[currentIdx] || {};
-
-  /* Next action logic */
   var nextAction = o360NextAction(rec);
+  var probColor = (rec.prob||0) >= 60 ? 'var(--success)' : (rec.prob||0) >= 30 ? 'var(--warning)' : 'var(--text-light)';
+
+  /* Initials for avatar fallback */
+  var initials = rec.name ? rec.name.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase() : 'OP';
 
   /* ── BUILD HTML ── */
   var h = '<div class="o360">';
 
-  /* Back nav */
+  /* Back */
   h += '<div class="o360-back" id="o360-back">' + svgIcon('arrowLeft',14,'var(--text-muted)') + '<span>Opportunities</span></div>';
 
-  /* ── Header Card ── */
-  h += '<div class="o360-hdr">';
-  h += '<div class="o360-hdr-top">';
-  h += '<div class="o360-hdr-av">' + svgIcon('opportunities',22,'#fff') + '</div>';
-  h += '<div class="o360-hdr-info">';
-  h += '<div class="o360-hdr-name">' + rec.name + '</div>';
-  h += '<div class="o360-hdr-meta">';
-  h += '<span class="o360-hdr-acct" id="o360-acct-link" data-acct-id="'+(rec.account||'')+'">' + svgIcon('accounts',12,'var(--accent)') + accountName + '</span>';
-  h += '<span class="dot">·</span>';
-  h += '<span style="color:'+stObj.color+'"><span class="dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:'+stObj.color+';margin-right:3px;vertical-align:middle"></span>'+stObj.label+'</span>';
-  h += '<span class="dot">·</span>';
-  h += '<span>Close ' + closeStr + '</span>';
-  h += '<span class="dot">·</span>';
-  h += '<span>Owner: <strong>'+(rec.owner||'Me')+'</strong></span>';
-  h += '</div></div>';
+  /* ── Header Card (Lead-style) ── */
+  h += '<div class="o360-header-card">';
+  h += '<div class="o360-header-top">';
+
+  /* Photo/Avatar with upload */
+  var photoUrl = rec.photo || '';
+  h += '<div class="o360-photo-wrap" id="o360-photo-wrap" title="Click to change photo">';
+  if (photoUrl) {
+    h += '<div class="o360-photo" id="o360-avatar"><img src="'+photoUrl+'" alt="'+rec.name+'" /></div>';
+  } else {
+    h += '<div class="o360-photo o360-photo-initials" id="o360-avatar">' + svgIcon('opportunities',24,'#fff') + '</div>';
+  }
+  h += '<div class="o360-photo-overlay">' + svgIcon('plus',16,'#fff') + '</div>';
+  h += '<input type="file" id="o360-photo-input" accept="image/*" style="display:none" />';
+  h += '</div>';
+
+  h += '<div class="o360-header-info">';
+  h += '<div class="o360-name-row"><h1 class="o360-name">' + rec.name + '</h1></div>';
+  h += '<div class="o360-company" id="o360-acct-link" data-acct-id="'+(rec.account||'')+'">' + svgIcon('accounts',13,'var(--accent)') + '<span>' + accountName + '</span></div>';
+
+  /* Detail chips */
+  h += '<div class="o360-details-row">';
+  h += '<div class="o360-detail-chip"><span class="dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:'+stObj.color+';margin-right:3px"></span>' + stObj.label + '</div>';
+  h += '<div class="o360-detail-chip">' + svgIcon('activities',12,'var(--text-muted)') + '<span>Close ' + closeStr + '</span></div>';
+  h += '</div>';
+
+  /* Meta row */
+  h += '<div class="o360-meta-row">';
+  h += '<div class="o360-meta-tag">Owner: <strong>'+(rec.owner||'Me')+'</strong></div>';
+  if (rec.createdDate) h += '<div class="o360-meta-tag">Created: <strong>'+fmtDate(rec.createdDate)+'</strong></div>';
+  h += '</div>';
+
+  h += '</div>'; /* header-info */
 
   /* Header right metrics */
-  h += '<div class="o360-hdr-right">';
-  h += '<div class="o360-hdr-metric"><div class="o360-hdr-metric-val" style="color:var(--accent)">' + amtStr + '</div><div class="o360-hdr-metric-lbl">Deal Value</div></div>';
-  var probColor = (rec.prob||0) >= 60 ? 'var(--success)' : (rec.prob||0) >= 30 ? 'var(--warning)' : 'var(--text-light)';
-  h += '<div class="o360-hdr-metric"><div class="o360-hdr-metric-val" style="color:'+probColor+'">' + (rec.prob||0) + '%</div><div class="o360-hdr-metric-lbl">Probability</div></div>';
-  h += '</div></div>';
+  h += '<div class="o360-header-metrics">';
+  h += '<div class="o360-hmetric"><div class="o360-hmetric-val" style="color:var(--accent)">' + amtStr + '</div><div class="o360-hmetric-label">Deal Value</div></div>';
+  h += '<div class="o360-hmetric"><div class="o360-hmetric-val" style="color:'+probColor+'">' + (rec.prob||0) + '%</div><div class="o360-hmetric-label">Probability</div></div>';
+  h += '</div>';
+
+  h += '</div>'; /* header-top */
 
   /* Quick Actions */
   h += '<div class="o360-actions">';
-  h += '<button class="o360-btn o360-btn-p">' + svgIcon('phone',12,'#fff') + '<span>Call</span></button>';
-  h += '<button class="o360-btn o360-btn-p">' + svgIcon('mail',12,'#fff') + '<span>Send Email</span></button>';
-  h += '<button class="o360-btn o360-btn-o">' + svgIcon('activities',12,'var(--text-muted)') + '<span>Add Activity</span></button>';
-  h += '<button class="o360-btn o360-btn-o">' + svgIcon('quotes',12,'var(--text-muted)') + '<span>Create Quote</span></button>';
-  h += '<button class="o360-btn o360-btn-s" id="o360-advance">' + svgIcon('check',12,'#fff') + '<span>Mark Stage Complete</span></button>';
+  h += '<button class="o360-action-btn o360-action-primary">' + svgIcon('phone',13,'#fff') + '<span>Call</span></button>';
+  h += '<button class="o360-action-btn o360-action-primary">' + svgIcon('mail',13,'#fff') + '<span>Send Email</span></button>';
+  h += '<button class="o360-action-btn o360-action-outline">' + svgIcon('activities',13,'var(--text-muted)') + '<span>Add Activity</span></button>';
+  h += '<button class="o360-action-btn o360-action-outline">' + svgIcon('quotes',13,'var(--text-muted)') + '<span>Create Quote</span></button>';
+  h += '<button class="o360-action-btn o360-action-success" id="o360-advance">' + svgIcon('check',13,'#fff') + '<span>Mark Stage Complete</span></button>';
   h += '</div></div>';
 
+  /* ── 4 KPI Cards (like Lead) ── */
+  h += '<div class="o360-kpi-row">';
+  h += o360KpiCard(amtStr, 'Deal Value', 'var(--accent)', 'Weighted: '+weightedStr, 'var(--success)');
+  h += o360KpiCard((rec.prob||0)+'%', 'Probability', probColor, 'Stage: '+stObj.label, 'var(--text-muted)');
+  h += o360KpiCard(activities.length, 'Activities', 'var(--purple)', 'Last: recently', 'var(--text-muted)');
+  h += o360KpiCard(quotes.length, 'Quotes', 'var(--warning)', quotes.length>0?'Latest active':'None yet', 'var(--text-muted)');
+  h += '</div>';
+
   /* ── Pipeline Progression ── */
-  h += '<div class="o360-pipe">';
-  h += '<div class="o360-pipe-title">Pipeline Progression</div>';
+  h += '<div class="o360-funnel-card">';
+  h += '<div class="o360-funnel-title">Pipeline Progression</div>';
   h += '<div class="o360-funnel">';
   stages.forEach(function(st, i) {
     var isCurrent = st.key === rec.stage;
     var isPast = i < currentIdx;
-    var cls = isCurrent ? 'o360-f-step o360-f-cur' : (isPast ? 'o360-f-step o360-f-done' : 'o360-f-step');
+    var cls = isCurrent ? 'o360-funnel-step o360-funnel-current' : (isPast ? 'o360-funnel-step o360-funnel-done' : 'o360-funnel-step');
     h += '<div class="'+cls+'" data-stage="'+st.key+'">';
-    h += '<div class="o360-f-dot" style="background:'+(isCurrent||isPast?st.color:'#e2e8f0')+'">';
+    h += '<div class="o360-funnel-dot" style="background:'+(isCurrent||isPast?st.color:'#e2e8f0')+'">';
     if (isPast) h += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>';
-    if (isCurrent) h += '<div class="o360-f-pulse"></div>';
+    if (isCurrent) h += '<div class="o360-funnel-pulse"></div>';
     h += '</div>';
-    h += '<div class="o360-f-lbl">' + st.label + '</div>';
-    if (i < stages.length - 1) h += '<div class="o360-f-line" style="background:'+(isPast?st.color:'#e2e8f0')+'"></div>';
+    h += '<div class="o360-funnel-label">' + st.label + '</div>';
+    if (i < stages.length - 1) h += '<div class="o360-funnel-line" style="background:'+(isPast?st.color:'#e2e8f0')+'"></div>';
     h += '</div>';
   });
   h += '</div></div>';
 
-  /* ── 3 KPI Cards ── */
-  h += '<div class="o360-kpis">';
-  h += '<div class="o360-kpi"><div class="o360-kpi-v" style="color:var(--accent)">' + amtStr + '</div><div class="o360-kpi-l">Deal Value</div><div class="o360-kpi-h" style="color:var(--success)">Weighted: ' + weightedStr + '</div></div>';
-  h += '<div class="o360-kpi"><div class="o360-kpi-v" style="color:'+probColor+'">' + (rec.prob||0) + '%</div><div class="o360-kpi-l">Probability</div><div class="o360-kpi-h" style="color:var(--text-muted)">Stage: ' + stObj.label + '</div></div>';
-  h += '<div class="o360-kpi"><div class="o360-kpi-v" style="color:var(--warning)">' + quotes.length + '</div><div class="o360-kpi-l">Quotes</div><div class="o360-kpi-h" style="color:var(--text-muted)">' + (quotes.length>0?'Latest active':'None yet') + '</div></div>';
-  h += '</div>';
-
   /* ── 2-Column Layout ── */
-  h += '<div class="o360-grid">';
+  h += '<div class="o360-grid2">';
 
-  /* LEFT COLUMN — Business Context */
+  /* LEFT — Business Context */
   h += '<div class="o360-col">';
 
   /* Quotes */
@@ -956,54 +1002,61 @@ function renderOpp360(container, rec) {
     var qAmt = typeof fmtAmount==='function' ? fmtAmount(q.amount||0) : ((q.amount||0)/1e6).toFixed(1)+'M€';
     var stColor = q.status==='Sent'?'var(--accent)':q.status==='Accepted'?'var(--success)':'var(--text-light)';
     h += '<div class="o360-row'+(i===quotes.length-1?' o360-row-last':'')+'">';
-    h += '<div class="o360-row-l"><div class="o360-row-t">'+(q.name||q.subject||'Quote #'+q.id)+'</div>';
-    h += '<div class="o360-row-s">'+(q.date||'')+(q.status?' · '+q.status:'')+'</div></div>';
-    h += '<div class="o360-row-r">';
-    if(q.amount) h += '<span class="o360-row-a">'+qAmt+'</span>';
+    h += '<div class="o360-row-left"><div class="o360-row-title">'+(q.name||'Quote #'+q.id)+'</div>';
+    h += '<div class="o360-row-sub">'+(q.date||'')+(q.status?' · '+q.status:'')+'</div></div>';
+    h += '<div class="o360-row-right">';
+    if(q.amount) h += '<span class="o360-row-amount">'+qAmt+'</span>';
     h += '<span class="stage-badge" style="color:'+stColor+'"><span class="dot" style="background:'+stColor+'"></span>'+(q.status||'Draft')+'</span>';
     h += '</div></div>';
   });
   h += '</div>';
 
-  /* Contacts Involved */
+  /* Contacts */
   h += o360SectionOpen('Contacts Involved', 'contacts', contacts.length);
   if (!contacts.length) h += '<div class="o360-empty">No contacts linked</div>';
   else contacts.forEach(function(c,i) {
     var ci = c.name ? c.name.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase() : '?';
     h += '<div class="o360-row'+(i===contacts.length-1?' o360-row-last':'')+'" data-nav-obj="contacts" data-nav-id="'+c.id+'">';
-    h += '<div class="o360-cav">'+ci+'</div>';
-    h += '<div class="o360-row-l"><div class="o360-row-t">'+c.name+'</div><div class="o360-row-s">'+(c.role||'—')+'</div></div>';
+    h += '<div class="o360-contact-avatar">'+ci+'</div>';
+    h += '<div class="o360-row-left"><div class="o360-row-title">'+c.name+'</div><div class="o360-row-sub">'+(c.role||'—')+'</div></div>';
     h += '<div style="display:flex;gap:4px">';
-    h += '<div class="o360-cbtn" title="Call">'+svgIcon('phone',11,'var(--text-light)')+'</div>';
-    h += '<div class="o360-cbtn" title="Email">'+svgIcon('mail',11,'var(--text-light)')+'</div>';
+    h += '<div class="o360-contact-btn" title="Call">'+svgIcon('phone',11,'var(--text-light)')+'</div>';
+    h += '<div class="o360-contact-btn" title="Email">'+svgIcon('mail',11,'var(--text-light)')+'</div>';
     h += '</div></div>';
+  });
+  h += '</div>';
+
+  /* Tasks (moved to left for balance) */
+  h += o360SectionOpen('Tasks', 'activities', tasks.length);
+  if (!tasks.length) h += '<div class="o360-empty">No tasks</div>';
+  else tasks.forEach(function(t,i) {
+    var pc = {High:'var(--danger)',Medium:'var(--warning)',Low:'var(--text-light)'};
+    h += '<div class="o360-row'+(i===tasks.length-1?' o360-row-last':'')+'">';
+    h += '<div style="display:flex;align-items:flex-start;gap:7px;flex:1;min-width:0"><span class="o360-task-dot" style="background:'+(pc[t.priority]||'var(--text-light)')+'"></span>';
+    h += '<div style="flex:1;min-width:0"><div class="o360-row-title">'+t.name+'</div><div class="o360-row-sub">'+(t.ref||'')+(t.status?' · '+t.status:'')+'</div></div></div>';
+    h += '<span style="font-size:10px;font-weight:500;color:'+(t.status==='In Progress'?'var(--accent)':'var(--text-muted)')+'">'+t.status+'</span>';
+    h += '</div>';
   });
   h += '</div>';
 
   h += '</div>'; /* end left col */
 
-  /* RIGHT COLUMN — Sales Action */
+  /* RIGHT — Sales Action */
   h += '<div class="o360-col">';
 
-  /* Next Recommended Action */
-  h += '<div class="o360-na">';
-  h += '<div class="o360-na-top">';
-  h += '<div class="o360-na-ic" style="background:'+nextAction.color+'14;border-color:'+nextAction.color+'40">'+svgIcon(nextAction.icon,14,nextAction.color)+'</div>';
+  /* Next Action */
+  h += '<div class="o360-next-action">';
+  h += '<div class="o360-na-icon" style="background:'+nextAction.color+'14;border-color:'+nextAction.color+'40">'+svgIcon(nextAction.icon,14,nextAction.color)+'</div>';
   h += '<div class="o360-na-body">';
-  h += '<div class="o360-na-lbl">Next Recommended Action</div>';
-  h += '<div class="o360-na-txt">' + nextAction.text + '</div>';
-  h += '</div></div>';
-  h += '<div class="o360-na-acts">';
-  h += '<button class="o360-btn o360-btn-p">' + svgIcon('phone',11,'#fff') + '<span>Call</span></button>';
-  h += '<button class="o360-btn o360-btn-p">' + svgIcon('mail',11,'#fff') + '<span>Send Email</span></button>';
-  h += '<button class="o360-btn o360-btn-o">' + svgIcon('users',11,'var(--text-muted)') + '<span>Schedule Meeting</span></button>';
+  h += '<div class="o360-na-label">Next Recommended Action</div>';
+  h += '<div class="o360-na-text">' + nextAction.text + '</div>';
   h += '</div></div>';
 
   /* Activity Timeline */
   h += o360SectionOpen('Activity Timeline', 'activities', activities.length);
   if (!activities.length) h += '<div class="o360-empty">No activities recorded</div>';
   else {
-    h += '<div class="o360-tl">';
+    h += '<div class="o360-timeline">';
     activities.forEach(function(a,i) {
       var isLast = i===activities.length-1;
       var typeColors = {call:'#3b82f6',phone:'#3b82f6',meeting:'#8b5cf6',users:'#8b5cf6',email:'#10b981',mail:'#10b981','site visit':'#ef4444',mapPin:'#ef4444'};
@@ -1011,29 +1064,16 @@ function renderOpp360(container, rec) {
       var iconKey = a.icon || (a.type==='call'||a.type==='phone'?'phone':a.type==='meeting'||a.type==='users'?'users':a.type==='email'||a.type==='mail'?'mail':'activities');
       var typeLabels = {phone:'Call',call:'Call',users:'Meeting',meeting:'Meeting',mail:'Email',email:'Email',mapPin:'Site Visit','site visit':'Site Visit'};
       var tl = typeLabels[a.type] || typeLabels[a.icon] || 'Activity';
-      h += '<div class="o360-tl-i">';
-      if(!isLast) h += '<div class="o360-tl-ln"></div>';
-      h += '<div class="o360-tl-ic" style="background:'+tc+'14;border-color:'+tc+'40">'+svgIcon(iconKey,10,tc)+'</div>';
-      h += '<div class="o360-tl-b">';
-      h += '<div class="o360-tl-top"><span class="o360-tl-sub">'+(a.subject||a.name||tl)+'</span><span class="o360-tl-typ" style="color:'+tc+'">'+tl+'</span></div>';
+      h += '<div class="o360-tl-item">';
+      if(!isLast) h += '<div class="o360-tl-line"></div>';
+      h += '<div class="o360-tl-icon" style="background:'+tc+'14;border-color:'+tc+'40">'+svgIcon(iconKey,11,tc)+'</div>';
+      h += '<div class="o360-tl-body">';
+      h += '<div class="o360-tl-top"><span class="o360-tl-subject">'+(a.subject||a.name||tl)+'</span><span class="o360-tl-type" style="color:'+tc+'">'+tl+'</span></div>';
       h += '<div class="o360-tl-meta">'+(a.contact||'')+(a.date?' · '+a.date:'')+'</div>';
       h += '</div></div>';
     });
     h += '</div>';
   }
-  h += '</div>';
-
-  /* Tasks */
-  h += o360SectionOpen('Tasks', 'activities', tasks.length);
-  if (!tasks.length) h += '<div class="o360-empty">No tasks</div>';
-  else tasks.forEach(function(t) {
-    var pc = {High:'var(--danger)',Medium:'var(--warning)',Low:'var(--text-light)'};
-    h += '<div class="o360-tk">';
-    h += '<div style="display:flex;align-items:flex-start;gap:7px"><span class="o360-tk-dot" style="background:'+(pc[t.priority]||'var(--text-light)')+'"></span>';
-    h += '<div><div class="o360-tk-n">'+t.name+'</div><div class="o360-tk-d">'+(t.ref||'')+(t.status?' · '+t.status:'')+'</div></div></div>';
-    h += '<span class="o360-tk-st" style="color:'+(t.status==='In Progress'?'var(--accent)':'var(--text-muted)')+'">'+t.status+'</span>';
-    h += '</div>';
-  });
   h += '</div>';
 
   h += '</div>'; /* end right col */
@@ -1045,6 +1085,24 @@ function renderOpp360(container, rec) {
 
   /* ── Bind Events ── */
   document.getElementById('o360-back').addEventListener('click', function(){ navigate('opportunities'); });
+
+  /* Photo upload */
+  var photoWrap = document.getElementById('o360-photo-wrap');
+  var photoInput = document.getElementById('o360-photo-input');
+  if (photoWrap && photoInput) {
+    photoWrap.addEventListener('click', function(){ photoInput.click(); });
+    photoInput.addEventListener('change', function(e) {
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        rec.photo = ev.target.result;
+        var avatar = document.getElementById('o360-avatar');
+        if (avatar) { avatar.className = 'o360-photo'; avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+rec.name+'" />'; }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 
   /* Account link */
   var acctLink = document.getElementById('o360-acct-link');
@@ -1067,7 +1125,7 @@ function renderOpp360(container, rec) {
   }
 
   /* Pipeline step click */
-  container.querySelectorAll('.o360-f-step[data-stage]').forEach(function(step) {
+  container.querySelectorAll('.o360-funnel-step[data-stage]').forEach(function(step) {
     step.addEventListener('click', function(){
       var ns = step.getAttribute('data-stage');
       if (ns && ns !== rec.stage) {
@@ -1082,7 +1140,7 @@ function renderOpp360(container, rec) {
   container.querySelectorAll('.o360-row[data-nav-id]').forEach(function(el) {
     el.addEventListener('click', function(){ navigate('record', el.getAttribute('data-nav-obj'), el.getAttribute('data-nav-id')); });
   });
-  container.querySelectorAll('.o360-sec-lk[data-nav]').forEach(function(el) {
+  container.querySelectorAll('.o360-section-link[data-nav]').forEach(function(el) {
     el.addEventListener('click', function(){ navigate(el.getAttribute('data-nav')); });
   });
 }
@@ -1090,10 +1148,18 @@ function renderOpp360(container, rec) {
 /* ─── Opp 360 Helpers ─── */
 
 function o360SectionOpen(title, navKey, count) {
-  return '<div class="o360-sec"><div class="o360-sec-h">' +
-    '<span class="o360-sec-t">'+title+'</span>' +
-    (count!==null&&count!==undefined?'<span class="o360-sec-c">'+count+'</span>':'') +
-    '<span class="o360-sec-lk" data-nav="'+navKey+'">View all</span></div>';
+  return '<div class="o360-section"><div class="o360-section-head">' +
+    '<span class="o360-section-title">'+title+'</span>' +
+    (count!==null&&count!==undefined?'<span class="o360-section-count">'+count+'</span>':'') +
+    '<span class="o360-section-link" data-nav="'+navKey+'">View all</span></div>';
+}
+
+function o360KpiCard(value, label, color, insight, insightColor) {
+  return '<div class="o360-kpi">' +
+    '<div class="o360-kpi-value" style="color:'+color+'">' + value + '</div>' +
+    '<div class="o360-kpi-label">' + label + '</div>' +
+    (insight ? '<div class="o360-kpi-insight" style="color:'+(insightColor||'var(--text-muted)')+'">' + insight + '</div>' : '') +
+    '</div>';
 }
 
 function o360NextAction(rec) {
@@ -1119,113 +1185,131 @@ function injectO360Styles() {
 .o360-back{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);cursor:pointer;margin-bottom:8px;font-weight:500}\
 .o360-back:hover{color:var(--text)}\
 \
-.o360-hdr{background:var(--card);border-radius:12px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);margin-bottom:10px;overflow:hidden}\
-.o360-hdr-top{display:flex;gap:14px;padding:16px 22px 12px;align-items:center}\
-.o360-hdr-av{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-hover));display:flex;align-items:center;justify-content:center;flex-shrink:0}\
-.o360-hdr-info{flex:1;min-width:0}\
-.o360-hdr-name{font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.3px;line-height:1.2}\
-.o360-hdr-meta{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-muted);flex-wrap:wrap;margin-top:3px}\
-.o360-hdr-meta .dot{color:#d4d4d4}\
-.o360-hdr-acct{color:var(--accent);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:3px}\
-.o360-hdr-acct:hover{text-decoration:underline}\
-.o360-hdr-right{display:flex;gap:20px;align-items:center;flex-shrink:0;padding-left:16px;border-left:1px solid var(--border)}\
-.o360-hdr-metric{display:flex;flex-direction:column;align-items:center}\
-.o360-hdr-metric-val{font-size:20px;font-weight:800;letter-spacing:-.5px;line-height:1;font-variant-numeric:tabular-nums}\
-.o360-hdr-metric-lbl{font-size:9px;color:var(--text-light);font-weight:500;margin-top:2px;text-transform:uppercase;letter-spacing:.3px}\
+/* Header Card — Lead style */\
+.o360-header-card{background:var(--card);border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);border:1px solid var(--border);margin-bottom:14px;overflow:hidden}\
+.o360-header-top{padding:22px 26px 18px;display:flex;gap:20px;align-items:flex-start}\
 \
-.o360-actions{display:flex;gap:7px;padding:10px 22px 14px;border-top:1px solid var(--border);flex-wrap:wrap}\
-.o360-btn{display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:7px;border:none;cursor:pointer;font-size:11.5px;font-weight:600;font-family:inherit;transition:all .12s}\
-.o360-btn-p{background:var(--accent);color:#fff}\
-.o360-btn-p:hover{background:var(--accent-hover)}\
-.o360-btn-o{background:transparent;border:1px solid var(--border);color:var(--text-muted)}\
-.o360-btn-o:hover{border-color:#bbb;color:var(--text);background:#f8f9fb}\
-.o360-btn-s{background:var(--success);color:#fff}\
-.o360-btn-s:hover{background:#059669}\
+/* Photo/Avatar */\
+.o360-photo{width:64px;height:64px;border-radius:50%;flex-shrink:0;overflow:hidden;border:2.5px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.08)}\
+.o360-photo img{width:100%;height:100%;object-fit:cover}\
+.o360-photo.o360-photo-initials{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent),var(--accent-hover));font-size:20px;font-weight:800;color:#fff;letter-spacing:-.5px}\
+.o360-photo-wrap{position:relative;cursor:pointer;flex-shrink:0}\
+.o360-photo-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}\
+.o360-photo-wrap:hover .o360-photo-overlay{opacity:1}\
 \
-.o360-pipe{background:var(--card);border-radius:12px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);padding:14px 28px 0;margin-bottom:10px}\
-.o360-pipe-title{font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}\
-.o360-funnel{display:flex;align-items:center;width:100%;padding-bottom:38px}\
-.o360-f-step{display:flex;align-items:center;flex:1;position:relative;cursor:pointer}\
-.o360-f-step:last-child{flex:0 0 auto}\
-.o360-f-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1;transition:all .2s}\
-.o360-f-dot:hover{transform:scale(1.1)}\
-.o360-f-cur .o360-f-dot{box-shadow:0 0 0 4px rgba(37,99,235,.12)}\
-.o360-f-pulse{width:9px;height:9px;border-radius:50%;background:#fff;animation:o360fp 1.5s ease-in-out infinite}\
-@keyframes o360fp{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.7)}}\
-.o360-f-lbl{position:absolute;top:40px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:600;color:var(--text-muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}\
-.o360-f-cur .o360-f-lbl{color:var(--accent);font-weight:700}\
-.o360-f-done .o360-f-lbl{color:var(--success)}\
-.o360-f-line{flex:1;height:3px;border-radius:2px;margin:0 8px;transition:background .2s}\
+.o360-header-info{flex:1;min-width:0}\
+.o360-name-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:2px}\
+.o360-name{font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.3px;line-height:1.2;margin:0}\
+.o360-company{display:flex;align-items:center;gap:5px;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px}\
+.o360-company:hover{text-decoration:underline}\
+.o360-details-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}\
+.o360-detail-chip{display:inline-flex;align-items:center;gap:5px;background:#f8f9fb;border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-size:11px;color:var(--text-muted);font-weight:500}\
+.o360-meta-row{display:flex;flex-wrap:wrap;gap:8px}\
+.o360-meta-tag{font-size:10px;color:var(--text-light);font-weight:500}\
+.o360-meta-tag strong{color:var(--text-muted);font-weight:600}\
 \
-.o360-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}\
-.o360-kpi{background:var(--card);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);padding:14px 16px;text-align:center;transition:all .15s;cursor:pointer}\
+/* Header metrics */\
+.o360-header-metrics{display:flex;flex-direction:column;gap:12px;flex-shrink:0;align-items:center;padding-left:20px;border-left:1px solid var(--border)}\
+.o360-hmetric{display:flex;flex-direction:column;align-items:center}\
+.o360-hmetric-val{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1;font-variant-numeric:tabular-nums}\
+.o360-hmetric-label{font-size:9px;color:var(--text-light);font-weight:500;margin-top:2px;text-transform:uppercase;letter-spacing:.3px}\
+\
+/* Actions */\
+.o360-actions{display:flex;gap:7px;padding:12px 26px 14px;border-top:1px solid var(--border);flex-wrap:wrap}\
+.o360-action-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;transition:all .12s}\
+.o360-action-primary{background:var(--accent);color:#fff}\
+.o360-action-primary:hover{background:var(--accent-hover)}\
+.o360-action-outline{background:transparent;border:1px solid var(--border);color:var(--text-muted)}\
+.o360-action-outline:hover{border-color:#bbb;color:var(--text);background:#f8f9fb}\
+.o360-action-success{background:var(--success);color:#fff}\
+.o360-action-success:hover{background:#059669}\
+\
+/* KPI Row — 4 cards like Lead */\
+.o360-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}\
+.o360-kpi{background:var(--card);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);padding:16px 18px;text-align:center;transition:all .15s}\
 .o360-kpi:hover{box-shadow:0 4px 14px rgba(0,0,0,.08);transform:translateY(-2px)}\
-.o360-kpi-v{font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1;margin-bottom:2px;font-variant-numeric:tabular-nums}\
-.o360-kpi-l{font-size:10.5px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px}\
-.o360-kpi-h{font-size:9.5px;font-weight:600;margin-top:7px;padding-top:7px;border-top:1px solid var(--border)}\
+.o360-kpi-value{font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1;margin-bottom:3px;font-variant-numeric:tabular-nums}\
+.o360-kpi-label{font-size:10.5px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px}\
+.o360-kpi-insight{font-size:9.5px;font-weight:600;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}\
 \
-.o360-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:12px;align-items:start}\
-.o360-col{display:flex;flex-direction:column;gap:10px}\
+/* Funnel card */\
+.o360-funnel-card{background:var(--card);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);padding:18px 24px;margin-bottom:14px}\
+.o360-funnel-title{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}\
+.o360-funnel{display:flex;align-items:center;gap:0;width:100%;padding-bottom:38px}\
+.o360-funnel-step{display:flex;align-items:center;flex:1;position:relative;cursor:pointer}\
+.o360-funnel-step:last-child{flex:0 0 auto}\
+.o360-funnel-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;z-index:1;transition:all .2s}\
+.o360-funnel-dot:hover{transform:scale(1.1)}\
+.o360-funnel-current .o360-funnel-dot{box-shadow:0 0 0 4px rgba(37,99,235,.15)}\
+.o360-funnel-pulse{width:10px;height:10px;border-radius:50%;background:#fff;animation:o360pulse 1.5s ease-in-out infinite}\
+@keyframes o360pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.7)}}\
+.o360-funnel-label{position:absolute;top:40px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:600;color:var(--text-muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}\
+.o360-funnel-current .o360-funnel-label{color:var(--accent);font-weight:700}\
+.o360-funnel-done .o360-funnel-label{color:var(--success)}\
+.o360-funnel-line{flex:1;height:3px;border-radius:2px;margin:0 6px;transition:background .2s}\
 \
-.o360-sec{background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid var(--border);overflow:hidden}\
-.o360-sec-h{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}\
-.o360-sec-t{font-size:11px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.5px}\
-.o360-sec-c{font-size:9.5px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:1px 6px;border-radius:7px}\
-.o360-sec-lk{margin-left:auto;font-size:10px;font-weight:500;color:var(--text-light);cursor:pointer;transition:color .12s}\
-.o360-sec-lk:hover{color:var(--accent)}\
+/* 2-Column Grid */\
+.o360-grid2{display:grid;grid-template-columns:1.12fr 1fr;gap:14px;align-items:start}\
+.o360-col{display:flex;flex-direction:column;gap:12px}\
 \
-.o360-row{padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .08s;display:flex;align-items:center;gap:9px}\
+/* Sections */\
+.o360-section{background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid var(--border);overflow:hidden}\
+.o360-section-head{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px}\
+.o360-section-title{font-size:11.5px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.5px}\
+.o360-section-count{font-size:10px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:1px 7px;border-radius:8px}\
+.o360-section-link{margin-left:auto;font-size:10px;font-weight:500;color:var(--text-light);cursor:pointer;transition:color .12s}\
+.o360-section-link:hover{color:var(--accent)}\
+\
+/* Rows */\
+.o360-row{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .08s;display:flex;align-items:center;gap:10px}\
 .o360-row:hover{background:#fafbfc}\
 .o360-row-last{border-bottom:none}\
-.o360-row-l{flex:1;min-width:0}\
-.o360-row-r{display:flex;align-items:center;gap:7px;flex-shrink:0}\
-.o360-row-t{font-size:12px;font-weight:700;color:var(--text);line-height:1.2}\
-.o360-row-s{font-size:10px;color:var(--text-light);margin-top:1px}\
-.o360-row-a{font-size:14px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.3px}\
-.o360-empty{padding:18px 14px;text-align:center;color:var(--text-light);font-size:11px}\
+.o360-row-left{flex:1;min-width:0}\
+.o360-row-right{display:flex;align-items:center;gap:8px;flex-shrink:0}\
+.o360-row-title{font-size:12.5px;font-weight:700;color:var(--text);line-height:1.2}\
+.o360-row-sub{font-size:10px;color:var(--text-light);margin-top:2px}\
+.o360-row-amount{font-size:15px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.3px;margin-right:4px}\
+.o360-empty{padding:20px 16px;text-align:center;color:var(--text-light);font-size:11px}\
 \
-.o360-cav{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent-light),#bfdbfe);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--accent);flex-shrink:0}\
-.o360-cbtn{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s}\
-.o360-cbtn:hover{background:#f1f5f9;border-color:#d1d5db}\
+/* Contact */\
+.o360-contact-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent-light),#bfdbfe);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0}\
+.o360-contact-btn{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s}\
+.o360-contact-btn:hover{background:#f1f5f9;border-color:#d1d5db}\
+.o360-task-dot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0}\
 \
-.o360-na{background:var(--card);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);overflow:hidden}\
-.o360-na-top{padding:14px 16px;display:flex;gap:12px;align-items:center}\
-.o360-na-ic{width:36px;height:36px;border-radius:10px;border:1.5px solid;display:flex;align-items:center;justify-content:center;flex-shrink:0}\
+/* Next Action */\
+.o360-next-action{background:var(--card);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);padding:16px 18px;display:flex;gap:14px;align-items:center}\
+.o360-na-icon{width:36px;height:36px;border-radius:10px;border:1.5px solid;display:flex;align-items:center;justify-content:center;flex-shrink:0}\
 .o360-na-body{flex:1;min-width:0}\
-.o360-na-lbl{font-size:9px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}\
-.o360-na-txt{font-size:12.5px;font-weight:600;color:var(--text);line-height:1.4}\
-.o360-na-acts{display:flex;gap:6px;padding:0 16px 14px}\
+.o360-na-label{font-size:9px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}\
+.o360-na-text{font-size:12.5px;font-weight:600;color:var(--text);line-height:1.4}\
 \
-.o360-tl{padding:10px 14px}\
-.o360-tl-i{display:flex;gap:9px;position:relative;padding-bottom:14px}\
-.o360-tl-i:last-child{padding-bottom:0}\
-.o360-tl-ln{position:absolute;left:12px;top:26px;bottom:0;width:1.5px;background:var(--border);border-radius:1px}\
-.o360-tl-i:last-child .o360-tl-ln{display:none}\
-.o360-tl-ic{width:24px;height:24px;border-radius:7px;border:1.5px solid;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1;background:var(--card)}\
-.o360-tl-b{flex:1;min-width:0;padding-top:1px}\
+/* Timeline */\
+.o360-timeline{padding:12px 16px}\
+.o360-tl-item{display:flex;gap:10px;position:relative;padding-bottom:16px}\
+.o360-tl-item:last-child{padding-bottom:0}\
+.o360-tl-line{position:absolute;left:13px;top:28px;bottom:0;width:1.5px;background:var(--border);border-radius:1px}\
+.o360-tl-item:last-child .o360-tl-line{display:none}\
+.o360-tl-icon{width:26px;height:26px;border-radius:8px;border:1.5px solid;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1;background:var(--card)}\
+.o360-tl-body{flex:1;min-width:0;padding-top:2px}\
 .o360-tl-top{display:flex;justify-content:space-between;align-items:baseline}\
-.o360-tl-sub{font-size:11.5px;font-weight:600;color:var(--text);line-height:1.2}\
-.o360-tl-typ{font-size:9.5px;font-weight:600;flex-shrink:0;margin-left:6px}\
-.o360-tl-meta{font-size:9.5px;color:var(--text-light);margin-top:1px}\
-\
-.o360-tk{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border)}\
-.o360-tk:last-child{border-bottom:none}\
-.o360-tk-dot{width:6px;height:6px;border-radius:50%;margin-top:1px;flex-shrink:0}\
-.o360-tk-n{font-size:11.5px;font-weight:600;color:var(--text)}\
-.o360-tk-d{font-size:9.5px;color:var(--text-light);margin-top:1px}\
-.o360-tk-st{font-size:10px;font-weight:500;white-space:nowrap}\
+.o360-tl-subject{font-size:12px;font-weight:600;color:var(--text);line-height:1.2}\
+.o360-tl-type{font-size:10px;font-weight:600;flex-shrink:0;margin-left:8px}\
+.o360-tl-meta{font-size:10px;color:var(--text-light);margin-top:2px}\
 \
 @media(max-width:1100px){\
-  .o360-grid{grid-template-columns:1fr}\
+  .o360-grid2{grid-template-columns:1fr}\
+  .o360-kpi-row{grid-template-columns:repeat(2,1fr)}\
+  .o360-header-top{flex-wrap:wrap}\
+  .o360-header-metrics{border-left:none;padding-left:0;flex-direction:row;gap:20px;margin-top:10px}\
 }\
 @media(max-width:768px){\
-  .o360-kpis{grid-template-columns:1fr 1fr 1fr}\
-  .o360-hdr-top{flex-wrap:wrap}\
-  .o360-hdr-right{border-left:none;padding-left:0;margin-top:8px;width:100%;justify-content:center}\
+  .o360-kpi-row{grid-template-columns:repeat(2,1fr)}\
+  .o360-actions{flex-wrap:wrap}\
   .o360-funnel{flex-wrap:wrap;gap:8px;padding-bottom:10px}\
-  .o360-f-line{display:none}\
-  .o360-f-lbl{position:static;transform:none;margin-top:4px}\
-  .o360-f-step{flex-direction:column;align-items:center;flex:0 0 auto}\
+  .o360-funnel-line{display:none}\
+  .o360-funnel-label{position:static;transform:none;margin-top:4px}\
+  .o360-funnel-step{flex-direction:column;align-items:center;flex:0 0 auto}\
 }\
 ';
   document.head.appendChild(s);
@@ -1491,6 +1575,12 @@ function injectL360Styles() {
 .l360-header-card{background:var(--card);border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);border:1px solid var(--border);margin-bottom:14px;overflow:hidden}\
 .l360-header-top{padding:22px 26px 18px;display:flex;gap:20px;align-items:flex-start}\
 .l360-avatar{width:64px;height:64px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 50%,#fbbf24 100%);border:2.5px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#92400e;letter-spacing:-.5px}\
+.l360-photo{width:64px;height:64px;border-radius:50%;flex-shrink:0;overflow:hidden;border:2.5px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.08)}\
+.l360-photo img{width:100%;height:100%;object-fit:cover}\
+.l360-photo.l360-photo-initials{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 50%,#fbbf24 100%);font-size:20px;font-weight:800;color:#92400e;letter-spacing:-.5px}\
+.l360-photo-wrap{position:relative;cursor:pointer;flex-shrink:0}\
+.l360-photo-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}\
+.l360-photo-wrap:hover .l360-photo-overlay{opacity:1}\
 .l360-header-info{flex:1;min-width:0}\
 .l360-name-row{display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap}\
 .l360-name{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.5px;margin:0;line-height:1.1}\
