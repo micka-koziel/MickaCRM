@@ -65,7 +65,6 @@ function renderSidebar() {
 
   sb.innerHTML =
     '<div class="sb-logo">' +
-      '<img src="assets/LogoSG.png" alt="Logo" class="sb-logo-icon" />' +
       (sidebarCollapsed ? '' : '<span class="sb-logo-text">MickaCRM<span class="sb-logo-360">360</span></span>') +
     '</div>' +
     '<div class="sb-nav">' + items + '</div>' +

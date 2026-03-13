@@ -49,7 +49,6 @@ function renderDashboard(containerEl) {
   html += '<div class="ck-hero-content">';
   html += '<div class="ck-hero-left">';
   html += '<div class="ck-hero-greeting">Good morning, Micka</div>';
-  html += '<div class="ck-hero-context">MickaCRM<span class="ck-hero-360">360</span> · Construction Portfolio</div>';
   html += '<div class="ck-hero-date">' + dateStr + '</div>';
   html += '</div>';
   html += '<div class="ck-hero-metrics">';
@@ -325,13 +324,11 @@ function injectCKStyles() {
 .ck-hero{position:relative;height:144px;border-radius:12px;overflow:hidden;margin-bottom:12px;\
   background:url(assets/Header.png) center/cover no-repeat}\
 .ck-hero-overlay{position:absolute;inset:0;\
-  background:linear-gradient(135deg,rgba(10,20,45,.62) 0%,rgba(15,23,42,.48) 50%,rgba(30,40,70,.42) 100%)}\
+  background:linear-gradient(135deg,rgba(10,20,45,.50) 0%,rgba(15,23,42,.35) 50%,rgba(30,40,70,.28) 100%)}\
 .ck-hero-content{position:relative;z-index:1;height:100%;display:flex;align-items:center;justify-content:space-between;padding:0 28px;gap:24px}\
 .ck-hero-left{display:flex;flex-direction:column;gap:0}\
-.ck-hero-greeting{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.3px}\
-.ck-hero-context{font-size:13px;font-weight:600;color:rgba(255,255,255,.7);margin-top:3px}\
-.ck-hero-360{font-weight:400;color:rgba(255,255,255,.4);font-size:12px}\
-.ck-hero-date{font-size:11px;font-weight:400;color:rgba(255,255,255,.4);margin-top:3px}\
+.ck-hero-greeting{font-size:26px;font-weight:800;color:#fff;letter-spacing:-.3px;text-shadow:0 2px 8px rgba(0,0,0,.3)}\
+.ck-hero-date{font-size:12px;font-weight:400;color:rgba(255,255,255,.55);margin-top:4px;text-shadow:0 1px 4px rgba(0,0,0,.2)}\
 .ck-hero-metrics{display:flex;align-items:center;gap:0}\
 .ck-hero-metric{display:flex;flex-direction:column;align-items:center;padding:0 18px}\
 .ck-hero-metric-val{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.5px;line-height:1.1}\
