@@ -33,6 +33,12 @@ function renderRecordPage(objKey, recId, headerEl, contentEl) {
     return;
   }
 
+  if (objKey === 'projects') {
+    headerEl.style.display = 'none';
+    renderProject360(contentEl, rec);
+    return;
+  }
+
   renderGenericRecord(objKey, rec, headerEl, contentEl);
 }
 

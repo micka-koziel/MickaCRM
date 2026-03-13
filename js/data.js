@@ -19,13 +19,13 @@ window.DATA = {
   ],
   opportunities: [
     {id:'o1',name:'Grand Paris Express – Lot 7',account:'a1',amount:45000000,prob:70,stage:'negotiation',close:'2026-06-15'},
-    {id:'o2',name:'Tour Triangle – Fondations',account:'a2',amount:12000000,prob:45,stage:'proposal',close:'2026-08-01'},
+    {id:'o2',name:'Tour Triangle – Fondations',account:'a2',amount:12000000,prob:45,stage:'proposal',close:'2026-08-01',projectId:'p3'},
     {id:'o3',name:'A69 Highway – Section 2',account:'a5',amount:32000000,prob:30,stage:'tender',close:'2026-12-01'},
-    {id:'o4',name:'Gare du Nord Renovation',account:'a3',amount:23000000,prob:85,stage:'closed_won',close:'2026-03-30'},
+    {id:'o4',name:'Gare du Nord Renovation',account:'a3',amount:23000000,prob:85,stage:'closed_won',close:'2026-03-30',projectId:'p1'},
     {id:'o5',name:'Centre Aquatique – Extension',account:'a1',amount:8500000,prob:60,stage:'study',close:'2026-09-15'},
     {id:'o6',name:'Flaubert Bridge Phase 2',account:'a7',amount:22000000,prob:25,stage:'lead',close:'2027-01-01'},
     {id:'o7',name:'Data Center Marseille',account:'a1',amount:56000000,prob:55,stage:'negotiation',close:'2026-07-20'},
-    {id:'o8',name:'Campus Saclay – Bldg R',account:'a4',amount:19000000,prob:40,stage:'closed_won',close:'2026-11-01'}
+    {id:'o8',name:'Campus Saclay – Bldg R',account:'a4',amount:19000000,prob:40,stage:'closed_won',close:'2026-11-01',projectId:'p2'}
   ],
   leads: [
     {id:'l1',name:'Vinci – Warehouse project',account:'a2',stage:'new',source:'Website',estimatedValue:15000000,priority:'High'},
@@ -34,9 +34,36 @@ window.DATA = {
     {id:'l4',name:'Bouygues – Tech campus',account:'a1',stage:'new',source:'Cold Call',estimatedValue:28000000,priority:'Low'}
   ],
   projects: [
-    {id:'p1',name:'Gare du Nord',phase:'construction',account:'a3',budget:23000000,start:'2025-01-15',end:'2026-12-01'},
-    {id:'p2',name:'Campus Saclay',phase:'construction',account:'a4',budget:19000000,start:'2025-03-01',end:'2026-11-01'},
-    {id:'p3',name:'Tour Triangle',phase:'prestudy',account:'a2',budget:12000000,start:'2025-06-01',end:'2027-06-01'}
+    {id:'p1',name:'Gare du Nord Renovation',phase:'Construction',account:'a3',value:23000000,budget:23000000,start:'2025-01-15',end:'2026-12-01',startDate:'2025-01-15',expectedDelivery:'2026-12-01',health:'Healthy',owner:'Marc Lefèvre',commercialLead:'Sophie Durand',technicalLead:'Jean-Pierre Martin',clientStakeholders:['Isabelle Moreau'],source:'Tender',createdDate:'2024-11-20',description:'Complete renovation of Gare du Nord main hall — structural reinforcement, glass facade replacement, insulation upgrade. Saint-Gobain providing glazing and thermal solutions.',
+      siteVisits:[
+        {date:'2025-11-28',inspector:'Jean-Pierre Martin',status:'Completed',notes:'Facade glazing alignment verified. Minor adjustments level 3.'},
+        {date:'2025-12-10',inspector:'Marc Lefèvre',status:'Scheduled',notes:'Mid-point structural review before Phase 2.'}
+      ],
+      claims:[
+        {id:'CLM-001',title:'Delivery delay — Glass batch #4',status:'Open',priority:'High',date:'2025-11-18'}
+      ],
+      documents:[
+        {name:'Project_Charter_v2.pdf',type:'PDF',date:'2025-01-20',size:'2.4 MB'},
+        {name:'Facade_Specs.pdf',type:'PDF',date:'2025-02-15',size:'8.1 MB'},
+        {name:'Budget_Tracking.xlsx',type:'XLSX',date:'2025-11-25',size:'340 KB'}
+      ]
+    },
+    {id:'p2',name:'Campus Saclay – Bldg R',phase:'Construction',account:'a4',value:19000000,budget:19000000,start:'2025-03-01',end:'2026-11-01',startDate:'2025-03-01',expectedDelivery:'2026-11-01',health:'Attention',owner:'Isabelle Moreau',commercialLead:'Marc Lefèvre',technicalLead:'Thomas Girard',clientStakeholders:['Sophie Durand'],source:'Referral',createdDate:'2025-01-10',description:'New research building with high-performance insulation, smart glazing, and energy-efficient envelope. Full Saint-Gobain materials package.',
+      siteVisits:[
+        {date:'2025-10-15',inspector:'Thomas Girard',status:'Completed',notes:'Foundation OK. Curtain wall install greenlit.'}
+      ],
+      claims:[],
+      documents:[
+        {name:'Proposal_Saclay.pdf',type:'PDF',date:'2025-02-01',size:'3.2 MB'}
+      ]
+    },
+    {id:'p3',name:'Tour Triangle – Facades',phase:'Pre-study',account:'a2',value:12000000,budget:12000000,start:'2025-06-01',end:'2027-06-01',startDate:'2025-06-01',expectedDelivery:'2027-06-01',health:'Healthy',owner:'Sophie Durand',commercialLead:'Jean-Pierre Martin',technicalLead:'Marc Lefèvre',clientStakeholders:['Thomas Girard'],source:'Website',createdDate:'2025-05-10',description:'Iconic triangular tower facade — advanced glazing solutions, high-altitude wind resistance testing, and custom insulation panels.',
+      siteVisits:[],
+      claims:[],
+      documents:[
+        {name:'Feasibility_Study.pdf',type:'PDF',date:'2025-05-20',size:'1.8 MB'}
+      ]
+    }
   ],
   tasks: [
     {id:'t1',name:'Finalize Tour Triangle quote',ref:'Tour Triangle – Facades · 2025-03-15',status:'In Progress',color:'#ef4444'},
