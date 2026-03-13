@@ -131,7 +131,21 @@
       + JSON.stringify(snapshot);
   }
 
-  // ── Gemini API Call ─────────────────────────────────────────────────
+  // ── Models to try (fallback chain) ───────────────────────────────
+  var MODELS = ['gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+
+  // ── Single API call ─────────────────────────────────────────────
+  async function callGemini(model, body) {
+    var url = API_URL + model + ':generateContent?key=' + API_KEY;
+    var res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    return res;
+  }
+
+  // ── Gemini API Call (with retry + model fallback) ───────────────
   async function askGemini(userMessage, history) {
     if (!API_KEY) {
       if (!promptForKey()) {
@@ -143,8 +157,6 @@
 
     // Build Gemini conversation contents
     var contents = [];
-
-    // Include last 6 exchanges for context
     var recent = history.slice(-12);
     for (var i = 0; i < recent.length; i++) {
       var msg = recent[i];
@@ -156,69 +168,77 @@
     }
     contents.push({ role: 'user', parts: [{ text: userMessage }] });
 
-    try {
-      var url = API_URL + MODEL + ':generateContent?key=' + API_KEY;
+    var body = {
+      system_instruction: { parts: [{ text: getSystemPrompt(snapshot) }] },
+      contents: contents,
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 2048,
+        responseMimeType: 'application/json'
+      }
+    };
 
-      var res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: getSystemPrompt(snapshot) }]
-          },
-          contents: contents,
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 2048,
-            responseMimeType: 'application/json'
+    // Try each model, with retries on 429
+    for (var m = 0; m < MODELS.length; m++) {
+      var model = MODELS[m];
+      for (var attempt = 0; attempt < 3; attempt++) {
+        try {
+          console.log('[AI Assistant] Trying ' + model + ' (attempt ' + (attempt + 1) + ')');
+          var res = await callGemini(model, body);
+
+          if (res.ok) {
+            var data = await res.json();
+            var raw = '';
+            if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
+              for (var j = 0; j < data.candidates[0].content.parts.length; j++) {
+                if (data.candidates[0].content.parts[j].text) {
+                  raw += data.candidates[0].content.parts[j].text;
+                }
+              }
+            }
+            if (!raw) {
+              return { text: 'No response received. Please try rephrasing your question.' };
+            }
+            try {
+              var cleaned = raw.replace(/```json\s*/g, '').replace(/```/g, '').trim();
+              var parsed = JSON.parse(cleaned);
+              parsed.rawText = raw;
+              return parsed;
+            } catch (e) {
+              return { text: raw, rawText: raw };
+            }
           }
-        })
-      });
 
-      if (!res.ok) {
-        var errText = await res.text();
-        console.error('[AI Assistant] Gemini API error:', res.status, errText);
-        if (res.status === 400 && errText.indexOf('API_KEY') !== -1) {
-          API_KEY = null;
-          sessionStorage.removeItem('mickacrm_gemini_key');
-          return { text: 'Invalid API key. Please reload and try again.' };
-        }
-        if (res.status === 429) {
-          return { text: 'Rate limit reached. Please wait a moment and try again.' };
-        }
-        return { text: 'Sorry, an error occurred (HTTP ' + res.status + '). Please try again.' };
-      }
-
-      var data = await res.json();
-
-      // Extract text from Gemini response
-      var raw = '';
-      if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
-        for (var j = 0; j < data.candidates[0].content.parts.length; j++) {
-          if (data.candidates[0].content.parts[j].text) {
-            raw += data.candidates[0].content.parts[j].text;
+          if (res.status === 400) {
+            var errText = await res.text();
+            if (errText.indexOf('API_KEY') !== -1) {
+              API_KEY = null;
+              sessionStorage.removeItem('mickacrm_gemini_key');
+              return { text: 'Invalid API key. Please reload and try again.' };
+            }
           }
+
+          if (res.status === 429) {
+            console.warn('[AI Assistant] Rate limited on ' + model + ', waiting before retry...');
+            // Wait 5s then retry, or move to next model on last attempt
+            if (attempt < 2) {
+              await new Promise(function (r) { setTimeout(r, 5000); });
+            }
+            continue;
+          }
+
+          // Other error — try next model
+          console.warn('[AI Assistant] ' + model + ' returned HTTP ' + res.status);
+          break;
+
+        } catch (err) {
+          console.error('[AI Assistant] Network error with ' + model + ':', err);
+          break;
         }
       }
-
-      if (!raw) {
-        return { text: 'No response received. Please try rephrasing your question.' };
-      }
-
-      // Parse JSON response
-      try {
-        var cleaned = raw.replace(/```json\s*/g, '').replace(/```/g, '').trim();
-        var parsed = JSON.parse(cleaned);
-        parsed.rawText = raw;
-        return parsed;
-      } catch (e) {
-        console.warn('[AI Assistant] JSON parse failed, returning raw text:', e.message);
-        return { text: raw, rawText: raw };
-      }
-    } catch (err) {
-      console.error('[AI Assistant] Network error:', err);
-      return { text: 'Network error — unable to reach the AI service. Check your connection and try again.' };
     }
+
+    return { text: 'All models are currently rate-limited. This usually resolves within a few minutes — please try again shortly.' };
   }
 
   // ── Inject Styles ───────────────────────────────────────────────────
