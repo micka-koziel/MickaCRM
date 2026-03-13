@@ -352,11 +352,6 @@ body {
   border-radius: 10px;
   background: #f8f9fb;
   overflow: hidden;
-  transition: background 0.2s;
-}
-
-.kanban-col.drag-over {
-  background: var(--accent-light) !important;
 }
 
 .kanban-col-header {
@@ -419,12 +414,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  cursor: grab;
-  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  user-select: none;
 }
-
-.kanban-card:active { cursor: grabbing; }
-.kanban-card.dragging { opacity: 0.4; transform: scale(0.96); }
 
 .kanban-card:hover {
   box-shadow: 0 3px 10px rgba(0,0,0,.05);

@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════════════
    pipeline.js — Kanban + View Switcher + Object Pages
                  + Filters + Create Modal
+                 + Enhanced Drag & Drop
    ═══════════════════════════════════════════════════════ */
 
 var viewModes = {};
@@ -161,7 +162,7 @@ function renderStageBadge(stageKey, objType) {
 /* ─── State ──────────────────────────────────────────── */
 
 var _searchQ = '';
-var _activeFilters = {};  // { key: value }
+var _activeFilters = {};
 var _filterPanelOpen = false;
 
 /* ─── Page Rendering ─────────────────────────────────── */
@@ -231,7 +232,6 @@ function refreshContent(objKey, cfg) {
 /* ─── Filtering ──────────────────────────────────────── */
 
 function applyAllFilters(data, objKey) {
-  // Text search
   var filtered = data;
   if (_searchQ) {
     filtered = filtered.filter(function(d) {
@@ -239,7 +239,6 @@ function applyAllFilters(data, objKey) {
         getAccountName(d.account).toLowerCase().indexOf(_searchQ)>=0;
     });
   }
-  // Column filters
   Object.keys(_activeFilters).forEach(function(key) {
     var val = _activeFilters[key];
     if (!val && val !== 0) return;
@@ -275,7 +274,6 @@ function renderFilterPanel(objKey, cfg) {
     }
     h += '</div>';
   });
-  // Clear button
   var hasFilters = Object.keys(_activeFilters).length > 0;
   if (hasFilters) {
     h += '<div class="filter-field" style="align-self:flex-end"><button class="filter-clear-btn" id="filter-clear">Clear all</button></div>';
@@ -348,7 +346,6 @@ function openCreateModal(objKey, cfg) {
   if (!cfg.formFields) return;
   injectModalStyles();
 
-  // Remove existing modal
   var old = document.getElementById('crm-modal-overlay');
   if (old) old.remove();
 
@@ -391,10 +388,8 @@ function openCreateModal(objKey, cfg) {
   overlay.innerHTML = h;
   document.body.appendChild(overlay);
 
-  // Animate in
   requestAnimationFrame(function() { overlay.classList.add('visible'); });
 
-  // Close handlers
   var closeModal = function() {
     overlay.classList.remove('visible');
     setTimeout(function() { overlay.remove(); }, 150);
@@ -403,7 +398,6 @@ function openCreateModal(objKey, cfg) {
   document.getElementById('crm-modal-cancel').addEventListener('click', closeModal);
   overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });
 
-  // Save handler
   document.getElementById('crm-modal-save').addEventListener('click', function() {
     var record = {};
     var valid = true;
@@ -417,7 +411,6 @@ function openCreateModal(objKey, cfg) {
     });
     if (!valid) return;
 
-    // Generate ID
     var arr = window.DATA[objKey] || [];
     var prefix = objKey.charAt(0);
     var maxNum = arr.reduce(function(mx, r) {
@@ -426,25 +419,24 @@ function openCreateModal(objKey, cfg) {
     }, 0);
     record.id = prefix + (maxNum + 1);
 
-    // Defaults
     if (objKey === 'accounts') {
       record.pipeline = 0;
       record.opps = 0;
     }
 
-    // Push to data
     arr.push(record);
     window.DATA[objKey] = arr;
 
     closeModal();
 
-    // Refresh page
     renderObjHeader(objKey, cfg, document.getElementById('page-header'));
     refreshContent(objKey, cfg);
   });
 }
 
-/* ─── Kanban ─────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════
+   KANBAN — Rendering + Enhanced Drag & Drop
+   ═══════════════════════════════════════════════════════ */
 
 function renderKanban(objKey, cfg, items, container) {
   var stages = cfg.stages();
@@ -462,6 +454,7 @@ function renderKanban(objKey, cfg, items, container) {
   });
   html += '</div>';
   container.innerHTML = html;
+  injectDragDropStyles();
   bindDragDrop(objKey, cfg, container);
 }
 
@@ -475,41 +468,211 @@ function renderKanbanCard(item, objKey) {
       '</div>';
   }
   var close = item.close ? '<div class="kc-close">Close: '+fmtDate(item.close)+'</div>' : '';
-  return '<div class="kanban-card" draggable="true" data-id="'+item.id+'"><div class="kc-name">'+item.name+'</div>' +
+  /* Priority badge for leads */
+  var prioHtml = '';
+  if (item.priority) {
+    var prioColors = {High:'#ef4444',Medium:'#f59e0b',Low:'#94a3b8'};
+    var prioBg    = {High:'#fef2f2',Medium:'#fffbeb',Low:'#f8fafc'};
+    prioHtml = '<span class="kc-priority" style="color:'+
+      (prioColors[item.priority]||'#94a3b8')+';background:'+
+      (prioBg[item.priority]||'#f8fafc')+'">'+item.priority+'</span>';
+  }
+  /* Estimated value for leads */
+  var estVal = '';
+  if (item.estimatedValue) {
+    estVal = '<div class="kc-metrics"><span class="kc-amount">'+fmtAmount(item.estimatedValue)+'</span>'+prioHtml+'</div>';
+  } else if (prioHtml) {
+    estVal = '<div class="kc-metrics">'+prioHtml+'</div>';
+  }
+
+  return '<div class="kanban-card" draggable="true" data-id="'+item.id+'">' +
+    '<div class="kc-name">'+item.name+'</div>' +
     '<div class="kc-account"><span class="kc-account-avatar">'+accName.charAt(0)+'</span>'+accName+'</div>' +
-    metrics + close + '</div>';
+    metrics + estVal + close + '</div>';
 }
 
+/* ─── Enhanced Drag & Drop ──────────────────────────── */
+
+var _dragState = {
+  dragId: null,
+  sourceStage: null,
+  placeholder: null
+};
+
 function bindDragDrop(objKey, cfg, container) {
+
+  /* — Card events — */
   container.querySelectorAll('.kanban-card').forEach(function(card) {
-    var wasDragged = false;
+    var didDrag = false;
+
     card.addEventListener('dragstart', function(e) {
-      wasDragged = true;
+      didDrag = true;
+      _dragState.dragId = card.dataset.id;
+      /* Find source stage */
+      var col = card.closest('.kanban-col');
+      _dragState.sourceStage = col ? col.dataset.stage : null;
+
+      e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', card.dataset.id);
-      card.classList.add('dragging');
+
+      /* Delay adding class so browser captures clean drag image */
+      requestAnimationFrame(function() {
+        card.classList.add('kd-dragging');
+      });
     });
-    card.addEventListener('dragend', function() { card.classList.remove('dragging'); });
+
+    card.addEventListener('dragend', function() {
+      card.classList.remove('kd-dragging');
+      removePlaceholder();
+      removeAllDragOver();
+      _dragState.dragId = null;
+      _dragState.sourceStage = null;
+    });
+
     card.addEventListener('click', function() {
-      if (wasDragged) { wasDragged = false; return; }
+      if (didDrag) { didDrag = false; return; }
       var id = card.dataset.id;
       if (id) navigate('record', objKey, id);
     });
   });
+
+  /* — Column events — */
   container.querySelectorAll('.kanban-col').forEach(function(col) {
-    col.addEventListener('dragover', function(e) { e.preventDefault(); col.classList.add('drag-over'); });
-    col.addEventListener('dragleave', function() { col.classList.remove('drag-over'); });
+
+    col.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (!_dragState.dragId) return;
+
+      col.classList.add('kd-drag-over');
+
+      /* Position placeholder among cards */
+      var cardsContainer = col.querySelector('.kanban-col-cards');
+      if (!cardsContainer) return;
+
+      var cards = Array.from(cardsContainer.querySelectorAll('.kanban-card:not(.kd-dragging)'));
+      var afterCard = null;
+
+      for (var i = 0; i < cards.length; i++) {
+        var rect = cards[i].getBoundingClientRect();
+        var midY = rect.top + rect.height / 2;
+        if (e.clientY < midY) {
+          afterCard = cards[i];
+          break;
+        }
+      }
+
+      ensurePlaceholder();
+      if (afterCard) {
+        cardsContainer.insertBefore(_dragState.placeholder, afterCard);
+      } else {
+        cardsContainer.appendChild(_dragState.placeholder);
+      }
+    });
+
+    col.addEventListener('dragleave', function(e) {
+      /* Only remove if truly leaving the column */
+      var related = e.relatedTarget;
+      if (related && col.contains(related)) return;
+      col.classList.remove('kd-drag-over');
+    });
+
     col.addEventListener('drop', function(e) {
-      e.preventDefault(); col.classList.remove('drag-over');
+      e.preventDefault();
+      col.classList.remove('kd-drag-over');
+      removePlaceholder();
+
       var id = e.dataTransfer.getData('text/plain');
-      var ns = col.dataset.stage;
-      if (!id||!ns) return;
+      var newStage = col.dataset.stage;
+      if (!id || !newStage) return;
+
       var arr = window.DATA[objKey];
-      if (arr) {
-        var item = arr.find(function(it){return it.id===id;});
-        if (item) { item.stage = ns; renderObjContent(objKey, cfg, 'kanban', document.getElementById('page-content')); }
+      if (!arr) return;
+
+      var item = arr.find(function(it) { return it.id === id; });
+      if (!item) return;
+
+      var oldStage = item.stage;
+      item.stage = newStage;
+
+      /* Re-render kanban */
+      renderObjContent(objKey, cfg, 'kanban', document.getElementById('page-content'));
+
+      /* Flash the moved card + toast */
+      if (oldStage !== newStage) {
+        flashCard(id);
+        showDragToast(item.name, newStage, objKey);
       }
     });
   });
+}
+
+/* ─── Placeholder ─────────────────────────────────────── */
+
+function ensurePlaceholder() {
+  if (!_dragState.placeholder) {
+    var ph = document.createElement('div');
+    ph.className = 'kd-placeholder';
+    _dragState.placeholder = ph;
+  }
+}
+
+function removePlaceholder() {
+  if (_dragState.placeholder && _dragState.placeholder.parentNode) {
+    _dragState.placeholder.parentNode.removeChild(_dragState.placeholder);
+  }
+  _dragState.placeholder = null;
+}
+
+function removeAllDragOver() {
+  document.querySelectorAll('.kd-drag-over').forEach(function(el) {
+    el.classList.remove('kd-drag-over');
+  });
+}
+
+/* ─── Flash Card After Drop ──────────────────────────── */
+
+function flashCard(id) {
+  setTimeout(function() {
+    var card = document.querySelector('.kanban-card[data-id="'+id+'"]');
+    if (card) {
+      card.classList.add('kd-just-dropped');
+      setTimeout(function() { card.classList.remove('kd-just-dropped'); }, 700);
+    }
+  }, 50);
+}
+
+/* ─── Toast Notification ─────────────────────────────── */
+
+function showDragToast(itemName, newStage, objKey) {
+  /* Find stage label */
+  var cfg = OBJ_CONFIG[objKey];
+  var stages = cfg && cfg.stages ? cfg.stages() : [];
+  var stageObj = stages.find(function(s) { return s.key === newStage; });
+  var stageLabel = stageObj ? stageObj.label : newStage;
+  var shortName = itemName.split(' – ')[0] || itemName;
+
+  /* Remove existing toast */
+  var old = document.getElementById('kd-toast');
+  if (old) old.remove();
+
+  var toast = document.createElement('div');
+  toast.id = 'kd-toast';
+  toast.className = 'kd-toast';
+  toast.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>' +
+    '<span>' + shortName + ' moved to <strong>' + stageLabel + '</strong></span>';
+  document.body.appendChild(toast);
+
+  /* Animate in */
+  requestAnimationFrame(function() {
+    toast.classList.add('kd-toast-visible');
+  });
+
+  /* Auto-remove */
+  setTimeout(function() {
+    toast.classList.remove('kd-toast-visible');
+    setTimeout(function() { toast.remove(); }, 300);
+  }, 2400);
 }
 
 /* ─── List View ──────────────────────────────────────── */
@@ -550,7 +713,7 @@ function renderListView(items, columns, container, objKey) {
 }
 
 /* ═══════════════════════════════════════════════════════
-   CSS INJECTION — Filter Panel + Create Modal
+   CSS INJECTION — Filter Panel + Create Modal + Drag&Drop
    ═══════════════════════════════════════════════════════ */
 
 function injectModalStyles() {
@@ -594,6 +757,46 @@ function injectModalStyles() {
 .crm-modal-btn-cancel:hover{border-color:#bbb;color:var(--text)}\
 .crm-modal-btn-save{background:var(--accent);border:none;color:#fff}\
 .crm-modal-btn-save:hover{background:var(--accent-hover)}\
+';
+  document.head.appendChild(s);
+}
+
+/* ── Drag & Drop Styles ─────────────────────────────── */
+
+function injectDragDropStyles() {
+  if (document.getElementById('kd-css')) return;
+  var s = document.createElement('style'); s.id = 'kd-css';
+  s.textContent = '\
+/* Card being dragged */\
+.kanban-card{cursor:grab;transition:box-shadow .2s,transform .2s,opacity .2s}\
+.kanban-card:active{cursor:grabbing}\
+.kd-dragging{opacity:.35!important;transform:scale(.96);box-shadow:none!important}\
+\
+/* Column receiving a drop */\
+.kd-drag-over{background:var(--accent-light,#eff6ff)!important;border:2px dashed var(--accent,#2563eb)!important;border-radius:12px;transform:scale(1.008);transition:all .2s cubic-bezier(.4,0,.2,1)}\
+.kanban-col{border:2px solid transparent;transition:all .2s cubic-bezier(.4,0,.2,1)}\
+\
+/* Drop placeholder bar */\
+.kd-placeholder{height:4px;border-radius:2px;background:var(--accent,#2563eb);margin:4px 6px;box-shadow:0 0 10px rgba(37,99,235,.3);transition:all .15s;animation:kd-ph-pulse .8s ease-in-out infinite alternate}\
+@keyframes kd-ph-pulse{0%{opacity:.6;transform:scaleX(.96)}100%{opacity:1;transform:scaleX(1)}}\
+\
+/* Flash after drop */\
+.kd-just-dropped{animation:kd-flash .7s ease-out}\
+@keyframes kd-flash{0%{box-shadow:0 0 0 3px var(--accent,#2563eb),0 4px 20px rgba(37,99,235,.2);transform:scale(1.03)}100%{box-shadow:0 1px 3px rgba(0,0,0,.06);transform:scale(1)}}\
+\
+/* Priority badge in kanban card */\
+.kc-priority{font-size:9px;font-weight:700;text-transform:uppercase;padding:2px 7px;border-radius:6px;letter-spacing:.3px}\
+\
+/* Toast notification */\
+.kd-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);opacity:0;z-index:9999;\
+  background:#0f172a;color:#fff;padding:10px 20px;border-radius:10px;\
+  font-size:13px;font-weight:600;font-family:inherit;\
+  box-shadow:0 8px 32px rgba(0,0,0,.18);\
+  display:flex;align-items:center;gap:8px;\
+  pointer-events:none;transition:all .3s cubic-bezier(.4,0,.2,1);white-space:nowrap}\
+.kd-toast-visible{opacity:1;transform:translateX(-50%) translateY(0)}\
+.kd-toast strong{color:#60a5fa}\
+.kd-toast svg{flex-shrink:0}\
 ';
   document.head.appendChild(s);
 }
