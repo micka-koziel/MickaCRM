@@ -117,6 +117,7 @@ function renderCurrentPage() {
     case 'contacts':
     case 'quotes':
     case 'projects':
+    case 'claims':
       header.style.display = '';
       renderObjectPage(currentPage, header, content);
       break;

@@ -51,6 +51,16 @@ function renderRecordPage(objKey, recId, headerEl, contentEl) {
     return;
   }
 
+  if (objKey === 'claims') {
+    headerEl.style.display = 'none';
+    if (typeof renderClaim360 === 'function') {
+      renderClaim360(contentEl, rec);
+    } else {
+      contentEl.innerHTML = '<div class="placeholder-view">Claim 360 module not loaded. Check script order in index.html.</div>';
+    }
+    return;
+  }
+
   renderGenericRecord(objKey, rec, headerEl, contentEl);
 }
 

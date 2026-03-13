@@ -218,6 +218,52 @@ var OBJ_CONFIG = {
       {key:'start',label:'Start Date',type:'date'},
       {key:'end',label:'Expected Delivery',type:'date'}
     ]
+  },
+  claims: {
+    title: 'Claims', hasKanban: false,
+    getData: function(){ return (window.DATA.claims||[]).slice(); },
+    columns: [
+      {key:'title',label:'Claim',isLink:true,render:function(it){return it.title||it.name||'—';}},
+      {key:'projectName',label:'Project',render:function(it){
+        if (it.projectName) return it.projectName;
+        var p = (window.DATA.projects||[]).find(function(pr){return pr.id===it.projectId;});
+        return p ? p.name : '—';
+      }},
+      {key:'accountName',label:'Account',render:function(it){
+        if (it.accountName) return it.accountName;
+        return getAccountName(it.accountId)||'—';
+      }},
+      {key:'status',label:'Status',render:function(it){
+        var colors = {Open:'var(--danger)','In Progress':'var(--warning)',Resolved:'var(--success)',Closed:'var(--text-light)',Reported:'var(--danger)',Investigation:'var(--warning)',Negotiation:'#3b82f6'};
+        var s = it.status||it.stage||'—';
+        var c = colors[s]||'var(--text-muted)';
+        return '<span class="stage-badge" style="color:'+c+'"><span class="dot" style="background:'+c+'"></span>'+s+'</span>';
+      }},
+      {key:'priority',label:'Priority',render:function(it){
+        var colors = {High:'var(--danger)',Critical:'var(--danger)',Medium:'var(--warning)',Low:'var(--text-light)'};
+        return it.priority ? '<span class="stage-badge" style="color:'+(colors[it.priority]||'var(--text-muted)')+'"><span class="dot" style="background:'+(colors[it.priority]||'var(--text-muted)')+'"></span>'+it.priority+'</span>' : '—';
+      }},
+      {key:'impactValue',label:'Impact',render:function(it){return it.impactValue ? fmtAmount(it.impactValue) : '—';}},
+      {key:'reportedDate',label:'Reported',render:function(it){return fmtDate(it.reportedDate||it.date);}}
+    ],
+    filters: [
+      {key:'status',label:'Status',type:'select',options:function(){return [{value:'Open',label:'Open'},{value:'In Progress',label:'In Progress'},{value:'Investigation',label:'Investigation'},{value:'Negotiation',label:'Negotiation'},{value:'Resolved',label:'Resolved'},{value:'Closed',label:'Closed'}];}},
+      {key:'priority',label:'Priority',type:'select',options:function(){return [{value:'High',label:'High'},{value:'Medium',label:'Medium'},{value:'Low',label:'Low'}];}},
+      {key:'riskLevel',label:'Risk Level',type:'select',options:function(){return [{value:'High',label:'High'},{value:'Medium',label:'Medium'},{value:'Low',label:'Low'}];}},
+      {key:'projectId',label:'Project',type:'select',options:function(){return (window.DATA.projects||[]).map(function(p){return{value:p.id,label:p.name};});}}
+    ],
+    formFields: [
+      {key:'title',label:'Claim Title',type:'text',required:true},
+      {key:'projectId',label:'Project',type:'select',options:function(){return (window.DATA.projects||[]).map(function(p){return{value:p.id,label:p.name};});}},
+      {key:'accountId',label:'Account',type:'select',options:function(){return (window.DATA.accounts||[]).map(function(a){return{value:a.id,label:a.name};});}},
+      {key:'status',label:'Status',type:'select',options:function(){return [{value:'Open',label:'Open'},{value:'Investigation',label:'Investigation'},{value:'Negotiation',label:'Negotiation'},{value:'Resolved',label:'Resolved'},{value:'Closed',label:'Closed'}];}},
+      {key:'priority',label:'Priority',type:'select',options:function(){return [{value:'High',label:'High'},{value:'Medium',label:'Medium'},{value:'Low',label:'Low'}];}},
+      {key:'riskLevel',label:'Risk Level',type:'select',options:function(){return [{value:'High',label:'High'},{value:'Medium',label:'Medium'},{value:'Low',label:'Low'}];}},
+      {key:'impactValue',label:'Impact Value (€)',type:'number'},
+      {key:'category',label:'Category',type:'select',options:function(){return [{value:'Supply Chain',label:'Supply Chain'},{value:'Quality',label:'Quality'},{value:'Logistics',label:'Logistics'},{value:'Safety',label:'Safety'},{value:'Contractual',label:'Contractual'},{value:'Other',label:'Other'}];}},
+      {key:'owner',label:'Owner',type:'text'},
+      {key:'description',label:'Description',type:'text'}
+    ]
   }
 };
 

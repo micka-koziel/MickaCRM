@@ -151,6 +151,86 @@ window.DATA = {
       winProb:'85%',competitors:'1',negoNote:'Strong position — existing relationship from Phase 1'
     }
   ],
+  claims: [
+    {id:'clm1',title:'Delivery delay — Glass batch #4',name:'Delivery delay — Glass batch #4',projectId:'p1',projectName:'Gare du Nord Renovation',accountId:'a3',accountName:'Eiffage Génie Civil',opportunityId:'o4',quoteId:'q5',owner:'Marc Lefèvre',status:'Open',stage:'Investigation',priority:'High',riskLevel:'High',category:'Supply Chain',impactValue:340000,reportedDate:'2025-11-18',
+      description:'Glass batch #4 (SG Cool-Lite SKN 176, 1200 m²) was delayed by 3 weeks due to a production issue at the Saint-Gobain Aniche plant. This delay has cascading effects on the facade installation schedule for the Gare du Nord main hall renovation. The contractor has flagged potential penalties under the project timeline clause.',
+      rootCause:'Production line shutdown at Saint-Gobain Aniche plant due to furnace maintenance overrun. The batch required a specific coating configuration that could not be rerouted to another facility.',
+      rootCauseCategory:'Production Delay',
+      activities:[
+        {type:'Claim Filed',date:'2025-11-18',contact:'Marc Lefèvre',description:'Claim formally reported by Eiffage procurement team'},
+        {type:'Meeting',date:'2025-11-22',contact:'Marc Lefèvre',description:'Emergency meeting with Eiffage — reviewed impact on facade schedule'},
+        {type:'Internal Review',date:'2025-11-25',contact:'Jean-Pierre Martin',description:'Internal assessment of production rescheduling options'},
+        {type:'Call',date:'2025-12-01',contact:'Marc Lefèvre',description:'Status update call — partial shipment confirmed for Dec 8'},
+        {type:'Email',date:'2025-12-05',contact:'Sophie Durand',description:'Sent revised delivery timeline and mitigation proposal'}
+      ],
+      tasks:[
+        {name:'Review penalty clause in contract',assignee:'Sophie Durand',dueDate:'2025-12-10',status:'Completed'},
+        {name:'Coordinate partial shipment logistics',assignee:'Jean-Pierre Martin',dueDate:'2025-12-08',status:'In Progress'},
+        {name:'Prepare credit note proposal',assignee:'Marc Lefèvre',dueDate:'2025-12-15',status:'To Do'},
+        {name:'Schedule follow-up site visit',assignee:'Thomas Girard',dueDate:'2025-12-12',status:'To Do'}
+      ],
+      stakeholders:[
+        {name:'Marc Lefèvre',role:'Claim Owner',color:'#2563eb'},
+        {name:'Jean-Pierre Martin',role:'Technical Lead',color:'#059669'},
+        {name:'Sophie Durand',role:'Commercial Lead',color:'#8b5cf6'},
+        {name:'Isabelle Moreau',role:'Client Stakeholder',color:'#f59e0b'}
+      ],
+      documents:[
+        {name:'Claim_Report_CLM001.pdf',type:'PDF',date:'2025-11-18',size:'1.4 MB'},
+        {name:'Delivery_Schedule_Revised.pdf',type:'PDF',date:'2025-12-01',size:'620 KB'},
+        {name:'Penalty_Clause_Extract.pdf',type:'PDF',date:'2025-12-05',size:'340 KB'},
+        {name:'Mitigation_Proposal_v1.pdf',type:'PDF',date:'2025-12-05',size:'890 KB'}
+      ]
+    },
+    {id:'clm2',title:'Insulation specification mismatch — Bldg R',name:'Insulation specification mismatch — Bldg R',projectId:'p2',projectName:'Campus Saclay – Bldg R',accountId:'a4',accountName:'Spie Batignolles',opportunityId:'o8',quoteId:'q3',owner:'Thomas Girard',status:'In Progress',stage:'Negotiation',priority:'Medium',riskLevel:'Medium',category:'Quality',impactValue:85000,reportedDate:'2025-10-28',
+      description:'Insulation panels delivered to Campus Saclay (Isover Multimax 30) did not match the thermal conductivity specification in the original quote. The delivered batch shows 0.032 W/mK instead of the specified 0.030 W/mK. The contractor has requested replacement or a commercial gesture.',
+      rootCause:'Specification discrepancy between the quote document (v3) and the production order. The production order referenced an older material datasheet.',
+      rootCauseCategory:'Specification Error',
+      activities:[
+        {type:'Claim Filed',date:'2025-10-28',contact:'Isabelle Moreau',description:'Specification mismatch reported during on-site QA inspection'},
+        {type:'Inspection',date:'2025-11-02',contact:'Thomas Girard',description:'On-site verification — confirmed 0.032 W/mK on batch labels'},
+        {type:'Meeting',date:'2025-11-10',contact:'Isabelle Moreau',description:'Negotiation meeting — discussed replacement vs. credit options'},
+        {type:'Email',date:'2025-11-15',contact:'Thomas Girard',description:'Sent technical comparison report showing minimal performance impact'}
+      ],
+      tasks:[
+        {name:'Prepare technical impact assessment',assignee:'Thomas Girard',dueDate:'2025-11-05',status:'Completed'},
+        {name:'Negotiate credit note terms',assignee:'Marc Lefèvre',dueDate:'2025-11-20',status:'In Progress'},
+        {name:'Update quote specifications for future orders',assignee:'Sophie Durand',dueDate:'2025-12-01',status:'To Do'}
+      ],
+      stakeholders:[
+        {name:'Thomas Girard',role:'Claim Owner',color:'#2563eb'},
+        {name:'Isabelle Moreau',role:'Client Contact',color:'#f59e0b'},
+        {name:'Marc Lefèvre',role:'Commercial Lead',color:'#8b5cf6'}
+      ],
+      documents:[
+        {name:'QA_Inspection_Report.pdf',type:'PDF',date:'2025-10-28',size:'2.1 MB'},
+        {name:'Technical_Comparison.pdf',type:'PDF',date:'2025-11-15',size:'780 KB'}
+      ]
+    },
+    {id:'clm3',title:'Site access denied — Tour Triangle',name:'Site access denied — Tour Triangle',projectId:'p3',projectName:'Tour Triangle – Facades',accountId:'a2',accountName:'Vinci Immobilier',owner:'Sophie Durand',status:'Resolved',stage:'Resolved',priority:'Low',riskLevel:'Low',category:'Logistics',impactValue:12000,reportedDate:'2025-09-15',
+      description:'Saint-Gobain delivery trucks were denied access to the Tour Triangle construction site on September 15 due to a permitting issue with the city of Paris. Resulted in one day of standby costs.',
+      rootCause:'City of Paris issued temporary construction vehicle ban for the district due to a public event. Contractor failed to communicate the restriction in advance.',
+      rootCauseCategory:'Communication Gap',
+      activities:[
+        {type:'Claim Filed',date:'2025-09-15',contact:'Sophie Durand',description:'Reported by logistics team after trucks turned away'},
+        {type:'Call',date:'2025-09-16',contact:'Sophie Durand',description:'Called Vinci PM to clarify access schedule'},
+        {type:'Email',date:'2025-09-18',contact:'Sophie Durand',description:'Sent standby cost invoice for reimbursement'},
+        {type:'Meeting',date:'2025-09-22',contact:'Sophie Durand',description:'Resolution meeting — Vinci agreed to cover standby costs'}
+      ],
+      tasks:[
+        {name:'Submit standby cost invoice',assignee:'Sophie Durand',dueDate:'2025-09-20',status:'Completed'},
+        {name:'Confirm payment received',assignee:'Sophie Durand',dueDate:'2025-10-15',status:'Completed'}
+      ],
+      stakeholders:[
+        {name:'Sophie Durand',role:'Claim Owner',color:'#2563eb'},
+        {name:'Jean-Pierre Martin',role:'Logistics Coordinator',color:'#059669'}
+      ],
+      documents:[
+        {name:'Standby_Invoice_TT.pdf',type:'PDF',date:'2025-09-18',size:'120 KB'},
+        {name:'Resolution_Agreement.pdf',type:'PDF',date:'2025-09-22',size:'240 KB'}
+      ]
+    }
+  ],
   tasks: [
     {id:'t1',name:'Finalize Tour Triangle quote',ref:'Tour Triangle – Facades · 2025-03-15',status:'In Progress',color:'#ef4444'},
     {id:'t2',name:'Follow up Eiffage Gare du Nord',ref:'Gare du Nord Renovation · 2025-03-12',status:'To Do',color:'#f59e0b'},
