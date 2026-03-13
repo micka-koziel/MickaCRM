@@ -38,6 +38,7 @@ function svgIcon(name, size, color) {
 
 var NAV_ITEMS = [
   { key: 'home', label: 'Home', icon: 'home' },
+  { key: 'calendar', label: 'Calendar', icon: 'calendarView' },
   { key: 'accounts', label: 'Accounts', icon: 'accounts' },
   { key: 'contacts', label: 'Contacts', icon: 'contacts' },
   { key: 'leads', label: 'Leads', icon: 'leads' },
@@ -46,7 +47,6 @@ var NAV_ITEMS = [
   { key: 'projects', label: 'Projects', icon: 'projects' },
   { key: 'claims', label: 'Claims', icon: 'claims' },
   { key: 'activities', label: 'Activities', icon: 'activities' },
-  { key: 'calendar', label: 'Calendar', icon: 'calendar' },
 ];
 
 var sidebarCollapsed = false;
@@ -107,6 +107,10 @@ function renderCurrentPage() {
       header.style.display = 'none';
       renderDashboard(content);
       break;
+    case 'calendar':
+      header.style.display = 'none';
+      renderCalendarPage(header, content);
+      break;
     case 'record':
       header.style.display = '';
       renderRecordPage(currentRecordObj, currentRecordId, header, content);
@@ -118,6 +122,7 @@ function renderCurrentPage() {
     case 'quotes':
     case 'projects':
     case 'claims':
+    case 'activities':
       header.style.display = '';
       renderObjectPage(currentPage, header, content);
       break;

@@ -231,6 +231,174 @@ window.DATA = {
       ]
     }
   ],
+  activities: [
+    {id:'act1',type:'Meeting',subject:'GPE Lot 7 — Pricing review with procurement',date:'2026-03-03',time:'10:00',duration:90,status:'Completed',
+      accountId:'a1',accountName:'Bouygues Construction',contactId:'c1',contact:'Jean-Pierre Martin',contactRole:'Directeur Travaux',
+      opportunityId:'o1',opportunityName:'Grand Paris Express – Lot 7',
+      owner:'Me',location:'Bouygues HQ — Paris La Défense',createdDate:'2026-02-28',
+      purpose:'Review v2 pricing with Bouygues procurement team. Align on discount structure and payment milestones before final proposal.',
+      outcome:'Agreed on 3% volume discount. Final proposal to be sent by March 10.',
+      participants:[
+        {name:'Jean-Pierre Martin',company:'Bouygues Construction',role:'Directeur Travaux',contactId:'c1'},
+        {name:'Pierre Dupont',company:'Bouygues Construction',role:'Procurement Manager'},
+        {name:'Marc Lefèvre',company:'Saint-Gobain',role:'Key Account Manager'}
+      ],
+      notes:[
+        {date:'2026-03-03',author:'Me',text:'Bouygues confirmed budget allocation for Q2. Procurement requires Net 45 payment terms — approved internally.'},
+        {date:'2026-03-03',author:'Marc Lefèvre',text:'Volume discount at 3% is within our margin threshold. Need to update quote v2 accordingly.'}
+      ],
+      tasks:[
+        {name:'Update quote v2 with revised discount',assignee:'Me',dueDate:'2026-03-08',status:'In Progress'},
+        {name:'Send final proposal to JP Martin',assignee:'Me',dueDate:'2026-03-10',status:'To Do'}
+      ],
+      documents:[
+        {name:'Meeting_Notes_GPE_Mar03.pdf',type:'PDF',date:'2026-03-03',size:'420 KB'},
+        {name:'Pricing_Matrix_v2.xlsx',type:'XLSX',date:'2026-03-03',size:'180 KB'}
+      ]
+    },
+    {id:'act2',type:'Call',subject:'Discount negotiation call — GPE Lot 7',date:'2026-02-20',time:'14:30',duration:25,status:'Completed',
+      accountId:'a1',accountName:'Bouygues Construction',contactId:'c1',contact:'Jean-Pierre Martin',contactRole:'Directeur Travaux',
+      opportunityId:'o1',opportunityName:'Grand Paris Express – Lot 7',
+      owner:'Me',createdDate:'2026-02-19',
+      purpose:'Discuss discount structure and payment terms ahead of formal pricing meeting.',
+      outcome:'JP confirmed 3% discount target. Meeting scheduled March 3.',
+      participants:[
+        {name:'Jean-Pierre Martin',company:'Bouygues Construction',role:'Directeur Travaux',contactId:'c1'}
+      ],
+      notes:[
+        {date:'2026-02-20',author:'Me',text:'JP mentioned competing bid from LafargeHolcim at -5%. Our technical superiority on glazing spec is key differentiator.'}
+      ],
+      tasks:[],documents:[]
+    },
+    {id:'act3',type:'Email',subject:'Initial quote sent — GPE Lot 7',date:'2026-01-15',time:'09:15',duration:null,status:'Completed',
+      accountId:'a1',accountName:'Bouygues Construction',contactId:'c1',contact:'Jean-Pierre Martin',contactRole:'Directeur Travaux',
+      opportunityId:'o1',opportunityName:'Grand Paris Express – Lot 7',
+      owner:'Me',createdDate:'2026-01-15',
+      purpose:'Send initial quote v1 for Grand Paris Express glazing package.',
+      outcome:'Quote received and under review by Bouygues procurement.',
+      participants:[
+        {name:'Jean-Pierre Martin',company:'Bouygues Construction',role:'Directeur Travaux',contactId:'c1'}
+      ],
+      notes:[],tasks:[],documents:[
+        {name:'Quote_GPE_v1.pdf',type:'PDF',date:'2026-01-15',size:'1.1 MB'}
+      ]
+    },
+    {id:'act4',type:'Site Visit',subject:'Gare du Nord — Phase 2 glazing assessment',date:'2026-02-15',time:'09:00',duration:180,status:'Completed',
+      accountId:'a3',accountName:'Eiffage Génie Civil',contactId:'c3',contact:'Marc Lefèvre',contactRole:'Responsable Achats',
+      projectId:'p1',projectName:'Gare du Nord Renovation',opportunityId:'o4',
+      owner:'Thomas Girard',location:'Gare du Nord — Paris 10e',createdDate:'2026-02-10',
+      purpose:'On-site assessment of Phase 2 glazing areas. Measure facade sections and verify structural support for new panels.',
+      outcome:'All measurements confirmed. Structural support adequate for SG Stadip Protect panels. Green light for Phase 2 quote.',
+      participants:[
+        {name:'Marc Lefèvre',company:'Eiffage Génie Civil',role:'Responsable Achats',contactId:'c3'},
+        {name:'Thomas Girard',company:'Saint-Gobain',role:'Technical Lead'},
+        {name:'Jean-Pierre Martin',company:'Saint-Gobain',role:'Installation PM'}
+      ],
+      notes:[
+        {date:'2026-02-15',author:'Thomas Girard',text:'Facade section B3 requires custom sizing — 2.4m x 3.6m panels instead of standard 2.0m x 3.0m. Updated specs sent to production.'},
+        {date:'2026-02-15',author:'Marc Lefèvre',text:'Eiffage confirmed Phase 2 timeline: installation window April–June 2026. No overlap with Phase 1 completion.'}
+      ],
+      tasks:[
+        {name:'Submit custom panel specifications to production',assignee:'Thomas Girard',dueDate:'2026-02-20',status:'Completed'},
+        {name:'Prepare Phase 2 glazing quote',assignee:'Jean-Pierre Martin',dueDate:'2026-03-01',status:'Completed'}
+      ],
+      documents:[
+        {name:'Site_Photos_GdN_Feb15.zip',type:'ZIP',date:'2026-02-15',size:'24.5 MB'},
+        {name:'Measurement_Report_Phase2.pdf',type:'PDF',date:'2026-02-16',size:'3.2 MB'}
+      ]
+    },
+    {id:'act5',type:'Meeting',subject:'Tour Triangle — Scope review & measurement',date:'2026-02-05',time:'11:00',duration:120,status:'Completed',
+      accountId:'a2',accountName:'Vinci Immobilier',contactId:'c2',contact:'Sophie Durand',contactRole:'Chef de Projet',
+      opportunityId:'o2',opportunityName:'Tour Triangle – Fondations',
+      owner:'Me',location:'Tour Triangle site — Paris 15e',createdDate:'2026-02-01',
+      purpose:'On-site scope review with Vinci team. Measure facade areas and confirm insulation specs for quote preparation.',
+      outcome:'Scope confirmed. Quote to be prepared based on 2800 m² glazing + 3200 m² insulation.',
+      participants:[
+        {name:'Sophie Durand',company:'Vinci Immobilier',role:'Chef de Projet',contactId:'c2'},
+        {name:'Marc Lefèvre',company:'Saint-Gobain',role:'Key Account Manager'}
+      ],
+      notes:[
+        {date:'2026-02-05',author:'Me',text:'Vinci is evaluating 3 suppliers. Decision expected by end of August. Our USP: high-altitude wind resistance testing + custom insulation package.'}
+      ],
+      tasks:[],documents:[]
+    },
+    {id:'act6',type:'Call',subject:'Campus Saclay — Final negotiation',date:'2026-02-25',time:'15:00',duration:45,status:'Completed',
+      accountId:'a4',accountName:'Spie Batignolles',contactId:'c4',contact:'Isabelle Moreau',contactRole:'DG Adjoint',
+      opportunityId:'o8',opportunityName:'Campus Saclay – Bldg R',projectId:'p2',projectName:'Campus Saclay – Bldg R',
+      owner:'Marc Lefèvre',createdDate:'2026-02-24',
+      purpose:'Final negotiation round for Campus Saclay insulation package. Close on v3 terms.',
+      outcome:'Quote v3 accepted by Spie Batignolles. PO expected within 5 business days.',
+      participants:[
+        {name:'Isabelle Moreau',company:'Spie Batignolles',role:'DG Adjoint',contactId:'c4'},
+        {name:'Marc Lefèvre',company:'Saint-Gobain',role:'Key Account Manager'}
+      ],
+      notes:[
+        {date:'2026-02-25',author:'Marc Lefèvre',text:'Isabelle confirmed acceptance. 5% discount on 5.1M€ package — within approved margin. PO forthcoming.'}
+      ],
+      tasks:[
+        {name:'Confirm PO reception',assignee:'Marc Lefèvre',dueDate:'2026-03-05',status:'Completed'}
+      ],
+      documents:[]
+    },
+    {id:'act7',type:'Meeting',subject:'A69 Highway — Scoping & volume confirmation',date:'2026-03-08',time:'10:00',duration:60,status:'In Progress',
+      accountId:'a5',accountName:'Colas Group',contactId:'c5',contact:'Thomas Girard',contactRole:'Ingénieur Études',
+      opportunityId:'o3',opportunityName:'A69 Highway – Section 2',
+      owner:'Sophie Durand',location:'Colas HQ — Boulogne',createdDate:'2026-03-06',
+      purpose:'Confirm material volumes and delivery timeline for A69 Highway materials supply bid.',
+      participants:[
+        {name:'Thomas Girard',company:'Colas Group',role:'Ingénieur Études',contactId:'c5'},
+        {name:'Sophie Durand',company:'Saint-Gobain',role:'Business Development'}
+      ],
+      notes:[],
+      tasks:[
+        {name:'Finalize volume estimates',assignee:'Sophie Durand',dueDate:'2026-03-12',status:'In Progress'},
+        {name:'Internal pricing approval',assignee:'Sophie Durand',dueDate:'2026-03-15',status:'To Do'}
+      ],
+      documents:[]
+    },
+    {id:'act8',type:'Email',subject:'Technical comparison report — Insulation spec',date:'2026-02-10',time:'16:00',duration:null,status:'Completed',
+      accountId:'a2',accountName:'Vinci Immobilier',contactId:'c2',contact:'Sophie Durand',contactRole:'Chef de Projet',
+      opportunityId:'o2',opportunityName:'Tour Triangle – Fondations',
+      owner:'Me',createdDate:'2026-02-10',
+      purpose:'Send quote with technical annexes for Tour Triangle facade solutions.',
+      outcome:'Email received. Sophie confirmed review in progress.',
+      participants:[
+        {name:'Sophie Durand',company:'Vinci Immobilier',role:'Chef de Projet',contactId:'c2'}
+      ],
+      notes:[],tasks:[],documents:[
+        {name:'Quote_TourTriangle_v1.pdf',type:'PDF',date:'2026-02-10',size:'2.1 MB'},
+        {name:'Technical_Annexes_TT.pdf',type:'PDF',date:'2026-02-10',size:'5.4 MB'}
+      ]
+    },
+    {id:'act9',type:'Meeting',subject:'Data Center Marseille — Technical deep-dive',date:'2026-03-12',time:'14:00',duration:120,status:'Planned',
+      accountId:'a1',accountName:'Bouygues Construction',contactId:'c1',contact:'Jean-Pierre Martin',contactRole:'Directeur Travaux',
+      opportunityId:'o7',opportunityName:'Data Center Marseille',
+      owner:'Me',location:'Microsoft Teams',createdDate:'2026-03-10',
+      purpose:'Technical deep-dive on cooling-optimized glazing solutions for Marseille data center. Present SG Cool-Lite performance data.',
+      participants:[
+        {name:'Jean-Pierre Martin',company:'Bouygues Construction',role:'Directeur Travaux',contactId:'c1'},
+        {name:'Pierre Dupont',company:'Bouygues Construction',role:'Technical Director'},
+        {name:'Thomas Girard',company:'Saint-Gobain',role:'Technical Specialist'}
+      ],
+      notes:[],
+      tasks:[
+        {name:'Prepare Cool-Lite performance presentation',assignee:'Thomas Girard',dueDate:'2026-03-11',status:'In Progress'},
+        {name:'Review competitor specs for comparison',assignee:'Me',dueDate:'2026-03-11',status:'To Do'}
+      ],
+      documents:[]
+    },
+    {id:'act10',type:'Site Visit',subject:'Centre Aquatique — Feasibility inspection',date:'2026-03-18',time:'08:30',duration:240,status:'Planned',
+      accountId:'a1',accountName:'Bouygues Construction',contactId:'c1',contact:'Jean-Pierre Martin',contactRole:'Directeur Travaux',
+      opportunityId:'o5',opportunityName:'Centre Aquatique – Extension',
+      owner:'Thomas Girard',location:'Centre Aquatique — Aubervilliers',createdDate:'2026-03-10',
+      purpose:'Feasibility inspection for aquatic centre extension. Assess existing glazing, pool hall humidity conditions, and insulation requirements.',
+      participants:[
+        {name:'Jean-Pierre Martin',company:'Bouygues Construction',role:'Directeur Travaux',contactId:'c1'},
+        {name:'Thomas Girard',company:'Saint-Gobain',role:'Technical Lead'}
+      ],
+      notes:[],tasks:[],documents:[]
+    }
+  ],
   tasks: [
     {id:'t1',name:'Finalize Tour Triangle quote',ref:'Tour Triangle – Facades · 2025-03-15',status:'In Progress',color:'#ef4444'},
     {id:'t2',name:'Follow up Eiffage Gare du Nord',ref:'Gare du Nord Renovation · 2025-03-12',status:'To Do',color:'#f59e0b'},

@@ -61,6 +61,16 @@ function renderRecordPage(objKey, recId, headerEl, contentEl) {
     return;
   }
 
+  if (objKey === 'activities') {
+    headerEl.style.display = 'none';
+    if (typeof renderActivity360 === 'function') {
+      renderActivity360(contentEl, rec);
+    } else {
+      contentEl.innerHTML = '<div class="placeholder-view">Activity 360 module not loaded. Check script order in index.html.</div>';
+    }
+    return;
+  }
+
   renderGenericRecord(objKey, rec, headerEl, contentEl);
 }
 

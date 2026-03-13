@@ -264,6 +264,43 @@ var OBJ_CONFIG = {
       {key:'owner',label:'Owner',type:'text'},
       {key:'description',label:'Description',type:'text'}
     ]
+  },
+  activities: {
+    title: 'Activities', hasKanban: false,
+    getData: function(){ return (window.DATA.activities||[]).slice(); },
+    columns: [
+      {key:'subject',label:'Subject',isLink:true,render:function(it){return it.subject||it.name||'—';}},
+      {key:'type',label:'Type',render:function(it){
+        var colors = {Call:'#3b82f6',Meeting:'#8b5cf6',Email:'#10b981','Site Visit':'#ef4444',Task:'#f59e0b',Note:'#64748b'};
+        var c = colors[it.type]||'var(--text-muted)';
+        return '<span class="stage-badge" style="color:'+c+'"><span class="dot" style="background:'+c+'"></span>'+(it.type||'—')+'</span>';
+      }},
+      {key:'accountName',label:'Account',render:function(it){return it.accountName||getAccountName(it.accountId)||'—';}},
+      {key:'contact',label:'Contact'},
+      {key:'status',label:'Status',render:function(it){
+        var colors = {Planned:'#94a3b8','In Progress':'#3b82f6',Completed:'#10b981'};
+        var c = colors[it.status]||'var(--text-muted)';
+        return '<span class="stage-badge" style="color:'+c+'"><span class="dot" style="background:'+c+'"></span>'+(it.status||'—')+'</span>';
+      }},
+      {key:'date',label:'Date',render:function(it){return fmtDate(it.date);}}
+    ],
+    filters: [
+      {key:'type',label:'Type',type:'select',options:function(){return [{value:'Call',label:'Call'},{value:'Meeting',label:'Meeting'},{value:'Email',label:'Email'},{value:'Site Visit',label:'Site Visit'}];}},
+      {key:'status',label:'Status',type:'select',options:function(){return [{value:'Planned',label:'Planned'},{value:'In Progress',label:'In Progress'},{value:'Completed',label:'Completed'}];}},
+      {key:'accountId',label:'Account',type:'select',options:function(){return (window.DATA.accounts||[]).map(function(a){return{value:a.id,label:a.name};});}}
+    ],
+    formFields: [
+      {key:'subject',label:'Subject',type:'text',required:true},
+      {key:'type',label:'Type',type:'select',options:function(){return [{value:'Call',label:'Call'},{value:'Meeting',label:'Meeting'},{value:'Email',label:'Email'},{value:'Site Visit',label:'Site Visit'}];}},
+      {key:'accountId',label:'Account',type:'select',options:function(){return (window.DATA.accounts||[]).map(function(a){return{value:a.id,label:a.name};});}},
+      {key:'contact',label:'Contact',type:'text'},
+      {key:'status',label:'Status',type:'select',options:function(){return [{value:'Planned',label:'Planned'},{value:'In Progress',label:'In Progress'},{value:'Completed',label:'Completed'}];}},
+      {key:'date',label:'Date',type:'date'},
+      {key:'time',label:'Time',type:'text'},
+      {key:'duration',label:'Duration (min)',type:'number'},
+      {key:'location',label:'Location',type:'text'},
+      {key:'purpose',label:'Purpose',type:'text'}
+    ]
   }
 };
 
