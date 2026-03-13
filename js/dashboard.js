@@ -5,11 +5,22 @@
 
 function renderDashboard() {
   var container = document.getElementById("main-content");
-  var totalPipe = OPPORTUNITIES.reduce(function(s,o){return s+o.amountNum;},0);
-  var openCases = typeof CASES!=="undefined" ? CASES.filter(function(c){return c.status!=="Closed"&&c.status!=="Resolved";}).length : 0;
-  var newCases = typeof CASES!=="undefined" ? CASES.filter(function(c){return c.status==="Open";}).length : 0;
-  var wipCases = typeof CASES!=="undefined" ? CASES.filter(function(c){return c.status==="In Progress";}).length : 0;
-  var wonAmt = OPPORTUNITIES.filter(function(o){return o.stage==="Closed Won";}).reduce(function(s,o){return s+o.amountNum;},0);
+
+  // ─── DATA aliases (window.DATA from Firestore/mock) ───
+  var D = window.DATA || {};
+  var OPPORTUNITIES = D.opportunities || [];
+  var LEADS = D.leads || [];
+  var PROJECTS = D.projects || [];
+  var QUOTES = D.quotes || [];
+  var CASES = D.cases || D.claims || [];
+  var ACTIVITIES = D.activities || [];
+  var TASKS = D.tasks || [];
+
+  var totalPipe = OPPORTUNITIES.reduce(function(s,o){return s+(o.amountNum||0);},0);
+  var openCases = CASES.filter(function(c){return c.status!=="Closed"&&c.status!=="Resolved";}).length;
+  var newCases = CASES.filter(function(c){return c.status==="Open";}).length;
+  var wipCases = CASES.filter(function(c){return c.status==="In Progress";}).length;
+  var wonAmt = OPPORTUNITIES.filter(function(o){return o.stage==="Closed Won";}).reduce(function(s,o){return s+(o.amountNum||0);},0);
   var dateStr = new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
 
   var html = '<div class="ck">';
@@ -22,7 +33,7 @@ function renderDashboard() {
 
   // Cell 1: Pipeline
   html += cellOpen("Opportunity Pipeline","Kanban","navigate('pipeline')")+'<div onclick="navigate(\'list\',\'opportunities\')" style="cursor:pointer">';
-  html += '<div class="ck-big-row"><span class="ck-big">'+totalPipe.toFixed(1)+'M€</span><span class="ck-trend-up">+12% YOY</span></div>';
+  html += '<div class="ck-big-row"><span class="ck-big">'+(typeof fmtAmount==="function"?fmtAmount(totalPipe):totalPipe.toFixed(1)+"M€")+'</span><span class="ck-trend-up">+12% YOY</span></div>';
   html += miniSparkline([12,18,15,22,19,28,25,totalPipe],"#2563eb",120,28);
   html += '<div class="ck-hint">'+OPPORTUNITIES.length+' active opportunities</div>';
   html += '</div>'+cellClose();
@@ -53,7 +64,7 @@ function renderDashboard() {
 
   // Cell 4: Activities
   var actTypes=[{key:"Call",label:"Calls",color:"#3b82f6"},{key:"Meeting",label:"Meetings",color:"#8b5cf6"},{key:"Site Visit",label:"Site Visits",color:"#f59e0b"},{key:"Email",label:"Emails",color:"#10b981"}];
-  var actData=actTypes.map(function(t){return{label:t.label,color:t.color,count:ACTIVITIES.filter(function(a){return a.type===t.key;}).length};});
+  var actData=actTypes.map(function(t){return{label:t.label,color:t.color,count:ACTIVITIES.filter(function(a){return a.type===t.key||a.type===t.label;}).length};});
   var maxAct=Math.max.apply(null,actData.map(function(a){return a.count;}))||1;
   var actTotal=actData.reduce(function(s,a){return s+a.count;},0);
 
@@ -78,7 +89,7 @@ function renderDashboard() {
   // Cell 5: Won vs Target
   html += cellOpen("Won vs Target","Won deals","navigate('list','opportunities')")+'<div onclick="navigate(\'list\',\'opportunities\')" style="cursor:pointer">';
   var pctObj = Math.round((wonAmt/12)*100);
-  html += '<div style="display:flex;gap:14px;margin-bottom:6px"><div><div class="ck-tiny-label">Won</div><div style="font-size:20px;font-weight:800;color:var(--text)">'+wonAmt.toFixed(1)+'M€</div><div class="ck-trend-down">-8% YOY</div></div>';
+  html += '<div style="display:flex;gap:14px;margin-bottom:6px"><div><div class="ck-tiny-label">Won</div><div style="font-size:20px;font-weight:800;color:var(--text)">'+(typeof fmtAmount==="function"?fmtAmount(wonAmt):wonAmt.toFixed(1)+"M€")+'</div><div class="ck-trend-down">-8% YOY</div></div>';
   html += '<div><div class="ck-tiny-label">Target</div><div style="font-size:20px;font-weight:800;color:var(--muted)">12.0M€</div></div></div>';
   html += progressBar(pctObj,"#10b981",10);
   html += '<div style="display:flex;justify-content:space-between;margin-top:3px"><span style="font-size:9px;font-weight:600;color:#10b981">'+pctObj+'%</span><span class="ck-hint">Yearly target</span></div>';
@@ -90,8 +101,8 @@ function renderDashboard() {
   html += '<div class="ck-top-list">';
   topOpps.forEach(function(o,i){
     html += '<div class="ck-top-row ck-clickable" onclick="navigate(\'record\',\'opportunities\',\''+o.id+'\')" style="'+(i<topOpps.length-1?'border-bottom:1px solid #f1f5f9':'')+'">';
-    html += '<div class="ck-top-left"><div class="ck-top-name">'+o.name+'</div><div class="ck-top-meta">'+o.accountName+'</div></div>';
-    html += '<div class="ck-top-amt">'+o.amount+'</div></div>';
+    html += '<div class="ck-top-left"><div class="ck-top-name">'+o.name+'</div><div class="ck-top-meta">'+(o.accountName||o.account||"")+'</div></div>';
+    html += '<div class="ck-top-amt">'+(o.amount||fmtAmount(o.amountNum)||"")+'</div></div>';
   });
   html += '</div>'+cellClose();
 
@@ -152,14 +163,16 @@ function renderDashboard() {
   html += cellClose();
 
   // Upcoming Activities
+  var _actIcons={Call:"phone",Meeting:"users","Site Visit":"building",Email:"mail"};
+  var _actColors={Call:"#3b82f6",Meeting:"#8b5cf6","Site Visit":"#f59e0b",Email:"#10b981"};
   html += cellOpen("Upcoming Activities","View all","navigate('list','activities')");
   ACTIVITIES.slice(0,5).forEach(function(a,i){
-    var ic=ACTIVITY_ICONS?(ACTIVITY_ICONS[a.type]||"phone"):"phone";
-    var ac=ACTIVITY_COLORS?(ACTIVITY_COLORS[a.type]||COLORS.primary):COLORS.primary;
+    var ic=(typeof ACTIVITY_ICONS!=="undefined"&&ACTIVITY_ICONS[a.type])?ACTIVITY_ICONS[a.type]:(_actIcons[a.type]||"phone");
+    var ac=(typeof ACTIVITY_COLORS!=="undefined"&&ACTIVITY_COLORS[a.type])?ACTIVITY_COLORS[a.type]:(_actColors[a.type]||COLORS.primary);
     html += '<div class="hover-row ck-row-sm ck-clickable" onclick="navigate(\'record\',\'activities\',\''+a.id+'\')">';
     html += '<div class="ck-act-ico" style="background:'+ac+'14">'+renderIcon(ic,11,ac)+'</div>';
-    html += '<div class="ck-row-body"><div class="ck-row-t">'+a.subject+'</div><div class="ck-row-m">'+a.contactName+'</div></div>';
-    html += '<div class="ck-row-time"><div class="ck-row-date">'+a.date+'</div><div class="ck-row-hour">'+a.time+'</div></div>';
+    html += '<div class="ck-row-body"><div class="ck-row-t">'+(a.subject||a.name||"")+'</div><div class="ck-row-m">'+(a.contactName||a.contact||"")+'</div></div>';
+    html += '<div class="ck-row-time"><div class="ck-row-date">'+(a.date||"")+'</div><div class="ck-row-hour">'+(a.time||"")+'</div></div>';
     html += '</div>';
   });
   html += cellClose();
