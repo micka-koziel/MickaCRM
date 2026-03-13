@@ -35,7 +35,11 @@ function renderRecordPage(objKey, recId, headerEl, contentEl) {
 
   if (objKey === 'projects') {
     headerEl.style.display = 'none';
-    renderProject360(contentEl, rec);
+    if (typeof renderProject360 === 'function') {
+      renderProject360(contentEl, rec);
+    } else {
+      contentEl.innerHTML = '<div class="placeholder-view">Project 360 module not loaded. Check script order in index.html.</div>';
+    }
     return;
   }
 
