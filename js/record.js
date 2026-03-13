@@ -1140,14 +1140,14 @@ function injectL360Styles() {
 /* Qualification Funnel */\
 .l360-funnel-card{background:var(--card);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);padding:18px 24px;margin-bottom:14px}\
 .l360-funnel-title{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}\
-.l360-funnel{display:flex;align-items:center;gap:0;width:100%}\
+.l360-funnel{display:flex;align-items:center;gap:0;width:100%;padding-bottom:38px}\
 .l360-funnel-step{display:flex;align-items:center;flex:1;position:relative}\
 .l360-funnel-step:last-child{flex:0 0 auto}\
 .l360-funnel-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;z-index:1;transition:all .2s}\
 .l360-funnel-current .l360-funnel-dot{box-shadow:0 0 0 4px rgba(37,99,235,.15)}\
 .l360-funnel-pulse{width:10px;height:10px;border-radius:50%;background:#fff;animation:l360pulse 1.5s ease-in-out infinite}\
 @keyframes l360pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.7)}}\
-.l360-funnel-label{position:absolute;top:36px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:600;color:var(--text-muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}\
+.l360-funnel-label{position:absolute;top:40px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:600;color:var(--text-muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}\
 .l360-funnel-current .l360-funnel-label{color:var(--accent);font-weight:700}\
 .l360-funnel-done .l360-funnel-label{color:var(--success)}\
 .l360-funnel-line{flex:1;height:3px;border-radius:2px;margin:0 6px;transition:background .2s}\
