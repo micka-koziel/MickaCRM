@@ -219,6 +219,9 @@ var OBJ_CONFIG = {
       {key:'end',label:'Expected Delivery',type:'date'}
     ]
   }
+};
+
+/* ─── Helpers ────────────────────────────────────────── */
 
 function getAccountName(id) {
   var acc=(window.DATA.accounts||[]).find(function(a){return a.id===id;});
