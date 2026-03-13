@@ -10,7 +10,7 @@
 
   // ── Config ──────────────────────────────────────────────────────────
   var API_KEY = null;
-  var MODEL = 'gemini-2.0-flash-lite';
+  var MODEL = 'gemini-1.5-flash-latest';
   var API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
   // ── Load API Key ────────────────────────────────────────────────────
@@ -59,46 +59,52 @@
     var accMap = {};
 
     if (D.accounts) {
-      snap.accounts = D.accounts.map(function (a) {
+      snap.accounts = D.accounts.slice(0, 15).map(function (a) {
         accMap[a.id] = a.name;
-        return { id: a.id, name: a.name, industry: a.industry, revenue: a.revenue, pipeline: a.pipeline, city: a.city, status: a.status, opps: a.opps };
+        return { id: a.id, name: a.name, industry: a.industry, city: a.city, status: a.status };
       });
     }
     if (D.contacts) {
-      snap.contacts = D.contacts.map(function (c) {
-        return { id: c.id, name: c.name, role: c.role, account: accMap[c.account] || c.account, accountId: c.account, email: c.email, phone: c.phone };
+      snap.contacts = D.contacts.slice(0, 15).map(function (c) {
+        return { id: c.id, name: c.name, role: c.role, acct: accMap[c.account] || c.account, accountId: c.account };
       });
     }
     if (D.opportunities) {
-      snap.opportunities = D.opportunities.map(function (o) {
-        return { id: o.id, name: o.name, account: accMap[o.account] || o.account, accountId: o.account, stage: o.stage, amount: o.amount, prob: o.prob, close: o.close, projectId: o.projectId };
+      snap.opportunities = D.opportunities.slice(0, 20).map(function (o) {
+        return { id: o.id, name: o.name, acct: accMap[o.account] || o.account, accountId: o.account, stage: o.stage, amount: o.amount, prob: o.prob, close: o.close };
       });
     }
     if (D.leads) {
-      snap.leads = D.leads.map(function (l) {
-        return { id: l.id, name: l.name, company: l.company, stage: l.stage, source: l.source, title: l.title };
+      snap.leads = D.leads.slice(0, 15).map(function (l) {
+        return { id: l.id, name: l.name, company: l.company, stage: l.stage, source: l.source };
       });
     }
     if (D.projects) {
-      snap.projects = D.projects.map(function (p) {
-        return { id: p.id, name: p.name, account: accMap[p.accountId] || p.accountId, accountId: p.accountId, phase: p.phase, health: p.health, value: p.value, start: p.start, end: p.end };
+      snap.projects = D.projects.slice(0, 15).map(function (p) {
+        return { id: p.id, name: p.name, acct: accMap[p.accountId] || p.accountId, phase: p.phase, value: p.value };
       });
     }
     if (D.claims) {
-      snap.claims = D.claims.map(function (cl) {
-        return { id: cl.id, title: cl.title, status: cl.status, priority: cl.priority, risk: cl.risk, projectId: cl.projectId, impact: cl.impact };
+      snap.claims = D.claims.slice(0, 10).map(function (cl) {
+        return { id: cl.id, title: cl.title, status: cl.status, priority: cl.priority, risk: cl.risk };
       });
     }
     if (D.activities) {
-      snap.activities = D.activities.slice(0, 25).map(function (a) {
-        return { id: a.id, type: a.type, subject: a.subject, date: a.date, status: a.status, accountId: a.accountId, contactId: a.contactId };
+      snap.activities = D.activities.slice(0, 10).map(function (a) {
+        return { id: a.id, type: a.type, subject: a.subject, date: a.date, status: a.status };
       });
     }
     if (D.quotes) {
-      snap.quotes = D.quotes.map(function (q) {
-        return { id: q.id, name: q.name, status: q.status, total: q.total, accountId: q.accountId, oppId: q.oppId };
+      snap.quotes = D.quotes.slice(0, 10).map(function (q) {
+        return { id: q.id, name: q.name, status: q.status, total: q.total };
       });
     }
+
+    // Add summary counts
+    snap._counts = {};
+    ['accounts','contacts','opportunities','leads','projects','claims','activities','quotes'].forEach(function(k) {
+      if (D[k]) snap._counts[k] = D[k].length;
+    });
 
     return snap;
   }
@@ -132,7 +138,7 @@
   }
 
   // ── Models to try (fallback chain) ───────────────────────────────
-  var MODELS = ['gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+  var MODELS = ['gemini-1.5-flash-latest', 'gemini-2.0-flash-lite', 'gemini-2.0-flash'];
 
   // ── Single API call ─────────────────────────────────────────────
   async function callGemini(model, body) {
