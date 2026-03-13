@@ -27,6 +27,12 @@ function renderRecordPage(objKey, recId, headerEl, contentEl) {
     return;
   }
 
+  if (objKey === 'opportunities') {
+    headerEl.style.display = 'none';
+    renderOpp360(contentEl, rec);
+    return;
+  }
+
   renderGenericRecord(objKey, rec, headerEl, contentEl);
 }
 
@@ -829,6 +835,400 @@ function l360SectionOpen(title, navKey) {
   return '<div class="l360-section"><div class="l360-section-head">' +
     '<span class="l360-section-title">' + title + '</span>' +
     '<span class="l360-section-link" data-nav="' + navKey + '">View all</span></div>';
+}
+
+
+/* ════════════════════════════════════════════════════════
+   OPPORTUNITY 360 — Deal Command Center
+   ════════════════════════════════════════════════════════ */
+
+function renderOpp360(container, rec) {
+  injectO360Styles();
+  var D = window.DATA;
+  var oppId = rec.id;
+
+  /* ── Resolve related data ── */
+  var account = (D.accounts||[]).find(function(a){ return a.id === rec.account; });
+  var accountName = account ? account.name : '—';
+  var accInitials = accountName.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
+
+  var contacts = (D.contacts||[]).filter(function(c){ return c.account === rec.account; });
+  var quotes = (D.quotes||[]).filter(function(q){ return q.opportunity === oppId || q.account === rec.account; });
+  var projects = (D.projects||[]).filter(function(p){ return p.account === rec.account; });
+
+  /* Activities — mock from upcoming if none linked */
+  var activities = (D.activities||[]).filter(function(a){ return a.opportunity === oppId; });
+  if (!activities.length) {
+    activities = (D.upcoming||[]).slice(0,4).map(function(u,i){
+      return {id:'oa'+i, type:u.icon||'call', subject:u.name, date:u.date, time:u.time, contact:u.contact};
+    });
+  }
+
+  /* Tasks mock */
+  var tasks = (D.tasks||[]).slice(0,3);
+
+  /* Computed values */
+  var amtStr = typeof fmtAmount==='function' ? fmtAmount(rec.amount||0) : ((rec.amount||0)/1e6).toFixed(1)+'M€';
+  var weighted = (rec.amount||0) * ((rec.prob||0)/100);
+  var weightedStr = typeof fmtAmount==='function' ? fmtAmount(weighted) : (weighted/1e6).toFixed(1)+'M€';
+  var closeStr = rec.close ? fmtDate(rec.close) : '—';
+  var stages = STAGES.opportunities||[];
+  var currentIdx = stages.map(function(s){return s.key;}).indexOf(rec.stage);
+  var stObj = stages[currentIdx] || {};
+
+  /* Next action logic */
+  var nextAction = o360NextAction(rec);
+
+  /* ── BUILD HTML ── */
+  var h = '<div class="o360">';
+
+  /* Back nav */
+  h += '<div class="o360-back" id="o360-back">' + svgIcon('arrowLeft',14,'var(--text-muted)') + '<span>Opportunities</span></div>';
+
+  /* ── Header Card ── */
+  h += '<div class="o360-hdr">';
+  h += '<div class="o360-hdr-top">';
+  h += '<div class="o360-hdr-av">' + svgIcon('opportunities',22,'#fff') + '</div>';
+  h += '<div class="o360-hdr-info">';
+  h += '<div class="o360-hdr-name">' + rec.name + '</div>';
+  h += '<div class="o360-hdr-meta">';
+  h += '<span class="o360-hdr-acct" id="o360-acct-link" data-acct-id="'+(rec.account||'')+'">' + svgIcon('accounts',12,'var(--accent)') + accountName + '</span>';
+  h += '<span class="dot">·</span>';
+  h += '<span style="color:'+stObj.color+'"><span class="dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:'+stObj.color+';margin-right:3px;vertical-align:middle"></span>'+stObj.label+'</span>';
+  h += '<span class="dot">·</span>';
+  h += '<span>Close ' + closeStr + '</span>';
+  h += '<span class="dot">·</span>';
+  h += '<span>Owner: <strong>'+(rec.owner||'Me')+'</strong></span>';
+  h += '</div></div>';
+
+  /* Header right metrics */
+  h += '<div class="o360-hdr-right">';
+  h += '<div class="o360-hdr-metric"><div class="o360-hdr-metric-val" style="color:var(--accent)">' + amtStr + '</div><div class="o360-hdr-metric-lbl">Deal Value</div></div>';
+  var probColor = (rec.prob||0) >= 60 ? 'var(--success)' : (rec.prob||0) >= 30 ? 'var(--warning)' : 'var(--text-light)';
+  h += '<div class="o360-hdr-metric"><div class="o360-hdr-metric-val" style="color:'+probColor+'">' + (rec.prob||0) + '%</div><div class="o360-hdr-metric-lbl">Probability</div></div>';
+  h += '</div></div>';
+
+  /* Quick Actions */
+  h += '<div class="o360-actions">';
+  h += '<button class="o360-btn o360-btn-p">' + svgIcon('phone',12,'#fff') + '<span>Call</span></button>';
+  h += '<button class="o360-btn o360-btn-p">' + svgIcon('mail',12,'#fff') + '<span>Send Email</span></button>';
+  h += '<button class="o360-btn o360-btn-o">' + svgIcon('activities',12,'var(--text-muted)') + '<span>Add Activity</span></button>';
+  h += '<button class="o360-btn o360-btn-o">' + svgIcon('quotes',12,'var(--text-muted)') + '<span>Create Quote</span></button>';
+  h += '<button class="o360-btn o360-btn-s" id="o360-advance">' + svgIcon('check',12,'#fff') + '<span>Mark Stage Complete</span></button>';
+  h += '</div></div>';
+
+  /* ── Pipeline Progression ── */
+  h += '<div class="o360-pipe">';
+  h += '<div class="o360-pipe-title">Pipeline Progression</div>';
+  h += '<div class="o360-funnel">';
+  stages.forEach(function(st, i) {
+    var isCurrent = st.key === rec.stage;
+    var isPast = i < currentIdx;
+    var cls = isCurrent ? 'o360-f-step o360-f-cur' : (isPast ? 'o360-f-step o360-f-done' : 'o360-f-step');
+    h += '<div class="'+cls+'" data-stage="'+st.key+'">';
+    h += '<div class="o360-f-dot" style="background:'+(isCurrent||isPast?st.color:'#e2e8f0')+'">';
+    if (isPast) h += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>';
+    if (isCurrent) h += '<div class="o360-f-pulse"></div>';
+    h += '</div>';
+    h += '<div class="o360-f-lbl">' + st.label + '</div>';
+    if (i < stages.length - 1) h += '<div class="o360-f-line" style="background:'+(isPast?st.color:'#e2e8f0')+'"></div>';
+    h += '</div>';
+  });
+  h += '</div></div>';
+
+  /* ── 3 KPI Cards ── */
+  h += '<div class="o360-kpis">';
+  h += '<div class="o360-kpi"><div class="o360-kpi-v" style="color:var(--accent)">' + amtStr + '</div><div class="o360-kpi-l">Deal Value</div><div class="o360-kpi-h" style="color:var(--success)">Weighted: ' + weightedStr + '</div></div>';
+  h += '<div class="o360-kpi"><div class="o360-kpi-v" style="color:'+probColor+'">' + (rec.prob||0) + '%</div><div class="o360-kpi-l">Probability</div><div class="o360-kpi-h" style="color:var(--text-muted)">Stage: ' + stObj.label + '</div></div>';
+  h += '<div class="o360-kpi"><div class="o360-kpi-v" style="color:var(--warning)">' + quotes.length + '</div><div class="o360-kpi-l">Quotes</div><div class="o360-kpi-h" style="color:var(--text-muted)">' + (quotes.length>0?'Latest active':'None yet') + '</div></div>';
+  h += '</div>';
+
+  /* ── 2-Column Layout ── */
+  h += '<div class="o360-grid">';
+
+  /* LEFT COLUMN — Business Context */
+  h += '<div class="o360-col">';
+
+  /* Quotes */
+  h += o360SectionOpen('Quotes', 'quotes', quotes.length);
+  if (!quotes.length) h += '<div class="o360-empty">No quotes linked</div>';
+  else quotes.forEach(function(q,i) {
+    var qAmt = typeof fmtAmount==='function' ? fmtAmount(q.amount||0) : ((q.amount||0)/1e6).toFixed(1)+'M€';
+    var stColor = q.status==='Sent'?'var(--accent)':q.status==='Accepted'?'var(--success)':'var(--text-light)';
+    h += '<div class="o360-row'+(i===quotes.length-1?' o360-row-last':'')+'">';
+    h += '<div class="o360-row-l"><div class="o360-row-t">'+(q.name||q.subject||'Quote #'+q.id)+'</div>';
+    h += '<div class="o360-row-s">'+(q.date||'')+(q.status?' · '+q.status:'')+'</div></div>';
+    h += '<div class="o360-row-r">';
+    if(q.amount) h += '<span class="o360-row-a">'+qAmt+'</span>';
+    h += '<span class="stage-badge" style="color:'+stColor+'"><span class="dot" style="background:'+stColor+'"></span>'+(q.status||'Draft')+'</span>';
+    h += '</div></div>';
+  });
+  h += '</div>';
+
+  /* Contacts Involved */
+  h += o360SectionOpen('Contacts Involved', 'contacts', contacts.length);
+  if (!contacts.length) h += '<div class="o360-empty">No contacts linked</div>';
+  else contacts.forEach(function(c,i) {
+    var ci = c.name ? c.name.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase() : '?';
+    h += '<div class="o360-row'+(i===contacts.length-1?' o360-row-last':'')+'" data-nav-obj="contacts" data-nav-id="'+c.id+'">';
+    h += '<div class="o360-cav">'+ci+'</div>';
+    h += '<div class="o360-row-l"><div class="o360-row-t">'+c.name+'</div><div class="o360-row-s">'+(c.role||'—')+'</div></div>';
+    h += '<div style="display:flex;gap:4px">';
+    h += '<div class="o360-cbtn" title="Call">'+svgIcon('phone',11,'var(--text-light)')+'</div>';
+    h += '<div class="o360-cbtn" title="Email">'+svgIcon('mail',11,'var(--text-light)')+'</div>';
+    h += '</div></div>';
+  });
+  h += '</div>';
+
+  h += '</div>'; /* end left col */
+
+  /* RIGHT COLUMN — Sales Action */
+  h += '<div class="o360-col">';
+
+  /* Next Recommended Action */
+  h += '<div class="o360-na">';
+  h += '<div class="o360-na-top">';
+  h += '<div class="o360-na-ic" style="background:'+nextAction.color+'14;border-color:'+nextAction.color+'40">'+svgIcon(nextAction.icon,14,nextAction.color)+'</div>';
+  h += '<div class="o360-na-body">';
+  h += '<div class="o360-na-lbl">Next Recommended Action</div>';
+  h += '<div class="o360-na-txt">' + nextAction.text + '</div>';
+  h += '</div></div>';
+  h += '<div class="o360-na-acts">';
+  h += '<button class="o360-btn o360-btn-p">' + svgIcon('phone',11,'#fff') + '<span>Call</span></button>';
+  h += '<button class="o360-btn o360-btn-p">' + svgIcon('mail',11,'#fff') + '<span>Send Email</span></button>';
+  h += '<button class="o360-btn o360-btn-o">' + svgIcon('users',11,'var(--text-muted)') + '<span>Schedule Meeting</span></button>';
+  h += '</div></div>';
+
+  /* Activity Timeline */
+  h += o360SectionOpen('Activity Timeline', 'activities', activities.length);
+  if (!activities.length) h += '<div class="o360-empty">No activities recorded</div>';
+  else {
+    h += '<div class="o360-tl">';
+    activities.forEach(function(a,i) {
+      var isLast = i===activities.length-1;
+      var typeColors = {call:'#3b82f6',phone:'#3b82f6',meeting:'#8b5cf6',users:'#8b5cf6',email:'#10b981',mail:'#10b981','site visit':'#ef4444',mapPin:'#ef4444'};
+      var tc = typeColors[a.type] || typeColors[a.icon] || 'var(--text-light)';
+      var iconKey = a.icon || (a.type==='call'||a.type==='phone'?'phone':a.type==='meeting'||a.type==='users'?'users':a.type==='email'||a.type==='mail'?'mail':'activities');
+      var typeLabels = {phone:'Call',call:'Call',users:'Meeting',meeting:'Meeting',mail:'Email',email:'Email',mapPin:'Site Visit','site visit':'Site Visit'};
+      var tl = typeLabels[a.type] || typeLabels[a.icon] || 'Activity';
+      h += '<div class="o360-tl-i">';
+      if(!isLast) h += '<div class="o360-tl-ln"></div>';
+      h += '<div class="o360-tl-ic" style="background:'+tc+'14;border-color:'+tc+'40">'+svgIcon(iconKey,10,tc)+'</div>';
+      h += '<div class="o360-tl-b">';
+      h += '<div class="o360-tl-top"><span class="o360-tl-sub">'+(a.subject||a.name||tl)+'</span><span class="o360-tl-typ" style="color:'+tc+'">'+tl+'</span></div>';
+      h += '<div class="o360-tl-meta">'+(a.contact||'')+(a.date?' · '+a.date:'')+'</div>';
+      h += '</div></div>';
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+
+  /* Tasks */
+  h += o360SectionOpen('Tasks', 'activities', tasks.length);
+  if (!tasks.length) h += '<div class="o360-empty">No tasks</div>';
+  else tasks.forEach(function(t) {
+    var pc = {High:'var(--danger)',Medium:'var(--warning)',Low:'var(--text-light)'};
+    h += '<div class="o360-tk">';
+    h += '<div style="display:flex;align-items:flex-start;gap:7px"><span class="o360-tk-dot" style="background:'+(pc[t.priority]||'var(--text-light)')+'"></span>';
+    h += '<div><div class="o360-tk-n">'+t.name+'</div><div class="o360-tk-d">'+(t.ref||'')+(t.status?' · '+t.status:'')+'</div></div></div>';
+    h += '<span class="o360-tk-st" style="color:'+(t.status==='In Progress'?'var(--accent)':'var(--text-muted)')+'">'+t.status+'</span>';
+    h += '</div>';
+  });
+  h += '</div>';
+
+  h += '</div>'; /* end right col */
+  h += '</div>'; /* end grid */
+  h += '</div>'; /* end o360 */
+
+  container.innerHTML = h;
+  container.scrollTop = 0;
+
+  /* ── Bind Events ── */
+  document.getElementById('o360-back').addEventListener('click', function(){ navigate('opportunities'); });
+
+  /* Account link */
+  var acctLink = document.getElementById('o360-acct-link');
+  if (acctLink && rec.account) {
+    acctLink.addEventListener('click', function(){ navigate('record','accounts',rec.account); });
+  }
+
+  /* Mark Stage Complete */
+  var advBtn = document.getElementById('o360-advance');
+  if (advBtn) {
+    advBtn.addEventListener('click', function(){
+      var ks = stages.map(function(s){return s.key;});
+      var idx = ks.indexOf(rec.stage);
+      if (idx < ks.length - 1) {
+        rec.stage = ks[idx + 1];
+        renderOpp360(container, rec);
+        if (typeof showDragToast === 'function') showDragToast(rec.name, rec.stage, 'opportunities');
+      }
+    });
+  }
+
+  /* Pipeline step click */
+  container.querySelectorAll('.o360-f-step[data-stage]').forEach(function(step) {
+    step.addEventListener('click', function(){
+      var ns = step.getAttribute('data-stage');
+      if (ns && ns !== rec.stage) {
+        rec.stage = ns;
+        renderOpp360(container, rec);
+        if (typeof showDragToast === 'function') showDragToast(rec.name, ns, 'opportunities');
+      }
+    });
+  });
+
+  /* Row navigation */
+  container.querySelectorAll('.o360-row[data-nav-id]').forEach(function(el) {
+    el.addEventListener('click', function(){ navigate('record', el.getAttribute('data-nav-obj'), el.getAttribute('data-nav-id')); });
+  });
+  container.querySelectorAll('.o360-sec-lk[data-nav]').forEach(function(el) {
+    el.addEventListener('click', function(){ navigate(el.getAttribute('data-nav')); });
+  });
+}
+
+/* ─── Opp 360 Helpers ─── */
+
+function o360SectionOpen(title, navKey, count) {
+  return '<div class="o360-sec"><div class="o360-sec-h">' +
+    '<span class="o360-sec-t">'+title+'</span>' +
+    (count!==null&&count!==undefined?'<span class="o360-sec-c">'+count+'</span>':'') +
+    '<span class="o360-sec-lk" data-nav="'+navKey+'">View all</span></div>';
+}
+
+function o360NextAction(rec) {
+  if (rec.stage === 'lead') return {icon:'phone', color:'#3b82f6', text:'Schedule a discovery call to qualify this opportunity.'};
+  if (rec.stage === 'study') return {icon:'users', color:'#8b5cf6', text:'Arrange a technical meeting to define project scope and requirements.'};
+  if (rec.stage === 'tender') return {icon:'quotes', color:'#f59e0b', text:'Prepare and submit tender documentation before deadline.'};
+  if (rec.stage === 'proposal') return {icon:'mail', color:'#10b981', text:'Send the commercial proposal and follow up with the decision maker.'};
+  if (rec.stage === 'negotiation') return {icon:'phone', color:'#3b82f6', text:'Follow up on revised pricing to close negotiations.'};
+  if (rec.stage === 'closed_won') return {icon:'projects', color:'#10b981', text:'Initiate project kickoff and assign delivery team.'};
+  return {icon:'chart', color:'#6366f1', text:'Project launched — monitor delivery and client satisfaction.'};
+}
+
+
+/* ═══════════════════════════════════════════
+   OPP 360 — CSS INJECTION
+   ═══════════════════════════════════════════ */
+
+function injectO360Styles() {
+  if (document.getElementById('o360-css')) return;
+  var s = document.createElement('style'); s.id = 'o360-css';
+  s.textContent = '\
+.o360{padding:14px 20px 36px;max-width:1280px;margin:0 auto}\
+.o360-back{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);cursor:pointer;margin-bottom:8px;font-weight:500}\
+.o360-back:hover{color:var(--text)}\
+\
+.o360-hdr{background:var(--card);border-radius:12px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);margin-bottom:10px;overflow:hidden}\
+.o360-hdr-top{display:flex;gap:14px;padding:16px 22px 12px;align-items:center}\
+.o360-hdr-av{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-hover));display:flex;align-items:center;justify-content:center;flex-shrink:0}\
+.o360-hdr-info{flex:1;min-width:0}\
+.o360-hdr-name{font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.3px;line-height:1.2}\
+.o360-hdr-meta{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-muted);flex-wrap:wrap;margin-top:3px}\
+.o360-hdr-meta .dot{color:#d4d4d4}\
+.o360-hdr-acct{color:var(--accent);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:3px}\
+.o360-hdr-acct:hover{text-decoration:underline}\
+.o360-hdr-right{display:flex;gap:20px;align-items:center;flex-shrink:0;padding-left:16px;border-left:1px solid var(--border)}\
+.o360-hdr-metric{display:flex;flex-direction:column;align-items:center}\
+.o360-hdr-metric-val{font-size:20px;font-weight:800;letter-spacing:-.5px;line-height:1;font-variant-numeric:tabular-nums}\
+.o360-hdr-metric-lbl{font-size:9px;color:var(--text-light);font-weight:500;margin-top:2px;text-transform:uppercase;letter-spacing:.3px}\
+\
+.o360-actions{display:flex;gap:7px;padding:10px 22px 14px;border-top:1px solid var(--border);flex-wrap:wrap}\
+.o360-btn{display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:7px;border:none;cursor:pointer;font-size:11.5px;font-weight:600;font-family:inherit;transition:all .12s}\
+.o360-btn-p{background:var(--accent);color:#fff}\
+.o360-btn-p:hover{background:var(--accent-hover)}\
+.o360-btn-o{background:transparent;border:1px solid var(--border);color:var(--text-muted)}\
+.o360-btn-o:hover{border-color:#bbb;color:var(--text);background:#f8f9fb}\
+.o360-btn-s{background:var(--success);color:#fff}\
+.o360-btn-s:hover{background:#059669}\
+\
+.o360-pipe{background:var(--card);border-radius:12px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);padding:14px 28px 0;margin-bottom:10px}\
+.o360-pipe-title{font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}\
+.o360-funnel{display:flex;align-items:center;width:100%;padding-bottom:38px}\
+.o360-f-step{display:flex;align-items:center;flex:1;position:relative;cursor:pointer}\
+.o360-f-step:last-child{flex:0 0 auto}\
+.o360-f-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1;transition:all .2s}\
+.o360-f-dot:hover{transform:scale(1.1)}\
+.o360-f-cur .o360-f-dot{box-shadow:0 0 0 4px rgba(37,99,235,.12)}\
+.o360-f-pulse{width:9px;height:9px;border-radius:50%;background:#fff;animation:o360fp 1.5s ease-in-out infinite}\
+@keyframes o360fp{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.7)}}\
+.o360-f-lbl{position:absolute;top:40px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:600;color:var(--text-muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}\
+.o360-f-cur .o360-f-lbl{color:var(--accent);font-weight:700}\
+.o360-f-done .o360-f-lbl{color:var(--success)}\
+.o360-f-line{flex:1;height:3px;border-radius:2px;margin:0 8px;transition:background .2s}\
+\
+.o360-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}\
+.o360-kpi{background:var(--card);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);padding:14px 16px;text-align:center;transition:all .15s;cursor:pointer}\
+.o360-kpi:hover{box-shadow:0 4px 14px rgba(0,0,0,.08);transform:translateY(-2px)}\
+.o360-kpi-v{font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1;margin-bottom:2px;font-variant-numeric:tabular-nums}\
+.o360-kpi-l{font-size:10.5px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px}\
+.o360-kpi-h{font-size:9.5px;font-weight:600;margin-top:7px;padding-top:7px;border-top:1px solid var(--border)}\
+\
+.o360-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:12px;align-items:start}\
+.o360-col{display:flex;flex-direction:column;gap:10px}\
+\
+.o360-sec{background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid var(--border);overflow:hidden}\
+.o360-sec-h{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}\
+.o360-sec-t{font-size:11px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.5px}\
+.o360-sec-c{font-size:9.5px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:1px 6px;border-radius:7px}\
+.o360-sec-lk{margin-left:auto;font-size:10px;font-weight:500;color:var(--text-light);cursor:pointer;transition:color .12s}\
+.o360-sec-lk:hover{color:var(--accent)}\
+\
+.o360-row{padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .08s;display:flex;align-items:center;gap:9px}\
+.o360-row:hover{background:#fafbfc}\
+.o360-row-last{border-bottom:none}\
+.o360-row-l{flex:1;min-width:0}\
+.o360-row-r{display:flex;align-items:center;gap:7px;flex-shrink:0}\
+.o360-row-t{font-size:12px;font-weight:700;color:var(--text);line-height:1.2}\
+.o360-row-s{font-size:10px;color:var(--text-light);margin-top:1px}\
+.o360-row-a{font-size:14px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.3px}\
+.o360-empty{padding:18px 14px;text-align:center;color:var(--text-light);font-size:11px}\
+\
+.o360-cav{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent-light),#bfdbfe);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--accent);flex-shrink:0}\
+.o360-cbtn{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s}\
+.o360-cbtn:hover{background:#f1f5f9;border-color:#d1d5db}\
+\
+.o360-na{background:var(--card);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);overflow:hidden}\
+.o360-na-top{padding:14px 16px;display:flex;gap:12px;align-items:center}\
+.o360-na-ic{width:36px;height:36px;border-radius:10px;border:1.5px solid;display:flex;align-items:center;justify-content:center;flex-shrink:0}\
+.o360-na-body{flex:1;min-width:0}\
+.o360-na-lbl{font-size:9px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}\
+.o360-na-txt{font-size:12.5px;font-weight:600;color:var(--text);line-height:1.4}\
+.o360-na-acts{display:flex;gap:6px;padding:0 16px 14px}\
+\
+.o360-tl{padding:10px 14px}\
+.o360-tl-i{display:flex;gap:9px;position:relative;padding-bottom:14px}\
+.o360-tl-i:last-child{padding-bottom:0}\
+.o360-tl-ln{position:absolute;left:12px;top:26px;bottom:0;width:1.5px;background:var(--border);border-radius:1px}\
+.o360-tl-i:last-child .o360-tl-ln{display:none}\
+.o360-tl-ic{width:24px;height:24px;border-radius:7px;border:1.5px solid;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1;background:var(--card)}\
+.o360-tl-b{flex:1;min-width:0;padding-top:1px}\
+.o360-tl-top{display:flex;justify-content:space-between;align-items:baseline}\
+.o360-tl-sub{font-size:11.5px;font-weight:600;color:var(--text);line-height:1.2}\
+.o360-tl-typ{font-size:9.5px;font-weight:600;flex-shrink:0;margin-left:6px}\
+.o360-tl-meta{font-size:9.5px;color:var(--text-light);margin-top:1px}\
+\
+.o360-tk{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border)}\
+.o360-tk:last-child{border-bottom:none}\
+.o360-tk-dot{width:6px;height:6px;border-radius:50%;margin-top:1px;flex-shrink:0}\
+.o360-tk-n{font-size:11.5px;font-weight:600;color:var(--text)}\
+.o360-tk-d{font-size:9.5px;color:var(--text-light);margin-top:1px}\
+.o360-tk-st{font-size:10px;font-weight:500;white-space:nowrap}\
+\
+@media(max-width:1100px){\
+  .o360-grid{grid-template-columns:1fr}\
+}\
+@media(max-width:768px){\
+  .o360-kpis{grid-template-columns:1fr 1fr 1fr}\
+  .o360-hdr-top{flex-wrap:wrap}\
+  .o360-hdr-right{border-left:none;padding-left:0;margin-top:8px;width:100%;justify-content:center}\
+  .o360-funnel{flex-wrap:wrap;gap:8px;padding-bottom:10px}\
+  .o360-f-line{display:none}\
+  .o360-f-lbl{position:static;transform:none;margin-top:4px}\
+  .o360-f-step{flex-direction:column;align-items:center;flex:0 0 auto}\
+}\
+';
+  document.head.appendChild(s);
 }
 
 
