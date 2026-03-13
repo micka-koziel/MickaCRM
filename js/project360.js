@@ -137,7 +137,6 @@ function renderProject360(container, rec) {
 
   /* ═══ HEADER ═══ */
   h += '<div class="p3-hdr"><div class="p3-hdr-row">';
-  // Photo avatar (click to upload)
   var p3PhotoUrl = rec.photoURL || rec.photo || '';
   h += '<div class="p3-av-wrap" id="p3-photo-wrap" title="Click to change photo">';
   if (p3PhotoUrl) {
@@ -346,7 +345,7 @@ function renderProject360(container, rec) {
     acctLink.addEventListener('click', function(){ navigate('record','accounts',rec.account); });
   }
 
-  /* Photo upload (Firebase Storage) */
+  /* Photo upload (compress + Firestore) */
   var p3PhotoWrap = document.getElementById('p3-photo-wrap');
   var p3PhotoInput = document.getElementById('p3-photo-input');
   if (p3PhotoWrap && p3PhotoInput) {
@@ -359,8 +358,8 @@ function renderProject360(container, rec) {
         avatar.classList.add('p3-av-loading');
         avatar.innerHTML = '<div class="p3-spinner"></div>';
       }
-      if (typeof fbUploadPhoto === 'function') {
-        fbUploadPhoto(file, 'projects', rec.id).then(function(url) {
+      if (typeof fbCompressAndSavePhoto === 'function') {
+        fbCompressAndSavePhoto(file, 'projects', rec.id).then(function(url) {
           if (avatar) {
             avatar.classList.remove('p3-av-loading');
             avatar.className = 'p3-av p3-av-img';
@@ -368,7 +367,7 @@ function renderProject360(container, rec) {
           }
           fbShowStatus('Photo uploaded');
         }).catch(function(err) {
-          console.error('[P360] Photo upload error:', err);
+          console.error('[P360] Photo error:', err);
           if (avatar) {
             avatar.classList.remove('p3-av-loading');
             avatar.innerHTML = p3Icon('building',30,'#fff');
@@ -379,10 +378,7 @@ function renderProject360(container, rec) {
         var reader = new FileReader();
         reader.onload = function(ev) {
           rec.photo = ev.target.result;
-          if (avatar) {
-            avatar.className = 'p3-av p3-av-img';
-            avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+(rec.name||'')+'" />';
-          }
+          if (avatar) { avatar.className = 'p3-av p3-av-img'; avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+(rec.name||'')+'" />'; }
         };
         reader.readAsDataURL(file);
       }

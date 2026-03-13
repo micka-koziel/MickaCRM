@@ -104,7 +104,7 @@ function renderAccount360(container, rec) {
   // Photo avatar (click to upload)
   var accPhotoUrl = rec.photoURL || rec.photo || '';
   h += '<div class="a360-photo-wrap" id="a360-photo-wrap" title="Click to change photo">';
-  if (accPhotoUrl && accPhotoUrl.indexOf('data:') !== 0) {
+  if (accPhotoUrl) {
     h += '<div class="a360-avatar a360-avatar-img" id="a360-avatar"><img src="'+accPhotoUrl+'" alt="'+accName+'" /></div>';
   } else {
     h += '<div class="a360-avatar" id="a360-avatar">' + initials + '</div>';
@@ -222,7 +222,7 @@ function renderAccount360(container, rec) {
   // Bind events
   document.getElementById('a360-back').addEventListener('click', function(){ navigate('accounts'); });
 
-  // Photo upload (Firebase Storage)
+  // Photo upload (compress + Firestore)
   var a360PhotoWrap = document.getElementById('a360-photo-wrap');
   var a360PhotoInput = document.getElementById('a360-photo-input');
   if (a360PhotoWrap && a360PhotoInput) {
@@ -230,14 +230,13 @@ function renderAccount360(container, rec) {
     a360PhotoInput.addEventListener('change', function(e) {
       var file = e.target.files && e.target.files[0];
       if (!file) return;
-      // Show spinner on avatar
       var avatar = document.getElementById('a360-avatar');
       if (avatar) {
         avatar.classList.add('a360-avatar-loading');
         avatar.innerHTML = '<div class="a360-spinner"></div>';
       }
-      if (typeof fbUploadPhoto === 'function') {
-        fbUploadPhoto(file, 'accounts', accId).then(function(url) {
+      if (typeof fbCompressAndSavePhoto === 'function') {
+        fbCompressAndSavePhoto(file, 'accounts', accId).then(function(url) {
           if (avatar) {
             avatar.classList.remove('a360-avatar-loading');
             avatar.className = 'a360-avatar a360-avatar-img';
@@ -245,7 +244,7 @@ function renderAccount360(container, rec) {
           }
           fbShowStatus('Photo uploaded');
         }).catch(function(err) {
-          console.error('[A360] Photo upload error:', err);
+          console.error('[A360] Photo error:', err);
           if (avatar) {
             avatar.classList.remove('a360-avatar-loading');
             avatar.innerHTML = initials;
@@ -253,14 +252,10 @@ function renderAccount360(container, rec) {
           fbShowStatus('Photo upload failed', true);
         });
       } else {
-        // Fallback: base64 in memory only
         var reader = new FileReader();
         reader.onload = function(ev) {
           rec.photo = ev.target.result;
-          if (avatar) {
-            avatar.className = 'a360-avatar a360-avatar-img';
-            avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+accName+'" />';
-          }
+          if (avatar) { avatar.className = 'a360-avatar a360-avatar-img'; avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+accName+'" />'; }
         };
         reader.readAsDataURL(file);
       }
@@ -514,7 +509,7 @@ function renderContact360(container, rec) {
   // Bind events
   document.getElementById('c360-back').addEventListener('click', function(){ navigate('contacts'); });
 
-  // Photo upload (Firebase Storage)
+  // Photo upload (compress + Firestore)
   var photoWrap = document.getElementById('c360-photo-wrap');
   var photoInput = document.getElementById('c360-photo-input');
   if (photoWrap && photoInput) {
@@ -527,30 +522,20 @@ function renderContact360(container, rec) {
         avatar.className = 'c360-photo c360-photo-loading';
         avatar.innerHTML = '<div class="c360-spinner"></div>';
       }
-      if (typeof fbUploadPhoto === 'function') {
-        fbUploadPhoto(file, 'contacts', contactId).then(function(url) {
-          if (avatar) {
-            avatar.className = 'c360-photo';
-            avatar.innerHTML = '<img src="'+url+'" alt="'+contactName+'" />';
-          }
+      if (typeof fbCompressAndSavePhoto === 'function') {
+        fbCompressAndSavePhoto(file, 'contacts', contactId).then(function(url) {
+          if (avatar) { avatar.className = 'c360-photo'; avatar.innerHTML = '<img src="'+url+'" alt="'+contactName+'" />'; }
           fbShowStatus('Photo uploaded');
         }).catch(function(err) {
-          console.error('[C360] Photo upload error:', err);
-          if (avatar) {
-            avatar.className = 'c360-photo c360-photo-initials';
-            avatar.innerHTML = initials;
-          }
+          console.error('[C360] Photo error:', err);
+          if (avatar) { avatar.className = 'c360-photo c360-photo-initials'; avatar.innerHTML = initials; }
           fbShowStatus('Photo upload failed', true);
         });
       } else {
-        // Fallback: base64 in memory only
         var reader = new FileReader();
         reader.onload = function(ev) {
           rec.photo = ev.target.result;
-          if (avatar) {
-            avatar.className = 'c360-photo';
-            avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+contactName+'" />';
-          }
+          if (avatar) { avatar.className = 'c360-photo'; avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+contactName+'" />'; }
         };
         reader.readAsDataURL(file);
       }
@@ -867,7 +852,7 @@ function renderLead360(container, rec) {
   /* ── Bind Events ── */
   document.getElementById('l360-back').addEventListener('click', function(){ navigate('leads'); });
 
-  /* Photo upload (Firebase Storage) */
+  /* Photo upload (compress + Firestore) */
   var l360PhotoWrap = document.getElementById('l360-photo-wrap');
   var l360PhotoInput = document.getElementById('l360-photo-input');
   if (l360PhotoWrap && l360PhotoInput) {
@@ -880,12 +865,12 @@ function renderLead360(container, rec) {
         avatar.className = 'l360-photo l360-photo-loading';
         avatar.innerHTML = '<div class="l360-spinner"></div>';
       }
-      if (typeof fbUploadPhoto === 'function') {
-        fbUploadPhoto(file, 'leads', rec.id).then(function(url) {
+      if (typeof fbCompressAndSavePhoto === 'function') {
+        fbCompressAndSavePhoto(file, 'leads', rec.id).then(function(url) {
           if (avatar) { avatar.className = 'l360-photo'; avatar.innerHTML = '<img src="'+url+'" alt="'+rec.name+'" />'; }
           fbShowStatus('Photo uploaded');
         }).catch(function(err) {
-          console.error('[L360] Photo upload error:', err);
+          console.error('[L360] Photo error:', err);
           if (avatar) { avatar.className = 'l360-photo l360-photo-initials'; avatar.innerHTML = initials; }
           fbShowStatus('Photo upload failed', true);
         });
@@ -1217,7 +1202,7 @@ function renderOpp360(container, rec) {
   /* ── Bind Events ── */
   document.getElementById('o360-back').addEventListener('click', function(){ navigate('opportunities'); });
 
-  /* Photo upload (Firebase Storage) */
+  /* Photo upload (compress + Firestore) */
   var photoWrap = document.getElementById('o360-photo-wrap');
   var photoInput = document.getElementById('o360-photo-input');
   if (photoWrap && photoInput) {
@@ -1230,12 +1215,12 @@ function renderOpp360(container, rec) {
         avatar.className = 'o360-photo o360-photo-loading';
         avatar.innerHTML = '<div class="o360-spinner"></div>';
       }
-      if (typeof fbUploadPhoto === 'function') {
-        fbUploadPhoto(file, 'opportunities', oppId).then(function(url) {
+      if (typeof fbCompressAndSavePhoto === 'function') {
+        fbCompressAndSavePhoto(file, 'opportunities', oppId).then(function(url) {
           if (avatar) { avatar.className = 'o360-photo'; avatar.innerHTML = '<img src="'+url+'" alt="'+rec.name+'" />'; }
           fbShowStatus('Photo uploaded');
         }).catch(function(err) {
-          console.error('[O360] Photo upload error:', err);
+          console.error('[O360] Photo error:', err);
           if (avatar) { avatar.className = 'o360-photo o360-photo-initials'; avatar.innerHTML = svgIcon('opportunities',24,'#fff'); }
           fbShowStatus('Photo upload failed', true);
         });

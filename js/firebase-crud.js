@@ -232,49 +232,68 @@ function fbShowStatus(msg, isError) {
 
 
 /* ═══════════════════════════════════════════════════════
-   PHOTO UPLOAD — Firebase Storage + Firestore URL
+   PHOTO — Compress + Save as base64 in Firestore
+   
+   Resizes to max 200x200, JPEG quality 0.7
+   Resulting base64 is ~10-30KB → safe for Firestore (1MB limit)
    
    Usage:
-     fbUploadPhoto(file, 'accounts', 'acc1')
-       → uploads to photos/accounts/acc1.jpg
-       → saves photoURL field in Firestore doc
+     fbCompressAndSavePhoto(file, 'accounts', 'acc1')
+       → compresses image via canvas
+       → saves photoURL field (base64) in Firestore doc
        → updates window.DATA record
-       → returns Promise<url>
+       → returns Promise<base64string>
    ═══════════════════════════════════════════════════════ */
 
-function fbUploadPhoto(file, collectionKey, docId) {
-  if (!file || !collectionKey || !docId) {
-    return Promise.reject(new Error('Missing file, collection, or docId'));
-  }
+function fbCompressAndSavePhoto(file, collectionKey, docId, maxSize, quality) {
+  maxSize = maxSize || 200;
+  quality = quality || 0.7;
 
-  /* Build storage path: photos/{collection}/{docId}.jpg */
-  var ext = (file.name || '').split('.').pop() || 'jpg';
-  var storagePath = 'photos/' + collectionKey + '/' + docId + '.' + ext;
+  return new Promise(function(resolve, reject) {
+    if (!file || !collectionKey || !docId) {
+      return reject(new Error('Missing file, collection, or docId'));
+    }
 
-  var storageRef = firebase.storage().ref(storagePath);
-
-  /* Metadata for correct content-type */
-  var metadata = { contentType: file.type || 'image/jpeg' };
-
-  return storageRef.put(file, metadata).then(function(snapshot) {
-    return snapshot.ref.getDownloadURL();
-  }).then(function(downloadURL) {
-    /* Persist URL in Firestore */
-    return fbSaveField(collectionKey, docId, 'photoURL', downloadURL).then(function() {
-      /* Update window.DATA in memory */
-      var records = window.DATA[collectionKey] || [];
-      var rec = records.find(function(r) { return r.id === docId; });
-      if (rec) {
-        rec.photoURL = downloadURL;
-        /* Clean up old base64 photo if present */
-        if (rec.photo && rec.photo.indexOf('data:') === 0) {
-          delete rec.photo;
-          /* Also remove base64 from Firestore (async, fire-and-forget) */
-          fbSaveField(collectionKey, docId, 'photo', firebase.firestore.FieldValue.delete()).catch(function(){});
+    var reader = new FileReader();
+    reader.onerror = function() { reject(new Error('File read failed')); };
+    reader.onload = function(e) {
+      var img = new Image();
+      img.onerror = function() { reject(new Error('Image load failed')); };
+      img.onload = function() {
+        /* ── Compute target size (fit in maxSize box) ── */
+        var w = img.width, h = img.height;
+        if (w > h) {
+          if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; }
+        } else {
+          if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; }
         }
-      }
-      console.log('[Firebase] Photo uploaded: ' + storagePath);
-      return downloadURL;
-    });
+
+        /* ── Draw on canvas ── */
+        var canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+
+        /* ── Export compressed JPEG base64 ── */
+        var base64 = canvas.toDataURL('image/jpeg', quality);
+
+        /* ── Save to Firestore ── */
+        fbSaveField(collectionKey, docId, 'photoURL', base64).then(function() {
+          /* Update window.DATA */
+          var records = window.DATA[collectionKey] || [];
+          var rec = records.find(function(r) { return r.id === docId; });
+          if (rec) {
+            rec.photoURL = base64;
+            /* Clean old photo field if different */
+            if (rec.photo && rec.photo !== base64) delete rec.photo;
+          }
+          console.log('[Firebase] Photo compressed & saved: ' + collectionKey + '/' + docId + ' (' + Math.round(base64.length / 1024) + 'KB)');
+          resolve(base64);
+        }).catch(reject);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
   });
 }
