@@ -16,6 +16,10 @@ function injectQ360Styles() {
     /* ── Layout ── */
     .q360-wrapper { padding: 20px 24px; max-width: 1200px; margin: 0 auto; }
 
+    /* ── Back nav ── */
+    .q360-back { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; color: #64748b; cursor: pointer; padding: 4px 0; margin-bottom: 10px; transition: color 0.12s; }
+    .q360-back:hover { color: #2563eb; }
+
     /* ── Card ── */
     .q360-card {
       background: #fff; border-radius: 12px; border: 1px solid #e5e7eb;
@@ -294,6 +298,9 @@ function renderQuote360(rec) {
   // ── Build HTML ──
   let html = '<div class="q360-wrapper">';
 
+  // Back nav
+  html += '<div class="q360-back" id="q360-back">' + q360icon('arrowLeft', 14, '#64748b') + '<span>Quotes</span></div>';
+
   // ============ HEADER ============
   html += '<div class="q360-card q360-header">';
   html += '<div class="q360-header-inner">';
@@ -550,6 +557,15 @@ function renderQuote360(rec) {
 // ── Event Delegation (for navigate links & action buttons) ─────
 function bindQuote360Events(container) {
   if (!container) return;
+
+  // Back button
+  var backBtn = document.getElementById('q360-back');
+  if (backBtn) {
+    backBtn.addEventListener('click', function() {
+      if (typeof navigate === 'function') navigate('quotes');
+    });
+  }
+
   container.addEventListener('click', function(e) {
     var el = e.target.nodeType === 3 ? e.target.parentElement : e.target;
 

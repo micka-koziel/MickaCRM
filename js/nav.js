@@ -115,6 +115,8 @@ function renderCurrentPage() {
     case 'leads':
     case 'accounts':
     case 'contacts':
+    case 'quotes':
+    case 'projects':
       header.style.display = '';
       renderObjectPage(currentPage, header, content);
       break;

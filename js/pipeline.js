@@ -137,10 +137,88 @@ var OBJ_CONFIG = {
       {key:'email',label:'Email',type:'text'},
       {key:'phone',label:'Phone',type:'text'}
     ]
+  },
+  quotes: {
+    title: 'Quotes', hasKanban: false,
+    getData: function(){ return (window.DATA.quotes||[]).slice(); },
+    columns: [
+      {key:'name',label:'Quote Name',isLink:true},
+      {key:'accountName',label:'Account',render:function(it){return it.accountName||getAccountName(it.accountId)||'—';}},
+      {key:'opportunity',label:'Opportunity'},
+      {key:'stage',label:'Stage',render:function(it){
+        var colors = {Draft:'#94a3b8','Internal Review':'#8b5cf6',Sent:'#3b82f6',Negotiation:'#f59e0b',Accepted:'#10b981'};
+        var c = colors[it.stage]||'var(--text-muted)';
+        return '<span class="stage-badge" style="color:'+c+'"><span class="dot" style="background:'+c+'"></span>'+(it.stage||'—')+'</span>';
+      }},
+      {key:'value',label:'Value',render:function(it){return fmtAmount(it.value||0);}},
+      {key:'discount',label:'Discount',render:function(it){return (it.discount||0)+'%';}},
+      {key:'validUntil',label:'Valid Until',render:function(it){return fmtDate(it.validUntil);}}
+    ],
+    filters: [
+      {key:'stage',label:'Stage',type:'select',options:function(){return [{value:'Draft',label:'Draft'},{value:'Internal Review',label:'Internal Review'},{value:'Sent',label:'Sent'},{value:'Negotiation',label:'Negotiation'},{value:'Accepted',label:'Accepted'}];}},
+      {key:'accountId',label:'Account',type:'select',options:function(){return (window.DATA.accounts||[]).map(function(a){return{value:a.id,label:a.name};});}},
+      {key:'value',label:'Value ≥',type:'number'}
+    ],
+    formFields: [
+      {key:'name',label:'Quote Name',type:'text',required:true},
+      {key:'accountId',label:'Account',type:'select',options:function(){return (window.DATA.accounts||[]).map(function(a){return{value:a.id,label:a.name};});}},
+      {key:'opportunity',label:'Opportunity',type:'text'},
+      {key:'stage',label:'Stage',type:'select',options:function(){return [{value:'Draft',label:'Draft'},{value:'Internal Review',label:'Internal Review'},{value:'Sent',label:'Sent'},{value:'Negotiation',label:'Negotiation'},{value:'Accepted',label:'Accepted'}];}},
+      {key:'value',label:'Value (€)',type:'number'},
+      {key:'discount',label:'Discount (%)',type:'number'},
+      {key:'validUntil',label:'Valid Until',type:'date'},
+      {key:'contact',label:'Contact Name',type:'text'},
+      {key:'paymentTerms',label:'Payment Terms',type:'select',options:function(){return [{value:'Net 30',label:'Net 30'},{value:'Net 45',label:'Net 45'},{value:'Net 60',label:'Net 60'},{value:'Net 90',label:'Net 90'}];}}
+    ]
+  },
+  projects: {
+    title: 'Projects', hasKanban: true,
+    stages: function(){ return STAGES.projects||[]; },
+    getData: function(){ return (window.DATA.projects||[]).slice().map(function(p){
+      /* Normalize phase to lowercase key for kanban compat */
+      if (p.phase) {
+        var phLower = p.phase.toLowerCase().replace(/[^a-z]/g,'');
+        var stgs = STAGES.projects||[];
+        var match = stgs.find(function(s){ return s.key === phLower || s.label.toLowerCase().replace(/[^a-z]/g,'') === phLower; });
+        if (match) p.stage = match.key;
+        else p.stage = p.phase;
+      }
+      return p;
+    }); },
+    columns: [
+      {key:'name',label:'Project Name',isLink:true},
+      {key:'account',label:'Account',render:function(it){return getAccountName(it.account);}},
+      {key:'phase',label:'Phase',render:function(it){
+        var phs = STAGES.projects||[];
+        var ph = phs.find(function(s){return s.key===it.stage||s.label===it.phase;});
+        if(ph) return '<span class="stage-badge" style="color:'+ph.color+'"><span class="dot" style="background:'+ph.color+'"></span>'+ph.label+'</span>';
+        return it.phase||'—';
+      }},
+      {key:'value',label:'Value',render:function(it){return fmtAmount(it.value||0);}},
+      {key:'health',label:'Health',render:function(it){
+        var hc = {Healthy:'var(--success)',Attention:'var(--warning)','At Risk':'var(--danger)'};
+        var c = hc[it.health]||'var(--text-muted)';
+        return '<span class="stage-badge" style="color:'+c+'"><span class="dot" style="background:'+c+'"></span>'+(it.health||'—')+'</span>';
+      }},
+      {key:'owner',label:'Owner'},
+      {key:'expectedDelivery',label:'Delivery',render:function(it){return fmtDate(it.expectedDelivery||it.end);}}
+    ],
+    filters: [
+      {key:'stage',label:'Phase',type:'select',options:function(){return (STAGES.projects||[]).map(function(s){return{value:s.key,label:s.label};});}},
+      {key:'account',label:'Account',type:'select',options:function(){return (window.DATA.accounts||[]).map(function(a){return{value:a.id,label:a.name};});}},
+      {key:'health',label:'Health',type:'select',options:function(){return [{value:'Healthy',label:'Healthy'},{value:'Attention',label:'Attention'},{value:'At Risk',label:'At Risk'}];}}
+    ],
+    formFields: [
+      {key:'name',label:'Project Name',type:'text',required:true},
+      {key:'account',label:'Account',type:'select',options:function(){return (window.DATA.accounts||[]).map(function(a){return{value:a.id,label:a.name};});}},
+      {key:'phase',label:'Phase',type:'select',options:function(){return (STAGES.projects||[]).map(function(s){return{value:s.key,label:s.label};});}},
+      {key:'value',label:'Value (€)',type:'number'},
+      {key:'health',label:'Health',type:'select',options:function(){return [{value:'Healthy',label:'Healthy'},{value:'Attention',label:'Attention'},{value:'At Risk',label:'At Risk'}];}},
+      {key:'owner',label:'Owner',type:'text'},
+      {key:'start',label:'Start Date',type:'date'},
+      {key:'end',label:'Expected Delivery',type:'date'}
+    ]
   }
-};
-
-/* ─── Helpers ────────────────────────────────────────── */
 
 function getAccountName(id) {
   var acc=(window.DATA.accounts||[]).find(function(a){return a.id===id;});

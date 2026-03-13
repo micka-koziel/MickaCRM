@@ -39,6 +39,14 @@ function renderRecordPage(objKey, recId, headerEl, contentEl) {
     return;
   }
 
+  if (objKey === 'quotes') {
+    headerEl.style.display = 'none';
+    var qHtml = renderQuote360(rec);
+    contentEl.innerHTML = qHtml;
+    bindQuote360Events(contentEl);
+    return;
+  }
+
   renderGenericRecord(objKey, rec, headerEl, contentEl);
 }
 
