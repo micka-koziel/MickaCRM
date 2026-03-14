@@ -307,47 +307,94 @@ function calRenderMonth(d) {
 
 
 /* ═══════════════════════════════════════════════════════
-   WEEK VIEW
+   WEEK VIEW — Column layout with absolute event positioning
+   Each day is a column; events are positioned by time/duration.
+   ROW_H = 40px per hour. START_HOUR = 7, END_HOUR = 20.
    ═══════════════════════════════════════════════════════ */
+var CAL_ROW_H = 40;
+var CAL_START_HOUR = 7;
+var CAL_END_HOUR = 20;
+var CAL_TOTAL_HOURS = CAL_END_HOUR - CAL_START_HOUR + 1; /* 14 hours */
+
 function calRenderWeek(d) {
   var ws = calGetWeekStart(d), today = calDateStr(new Date()), now = new Date();
   var nowHour = now.getHours(), nowMin = now.getMinutes();
-  var hours = []; for (var hh = 7; hh <= 20; hh++) hours.push(hh);
-  var todayCol = -1;
-  for (var ti = 0; ti < 7; ti++) { var td = new Date(ws); td.setDate(td.getDate() + ti); if (calDateStr(td) === today) { todayCol = ti; break; } }
-
-  var h = '<div class="cal-week"><div class="cal-week-header"><div class="cal-week-gutter"></div>';
   var dayNames = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+  var totalH = CAL_TOTAL_HOURS * CAL_ROW_H;
+
+  var h = '<div class="cal-week">';
+
+  /* Header */
+  h += '<div class="cal-week-header"><div class="cal-week-gutter"></div>';
   for (var i = 0; i < 7; i++) {
     var dd = new Date(ws); dd.setDate(dd.getDate() + i); var ds = calDateStr(dd);
     h += '<div class="cal-week-day-hdr' + (ds === today ? ' cal-week-day-hdr-today' : '') + '">';
     h += '<span class="cal-week-day-name">' + dayNames[i] + '</span>';
     h += '<span class="cal-week-day-num' + (ds === today ? ' cal-week-day-num-today' : '') + '">' + dd.getDate() + '</span></div>';
   }
-  h += '</div><div class="cal-week-body" id="cal-week-body">';
+  h += '</div>';
 
-  hours.forEach(function(hr) {
-    var isNowRow = (todayCol >= 0 && hr === nowHour && nowHour >= 7 && nowHour <= 20);
-    h += '<div class="cal-week-row' + (isNowRow ? ' cal-week-row-now' : '') + '" ' + (hr === nowHour ? 'id="cal-now-row"' : '') + '>';
-    h += '<div class="cal-week-gutter"><span class="cal-week-time">' + String(hr).padStart(2, '0') + ':00</span></div>';
-    for (var i = 0; i < 7; i++) {
-      var dd = new Date(ws); dd.setDate(dd.getDate() + i); var ds = calDateStr(dd); var isToday = ds === today;
-      var cellActs = calGetActivities(ds).filter(function(a) { if (!a.time) return hr === 9; return parseInt(a.time.split(':')[0], 10) === hr; });
-      h += '<div class="cal-hour-slot' + (isToday ? ' cal-hour-slot-today' : '') + '" data-date="' + ds + '" data-hour="' + hr + '">';
-      if (isToday && hr === nowHour && nowHour >= 7 && nowHour <= 20) {
-        h += '<div class="cal-now-line" style="top:' + ((nowMin / 60) * 100) + '%"><span class="cal-now-dot"></span></div>';
-      }
-      cellActs.forEach(function(act) {
-        var col = CAL_TYPE_COLORS[act.type] || '#475569';
-        h += '<div class="cal-event cal-event-week" data-id="' + act.id + '" style="--evt-color:' + col + '">';
-        h += '<span class="cal-event-label">' + (act.time ? act.time + ' ' : '') + (act.subject || act.type) + '</span>';
-        h += '</div>';
-      });
-      h += '</div>';
+  /* Body: gutter + 7 day columns */
+  h += '<div class="cal-week-body" id="cal-week-body">';
+  h += '<div class="cal-week-grid" style="height:' + totalH + 'px">';
+
+  /* Gutter with hour labels */
+  h += '<div class="cal-week-gutter-col">';
+  for (var hr = CAL_START_HOUR; hr <= CAL_END_HOUR; hr++) {
+    var top = (hr - CAL_START_HOUR) * CAL_ROW_H;
+    h += '<span class="cal-week-time" style="top:' + top + 'px">' + String(hr).padStart(2, '0') + ':00</span>';
+  }
+  h += '</div>';
+
+  /* Hour grid lines (horizontal) */
+  for (var hr = CAL_START_HOUR; hr <= CAL_END_HOUR; hr++) {
+    var top = (hr - CAL_START_HOUR) * CAL_ROW_H;
+    h += '<div class="cal-grid-line" style="top:' + top + 'px"></div>';
+  }
+
+  /* Day columns */
+  for (var i = 0; i < 7; i++) {
+    var dd = new Date(ws); dd.setDate(dd.getDate() + i);
+    var ds = calDateStr(dd);
+    var isToday = ds === today;
+    var dayActs = calGetActivities(ds);
+
+    h += '<div class="cal-day-col' + (isToday ? ' cal-day-col-today' : '') + '" data-date="' + ds + '">';
+
+    /* Now line */
+    if (isToday && nowHour >= CAL_START_HOUR && nowHour <= CAL_END_HOUR) {
+      var nowTop = ((nowHour - CAL_START_HOUR) + nowMin / 60) * CAL_ROW_H;
+      h += '<div class="cal-now-line" id="cal-now-marker" style="top:' + nowTop + 'px"><span class="cal-now-dot"></span></div>';
     }
+
+    /* Events positioned absolutely */
+    dayActs.forEach(function(act) {
+      var col = CAL_TYPE_COLORS[act.type] || '#475569';
+      var actHour = 9, actMin = 0;
+      if (act.time) {
+        var tp = act.time.split(':');
+        actHour = parseInt(tp[0], 10);
+        actMin = parseInt(tp[1], 10) || 0;
+      }
+      if (actHour < CAL_START_HOUR || actHour > CAL_END_HOUR) return;
+
+      var dur = act.duration || 30;
+      if (dur < 20) dur = 20; /* minimum visual size */
+      var evtTop = ((actHour - CAL_START_HOUR) + actMin / 60) * CAL_ROW_H;
+      var evtH = Math.max((dur / 60) * CAL_ROW_H, 20);
+      /* Clamp to grid bottom */
+      if (evtTop + evtH > totalH) evtH = totalH - evtTop;
+
+      h += '<div class="cal-evt" data-id="' + act.id + '" style="--evt-color:' + col + ';top:' + evtTop + 'px;height:' + evtH + 'px">';
+      h += '<span class="cal-evt-label">' + (act.subject || act.type) + '</span>';
+      if (evtH >= 28) h += '<span class="cal-evt-meta">' + (act.time || '') + (act.contact ? ' \u00B7 ' + act.contact : '') + '</span>';
+      h += '</div>';
+    });
+
     h += '</div>';
-  });
-  h += '</div></div>';
+  }
+
+  h += '</div></div></div>';
   return h;
 }
 
@@ -378,8 +425,8 @@ function calBindEvents(headerEl, contentEl) {
     });
   });
 
-  /* Activity pill click → preview (NOT navigate) */
-  contentEl.querySelectorAll('.cal-event').forEach(function(el) {
+  /* Activity pill click → preview (NOT navigate) — handles both .cal-event (month) and .cal-evt (week) */
+  contentEl.querySelectorAll('.cal-event, .cal-evt').forEach(function(el) {
     el.addEventListener('click', function(e) {
       e.stopPropagation();
       var id = el.getAttribute('data-id'); if (!id) return;
@@ -388,8 +435,8 @@ function calBindEvents(headerEl, contentEl) {
         calState.previewAct = act;
         var p = document.getElementById('cal-preview');
         if (p) { p.innerHTML = calRenderPreview(act); calBindPreview(headerEl, contentEl); }
-        contentEl.querySelectorAll('.cal-event').forEach(function(e) { e.classList.remove('cal-event-selected'); });
-        el.classList.add('cal-event-selected');
+        contentEl.querySelectorAll('.cal-event, .cal-evt').forEach(function(e) { e.classList.remove('cal-event-selected'); e.classList.remove('cal-evt-selected'); });
+        el.classList.add(el.classList.contains('cal-evt') ? 'cal-evt-selected' : 'cal-event-selected');
       }
     });
   });
@@ -414,21 +461,30 @@ function calBindEvents(headerEl, contentEl) {
     cell.addEventListener('click', function(e) { if (e.target.closest('.cal-event')) return; calOpenModal(null, cell.getAttribute('data-date'), null, headerEl, contentEl); });
   });
 
-  /* Hour slot click → create with time */
-  contentEl.querySelectorAll('.cal-hour-slot[data-date][data-hour]').forEach(function(slot) {
-    slot.addEventListener('click', function(e) { if (e.target.closest('.cal-event')) return; calOpenModal(null, slot.getAttribute('data-date'), slot.getAttribute('data-hour') + ':00', headerEl, contentEl); });
+  /* Day column click → create with time (week) */
+  contentEl.querySelectorAll('.cal-day-col[data-date]').forEach(function(col) {
+    col.addEventListener('click', function(e) {
+      if (e.target.closest('.cal-evt')) return;
+      var ds = col.getAttribute('data-date');
+      /* Estimate hour from click position */
+      var rect = col.getBoundingClientRect();
+      var y = e.clientY - rect.top + col.parentElement.parentElement.scrollTop;
+      var hr = Math.floor(y / CAL_ROW_H) + CAL_START_HOUR;
+      hr = Math.max(CAL_START_HOUR, Math.min(CAL_END_HOUR, hr));
+      calOpenModal(null, ds, String(hr).padStart(2,'0') + ':00', headerEl, contentEl);
+    });
   });
 
   /* Auto-scroll to now */
   if (calState.view === 'week') {
-    var nowRow = document.getElementById('cal-now-row'), wb = document.getElementById('cal-week-body');
-    if (nowRow && wb) wb.scrollTop = Math.max(0, nowRow.offsetTop - wb.offsetTop - 80);
+    var nowMarker = document.getElementById('cal-now-marker'), wb = document.getElementById('cal-week-body');
+    if (nowMarker && wb) wb.scrollTop = Math.max(0, nowMarker.offsetTop - 100);
   }
 }
 
 function calBindPreview(headerEl, contentEl) {
   var c = document.getElementById('cp-close'), o = document.getElementById('cp-open'), e = document.getElementById('cp-edit');
-  if (c) c.addEventListener('click', function() { calState.previewAct = null; var p = document.getElementById('cal-preview'); if (p) p.innerHTML = calRenderPreview(null); contentEl.querySelectorAll('.cal-event').forEach(function(e) { e.classList.remove('cal-event-selected'); }); });
+  if (c) c.addEventListener('click', function() { calState.previewAct = null; var p = document.getElementById('cal-preview'); if (p) p.innerHTML = calRenderPreview(null); contentEl.querySelectorAll('.cal-event, .cal-evt').forEach(function(e) { e.classList.remove('cal-event-selected'); e.classList.remove('cal-evt-selected'); }); });
   if (o && calState.previewAct) o.addEventListener('click', function() { navigate('record', 'activities', calState.previewAct.id); });
   if (e && calState.previewAct) e.addEventListener('click', function() { calOpenModal(calState.previewAct, null, null, headerEl, contentEl); });
 }
@@ -613,27 +669,32 @@ function injectCalStyles() {
 \
 .cal-week{flex:1;display:flex;flex-direction:column;overflow:hidden}\
 .cal-week-header{display:flex;border-bottom:1px solid var(--border);background:var(--card);flex-shrink:0}\
-.cal-week-gutter{width:50px;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;padding-right:6px}\
+.cal-week-gutter{width:50px;flex-shrink:0}\
 .cal-week-time{font-size:10px;color:var(--text-light);font-weight:500;font-variant-numeric:tabular-nums}\
-.cal-week-day-hdr{flex:1;text-align:center;padding:6px 4px;display:flex;flex-direction:column;gap:1px;align-items:center;border-bottom:2px solid transparent}\
+.cal-week-day-hdr{flex:1;text-align:center;padding:6px 4px;display:flex;flex-direction:column;gap:1px;align-items:center;border-bottom:2px solid transparent;border-left:1px solid var(--border)}\
+.cal-week-day-hdr:first-of-type{border-left:none}\
 .cal-week-day-hdr-today{background:#f0f4ff;border-bottom-color:var(--accent)}\
 .cal-week-day-name{font-size:9px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px}\
 .cal-week-day-num{font-size:13px;font-weight:700;color:var(--text);width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:50%}\
 .cal-week-day-num-today{background:var(--accent);color:#fff;box-shadow:0 1px 4px rgba(37,99,235,.25)}\
 \
 .cal-week-body{flex:1;overflow-y:auto}\
-.cal-week-row{display:flex;min-height:36px;border-bottom:1px solid #f0f2f5}\
-.cal-hour-slot{flex:1;border-right:1px solid #f0f2f5;padding:1px 2px;cursor:pointer;position:relative;transition:background .08s;display:flex;flex-direction:column;gap:1px}\
-.cal-hour-slot:last-child{border-right:none}\
-.cal-hour-slot:hover{background:#fafbfc}\
-.cal-hour-slot-today{background:#f8faff}\
+.cal-week-grid{position:relative;display:flex;min-width:0}\
+.cal-week-gutter-col{width:50px;flex-shrink:0;position:relative}\
+.cal-week-gutter-col .cal-week-time{position:absolute;right:6px;transform:translateY(-50%);line-height:1}\
+.cal-grid-line{position:absolute;left:50px;right:0;height:1px;background:#f0f2f5;pointer-events:none;z-index:0}\
+.cal-day-col{flex:1;position:relative;border-left:1px solid #e8eaed;min-width:0;cursor:pointer}\
+.cal-day-col:first-of-type{border-left:none}\
+.cal-day-col-today{background:#f8faff}\
 \
-.cal-now-line{position:absolute;left:-1px;right:-1px;height:2px;background:#ef4444;z-index:5;pointer-events:none}\
+.cal-now-line{position:absolute;left:0;right:0;height:2px;background:#ef4444;z-index:4;pointer-events:none}\
 .cal-now-dot{position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 2px rgba(239,68,68,.2)}\
 \
-.cal-event-week{border-radius:4px;padding:2px 6px;overflow:hidden;cursor:pointer;background:var(--card);border:1px solid var(--border);border-left:3px solid var(--evt-color)}\
-.cal-event-week:hover{background:#f8fafc;box-shadow:0 1px 2px rgba(0,0,0,.05)}\
-.cal-event-week .cal-event-label{color:var(--text);font-size:10px;font-weight:500}\
+.cal-evt{position:absolute;left:2px;right:2px;border-radius:4px;padding:2px 6px;overflow:hidden;cursor:pointer;background:var(--card);border:1px solid var(--border);border-left:3px solid var(--evt-color);z-index:2;display:flex;flex-direction:column;justify-content:center;transition:background .1s,box-shadow .1s}\
+.cal-evt:hover{background:#f8fafc;box-shadow:0 1px 4px rgba(0,0,0,.08);z-index:3}\
+.cal-evt-selected{background:#eef2ff;border-color:var(--accent);border-left:3px solid var(--accent);z-index:3}\
+.cal-evt-label{font-size:10px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}\
+.cal-evt-meta{font-size:9px;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}\
 \
 .cp-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;padding:20px}\
 .cp-empty-text{font-size:11px;color:var(--text-light);text-align:center}\
