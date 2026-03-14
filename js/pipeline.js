@@ -556,38 +556,33 @@ function renderFunnelCard(objKey, cfg, items) {
   var totalDeals = items.length;
   var n = funnelData.length;
 
-  /* ── SVG Funnel — trapezoids narrowing downward ── */
-  var svgW = 220, rowH = 28, gap = 3;
+  /* ── SVG Funnel — compact trapezoids ── */
+  var svgW = 200, rowH = 22, gap = 2;
   var svgH = n * (rowH + gap) - gap;
-  var maxWidthPct = 0.95;   /* widest row = 95% of SVG */
-  var minWidthPct = 0.22;   /* narrowest row */
+  var maxWidthPct = 0.96;
+  var minWidthPct = 0.24;
   var centerX = svgW / 2;
 
-  var funnelSvg = '<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" class="pi-funnel-svg">';
+  var funnelSvg = '<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" width="100%" preserveAspectRatio="xMidYMid meet" class="pi-funnel-svg">';
 
   funnelData.forEach(function(d, i) {
     var y = i * (rowH + gap);
-    /* Top width for this row — linear taper from max to min */
     var topPct = maxWidthPct - (i / Math.max(n - 1, 1)) * (maxWidthPct - minWidthPct);
-    /* Bottom width — next step narrower, except last row uses minWidthPct */
     var botPct = (i < n - 1)
       ? maxWidthPct - ((i + 1) / Math.max(n - 1, 1)) * (maxWidthPct - minWidthPct)
-      : minWidthPct * 0.8;
+      : minWidthPct * 0.75;
 
     var topHalf = (topPct * svgW) / 2;
     var botHalf = (botPct * svgW) / 2;
-
-    /* Trapezoid points: top-left, top-right, bottom-right, bottom-left */
     var x1 = centerX - topHalf, x2 = centerX + topHalf;
     var x3 = centerX + botHalf, x4 = centerX - botHalf;
     var points = x1 + ',' + y + ' ' + x2 + ',' + y + ' ' + x3 + ',' + (y + rowH) + ' ' + x4 + ',' + (y + rowH);
 
-    funnelSvg += '<polygon points="' + points + '" fill="' + d.color + '" rx="3" opacity="0.92" />';
+    funnelSvg += '<polygon points="' + points + '" fill="' + d.color + '" opacity="0.92" />';
 
-    /* Amount text centered in trapezoid */
     var textY = y + rowH / 2 + 1;
     var amtText = _piAmt(d.total);
-    funnelSvg += '<text x="' + centerX + '" y="' + textY + '" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="10" font-weight="700" font-family="DM Sans,sans-serif" style="text-shadow:0 1px 2px rgba(0,0,0,.2)">' + amtText + '</text>';
+    funnelSvg += '<text x="' + centerX + '" y="' + textY + '" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="9.5" font-weight="700" font-family="DM Sans,sans-serif" style="text-shadow:0 1px 2px rgba(0,0,0,.2)">' + amtText + '</text>';
   });
 
   funnelSvg += '</svg>';
@@ -807,47 +802,47 @@ function injectPipelineInsightStyles() {
   s.textContent = '\
 /* ═══ Pipeline Insight Section ═══ */\
 .pi-section{padding:12px 14px 0}\
-.pi-cards-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}\
+.pi-cards-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:stretch}\
 .pi-cards-row-2{grid-template-columns:1fr 1fr}\
 \
 /* Card */\
 .pi-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;\
-  display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 2px rgba(0,0,0,.03);\
-  transition:box-shadow .15s,border-color .15s}\
+  display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(0,0,0,.03);\
+  transition:box-shadow .15s,border-color .15s;overflow:hidden}\
 .pi-card:hover{box-shadow:0 3px 12px rgba(0,0,0,.05);border-color:#d0d5dd}\
-.pi-card-head{display:flex;align-items:center;gap:6px}\
+.pi-card-head{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-shrink:0}\
 .pi-card-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}\
 .pi-card-title{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}\
 .pi-card-sub{font-size:9.5px;color:var(--text-light);font-weight:500}\
 \
 /* Funnel */\
-.pi-funnel-visual{display:flex;align-items:flex-start;gap:10px}\
-.pi-funnel-svg-col{flex:1;min-width:0}\
-.pi-funnel-svg{display:block}\
+.pi-funnel-visual{display:flex;align-items:flex-start;gap:10px;flex:1;min-height:0}\
+.pi-funnel-svg-col{flex:1;min-width:0;max-height:180px}\
+.pi-funnel-svg{display:block;max-height:180px}\
 .pi-funnel-labels{display:flex;flex-direction:column;flex-shrink:0}\
 .pi-funnel-label-row{display:flex;align-items:center;gap:3px}\
-.pi-funnel-count{font-size:12px;font-weight:700;color:var(--text)}\
+.pi-funnel-count{font-size:11px;font-weight:700;color:var(--text)}\
 .pi-funnel-label{font-size:9px;color:var(--text-light);font-weight:500}\
 .pi-funnel-footer{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);\
-  padding-top:6px;border-top:1px solid var(--border)}\
+  padding-top:6px;border-top:1px solid var(--border);margin-top:auto;flex-shrink:0}\
 .pi-funnel-footer strong{font-size:13px;color:var(--text)}\
 .pi-funnel-total-icon{font-size:8px;color:var(--text-light)}\
 .pi-funnel-total-deals{font-size:10px;color:var(--text-light);margin-left:auto}\
 .pi-funnel-won-badge{font-size:9px;font-weight:700;color:#fff;padding:2px 8px;border-radius:5px;letter-spacing:.02em}\
 \
 /* Stage Distribution */\
-.pi-dist{display:flex;flex-direction:column;gap:5px}\
+.pi-dist{display:flex;flex-direction:column;gap:5px;flex:1}\
 .pi-dist-row{display:flex;align-items:center;gap:8px}\
 .pi-dist-label{width:72px;font-size:10.5px;font-weight:600;color:var(--text-muted);text-align:right;flex-shrink:0}\
 .pi-dist-track{flex:1;height:14px;background:#f1f5f9;border-radius:4px;overflow:hidden}\
 .pi-dist-fill{height:100%;border-radius:4px;transition:width .4s}\
 .pi-dist-count{width:20px;font-size:11px;font-weight:700;color:var(--text);text-align:right}\
 .pi-dist-footer{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);\
-  padding-top:6px;border-top:1px solid var(--border)}\
+  padding-top:6px;border-top:1px solid var(--border);margin-top:auto;flex-shrink:0}\
 .pi-dist-footer strong{font-size:13px;color:var(--text)}\
 \
 /* Donut */\
-.pi-donut-wrap{display:flex;align-items:center;gap:16px}\
+.pi-donut-wrap{display:flex;align-items:center;gap:16px;flex:1}\
 .pi-donut-chart{position:relative;flex-shrink:0}\
 .pi-donut-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}\
 .pi-donut-num{font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.5px}\
@@ -856,7 +851,7 @@ function injectPipelineInsightStyles() {
 .pi-donut-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}\
 .pi-donut-label{font-size:11px;font-weight:500;color:var(--text-muted);flex:1}\
 .pi-donut-val{font-size:12px;font-weight:700;color:var(--text)}\
-.pi-act-footer{display:flex;flex-wrap:wrap;gap:6px 12px;padding-top:8px;border-top:1px solid var(--border)}\
+.pi-act-footer{display:flex;flex-wrap:wrap;gap:6px 12px;padding-top:8px;border-top:1px solid var(--border);margin-top:auto;flex-shrink:0}\
 .pi-act-sum{display:flex;align-items:center;gap:3px;font-size:9px;color:var(--text-muted);font-weight:500}\
 .pi-act-sum-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}\
 \
