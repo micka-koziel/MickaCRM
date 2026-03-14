@@ -483,9 +483,17 @@ function renderObjContent(objKey, cfg, mode, contentEl) {
   if (ce) ce.textContent = filtered.length;
 
   var filterHTML = renderFilterPanel(objKey, cfg);
+  var isPipelineObj = (objKey === 'opportunities' || objKey === 'leads');
 
   if (mode==='kanban' && cfg.hasKanban) {
     contentEl.innerHTML = filterHTML;
+    /* Pipeline Insight Section for Opps & Leads */
+    if (isPipelineObj) {
+      injectPipelineInsightStyles();
+      var insightDiv = document.createElement('div');
+      insightDiv.innerHTML = renderPipelineInsights(objKey, cfg, filtered) + renderLifecycleSummary(objKey, cfg, filtered);
+      contentEl.appendChild(insightDiv);
+    }
     var kanbanContainer = document.createElement('div');
     contentEl.appendChild(kanbanContainer);
     renderKanban(objKey, cfg, filtered, kanbanContainer);
@@ -493,15 +501,385 @@ function renderObjContent(objKey, cfg, mode, contentEl) {
   }
   else if (mode==='list') {
     contentEl.innerHTML = filterHTML;
+    if (isPipelineObj) {
+      injectPipelineInsightStyles();
+      var insightDiv2 = document.createElement('div');
+      insightDiv2.innerHTML = renderPipelineInsights(objKey, cfg, filtered) + renderLifecycleSummary(objKey, cfg, filtered);
+      contentEl.appendChild(insightDiv2);
+    }
     var listContainer = document.createElement('div');
     contentEl.appendChild(listContainer);
     renderListView(filtered, cfg.columns, listContainer, objKey);
+    bindFilterEvents(objKey, cfg, contentEl);
+  }
+  else if (mode==='analytics' && isPipelineObj) {
+    contentEl.innerHTML = filterHTML;
+    injectPipelineInsightStyles();
+    var analyticsDiv = document.createElement('div');
+    analyticsDiv.innerHTML = renderAnalyticsView(objKey, cfg, filtered);
+    contentEl.appendChild(analyticsDiv);
     bindFilterEvents(objKey, cfg, contentEl);
   }
   else {
     contentEl.innerHTML = filterHTML + '<div class="placeholder-view">'+svgIcon('chart',18,'var(--text-light)')+' '+mode.charAt(0).toUpperCase()+mode.slice(1)+' view — coming soon</div>';
     bindFilterEvents(objKey, cfg, contentEl);
   }
+}
+
+/* ═══════════════════════════════════════════════════════
+   PIPELINE INSIGHTS — Analytics Cards + Lifecycle Bar
+   ═══════════════════════════════════════════════════════ */
+
+function _piAmt(n) {
+  if (typeof fmtAmount === 'function') return fmtAmount(n);
+  if (!n || isNaN(n)) return '0';
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000) return Math.round(n / 1000) + 'K';
+  return n + '';
+}
+
+function _piIcon(name, size, color) {
+  if (typeof svgIcon === 'function') return svgIcon(name, size, color);
+  return '';
+}
+
+/* ─── Pipeline Funnel Card ────────────────────────────── */
+
+function renderFunnelCard(objKey, cfg, items) {
+  var stages = cfg.stages();
+  var funnelData = stages.map(function(s) {
+    var stageItems = items.filter(function(it) { return it.stage === s.key; });
+    var total = stageItems.reduce(function(sum, it) { return sum + (it.amount || it.estimatedValue || 0); }, 0);
+    return { label: s.label, color: s.color, count: stageItems.length, total: total };
+  });
+  var maxTotal = Math.max.apply(null, funnelData.map(function(d) { return d.total; })) || 1;
+  var grandTotal = funnelData.reduce(function(s, d) { return s + d.total; }, 0);
+  var totalDeals = items.length;
+
+  var h = '<div class="pi-card">';
+  h += '<div class="pi-card-head"><div class="pi-card-dot" style="background:var(--accent)"></div><span class="pi-card-title">Pipeline Funnel</span></div>';
+  h += '<div class="pi-funnel">';
+  funnelData.forEach(function(d, i) {
+    var widthPct = Math.max((d.total / maxTotal) * 100, d.count > 0 ? 18 : 5);
+    h += '<div class="pi-funnel-row">';
+    h += '<div class="pi-funnel-bar-wrap" style="width:' + widthPct + '%">';
+    h += '<div class="pi-funnel-bar" style="background:' + d.color + '">';
+    h += '<span class="pi-funnel-amt">' + _piAmt(d.total) + '</span>';
+    h += '</div></div>';
+    h += '<div class="pi-funnel-meta"><span class="pi-funnel-count">' + d.count + '</span><span class="pi-funnel-label">' + (d.count === 1 ? 'deal' : 'deals') + '</span></div>';
+    h += '</div>';
+  });
+  h += '</div>';
+  h += '<div class="pi-funnel-footer">';
+  h += '<span class="pi-funnel-total-icon">&#9660;</span> <strong>' + _piAmt(grandTotal) + '</strong>';
+  h += '<span class="pi-funnel-total-deals">' + totalDeals + ' ' + (objKey === 'leads' ? 'leads' : 'deals') + '</span>';
+  h += '</div></div>';
+  return h;
+}
+
+/* ─── Lifecycle Stage Distribution Card ───────────────── */
+
+function renderStageDistCard(objKey, cfg, items) {
+  var stages = cfg.stages();
+  var stageData = stages.map(function(s) {
+    return { label: s.label, color: s.color, count: items.filter(function(it) { return it.stage === s.key; }).length };
+  });
+  var maxCount = Math.max.apply(null, stageData.map(function(d) { return d.count; })) || 1;
+  var grandTotal = items.reduce(function(s, it) { return s + (it.amount || it.estimatedValue || 0); }, 0);
+
+  var h = '<div class="pi-card">';
+  h += '<div class="pi-card-head"><span class="pi-card-title">Lifecycle Stage Distribution</span></div>';
+  h += '<div class="pi-dist">';
+  stageData.forEach(function(d) {
+    var pct = Math.max((d.count / maxCount) * 100, d.count > 0 ? 12 : 0);
+    h += '<div class="pi-dist-row">';
+    h += '<span class="pi-dist-label">' + d.label + '</span>';
+    h += '<div class="pi-dist-track"><div class="pi-dist-fill" style="width:' + pct + '%;background:' + d.color + '"></div></div>';
+    h += '<span class="pi-dist-count">' + d.count + '</span>';
+    h += '</div>';
+  });
+  h += '</div>';
+  h += '<div class="pi-dist-footer"><span class="pi-funnel-total-icon">&#9660;</span> <strong>' + _piAmt(grandTotal) + '</strong></div>';
+  h += '</div>';
+  return h;
+}
+
+/* ─── Activities Donut Card ───────────────────────────── */
+
+function renderActivitiesDonut(objKey, items) {
+  var ACTIVITIES = window.DATA.activities || [];
+  /* Get related account IDs from items */
+  var accountIds = {};
+  items.forEach(function(it) { if (it.account) accountIds[it.account] = true; });
+
+  var actTypes = [
+    { key: 'Meeting', label: 'Meetings', color: '#8b5cf6' },
+    { key: 'Call', label: 'Calls', color: '#3b82f6' },
+    { key: 'Site Visit', label: 'Site Visits', color: '#10b981' },
+    { key: 'Email', label: 'Emails', color: '#f59e0b' }
+  ];
+  var actData = actTypes.map(function(t) {
+    return { label: t.label, color: t.color, count: ACTIVITIES.filter(function(a) { return a.type === t.key; }).length };
+  });
+  var total = actData.reduce(function(s, a) { return s + a.count; }, 0) || 1;
+
+  /* SVG donut */
+  var cx = 50, cy = 50, r = 38, circumference = 2 * Math.PI * r;
+  var offset = 0;
+  var donutPaths = '';
+  actData.forEach(function(a) {
+    var pct = a.count / total;
+    var dashLen = pct * circumference;
+    var dashGap = circumference - dashLen;
+    donutPaths += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + a.color + '" stroke-width="10" ' +
+      'stroke-dasharray="' + dashLen + ' ' + dashGap + '" stroke-dashoffset="-' + offset + '" ' +
+      'style="transition:stroke-dasharray .5s,stroke-dashoffset .5s" />';
+    offset += dashLen;
+  });
+
+  var h = '<div class="pi-card">';
+  h += '<div class="pi-card-head"><span class="pi-card-title">Activities</span><span class="pi-card-sub">(last 30 days)</span></div>';
+  h += '<div class="pi-donut-wrap">';
+  h += '<div class="pi-donut-chart">';
+  h += '<svg viewBox="0 0 100 100" width="92" height="92">';
+  h += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#f1f5f9" stroke-width="10" />';
+  h += donutPaths;
+  h += '</svg>';
+  h += '<div class="pi-donut-center"><span class="pi-donut-num">' + total + '</span></div>';
+  h += '</div>';
+  h += '<div class="pi-donut-legend">';
+  actData.forEach(function(a) {
+    h += '<div class="pi-donut-legend-row">';
+    h += '<span class="pi-donut-dot" style="background:' + a.color + '"></span>';
+    h += '<span class="pi-donut-label">' + a.label + '</span>';
+    h += '<span class="pi-donut-val">' + a.count + '</span>';
+    h += '</div>';
+  });
+  h += '</div></div>';
+  /* Footer summary */
+  var summary = actData.map(function(a) {
+    return '<span class="pi-act-sum"><span class="pi-act-sum-dot" style="background:' + a.color + '"></span>' + a.count + ' ' + a.label.toLowerCase() + '</span>';
+  }).join('');
+  h += '<div class="pi-act-footer">' + summary + '</div>';
+  h += '</div>';
+  return h;
+}
+
+/* ─── Pipeline Insights (3 cards row) ─────────────────── */
+
+function renderPipelineInsights(objKey, cfg, items) {
+  var h = '<div class="pi-section">';
+  h += '<div class="pi-cards-row">';
+  h += renderFunnelCard(objKey, cfg, items);
+  h += renderStageDistCard(objKey, cfg, items);
+  h += renderActivitiesDonut(objKey, items);
+  h += '</div></div>';
+  return h;
+}
+
+/* ─── Lifecycle Summary Bar ───────────────────────────── */
+
+function renderLifecycleSummary(objKey, cfg, items) {
+  var stages = cfg.stages();
+  var stageData = stages.map(function(s) {
+    var stageItems = items.filter(function(it) { return it.stage === s.key; });
+    var total = stageItems.reduce(function(sum, it) { return sum + (it.amount || it.estimatedValue || 0); }, 0);
+    return { key: s.key, label: s.label, color: s.color, count: stageItems.length, total: total };
+  });
+  var grandTotal = stageData.reduce(function(s, d) { return s + d.total; }, 0) || 1;
+
+  var h = '<div class="pi-lifecycle">';
+  h += '<div class="pi-lifecycle-bar">';
+  stageData.forEach(function(d, i) {
+    var barPct = Math.max((d.total / grandTotal) * 100, d.count > 0 ? 6 : 2);
+    h += '<div class="pi-lc-col" style="flex:' + barPct + '">';
+    h += '<div class="pi-lc-head">';
+    h += '<span class="pi-lc-dot" style="background:' + d.color + '"></span>';
+    h += '<span class="pi-lc-stage">' + d.label.toUpperCase() + '</span>';
+    h += '</div>';
+    h += '<div class="pi-lc-vals">';
+    h += '<span class="pi-lc-amount">' + _piAmt(d.total) + '</span>';
+    h += '<span class="pi-lc-count">' + d.count + ' ' + (d.count === 1 ? 'deal' : 'deals') + '</span>';
+    h += '</div>';
+    h += '<div class="pi-lc-bar" style="background:' + d.color + '"></div>';
+    h += '</div>';
+  });
+  h += '</div></div>';
+  return h;
+}
+
+/* ─── Full Analytics View ─────────────────────────────── */
+
+function renderAnalyticsView(objKey, cfg, items) {
+  var h = '<div class="pi-analytics-full">';
+  h += renderPipelineInsights(objKey, cfg, items);
+  h += renderLifecycleSummary(objKey, cfg, items);
+
+  /* Extra analytics: Top deals + Stage conversion */
+  var stages = cfg.stages();
+  var sorted = items.slice().sort(function(a, b) { return (b.amount || b.estimatedValue || 0) - (a.amount || a.estimatedValue || 0); });
+  var top5 = sorted.slice(0, 6);
+
+  h += '<div class="pi-section"><div class="pi-cards-row pi-cards-row-2">';
+
+  /* Top Deals */
+  h += '<div class="pi-card">';
+  h += '<div class="pi-card-head"><span class="pi-card-title">Top ' + (objKey === 'leads' ? 'Leads' : 'Opportunities') + '</span></div>';
+  h += '<div class="pi-top-list">';
+  top5.forEach(function(item, i) {
+    var accName = getAccountName(item.account);
+    var val = item.amount || item.estimatedValue || 0;
+    h += '<div class="pi-top-row">';
+    h += '<span class="pi-top-rank">#' + (i + 1) + '</span>';
+    h += '<div class="pi-top-info"><span class="pi-top-name">' + item.name + '</span><span class="pi-top-account">' + accName + '</span></div>';
+    h += '<span class="pi-top-val">' + _piAmt(val) + '</span>';
+    h += '</div>';
+  });
+  h += '</div></div>';
+
+  /* Stage Breakdown */
+  h += '<div class="pi-card">';
+  h += '<div class="pi-card-head"><span class="pi-card-title">Pipeline by Stage</span></div>';
+  var stageBreak = stages.map(function(s) {
+    var stageItems = items.filter(function(it) { return it.stage === s.key; });
+    var total = stageItems.reduce(function(sum, it) { return sum + (it.amount || it.estimatedValue || 0); }, 0);
+    return { label: s.label, color: s.color, count: stageItems.length, total: total };
+  });
+  var maxBreak = Math.max.apply(null, stageBreak.map(function(d) { return d.total; })) || 1;
+  h += '<div class="pi-breakdown">';
+  stageBreak.forEach(function(d) {
+    var pct = Math.max((d.total / maxBreak) * 100, d.count > 0 ? 8 : 0);
+    h += '<div class="pi-break-row">';
+    h += '<div class="pi-break-label"><span class="pi-lc-dot" style="background:' + d.color + '"></span>' + d.label + '</div>';
+    h += '<div class="pi-break-bar-track"><div class="pi-break-bar-fill" style="width:' + pct + '%;background:' + d.color + '"></div></div>';
+    h += '<div class="pi-break-meta"><span class="pi-break-amt">' + _piAmt(d.total) + '</span><span class="pi-break-cnt">' + d.count + ' deals</span></div>';
+    h += '</div>';
+  });
+  h += '</div></div>';
+
+  h += '</div></div>';
+  h += '</div>';
+  return h;
+}
+
+/* ─── Pipeline Insight Styles ─────────────────────────── */
+
+function injectPipelineInsightStyles() {
+  if (document.getElementById('pi-css')) return;
+  var s = document.createElement('style'); s.id = 'pi-css';
+  s.textContent = '\
+/* ═══ Pipeline Insight Section ═══ */\
+.pi-section{padding:12px 14px 0}\
+.pi-cards-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}\
+.pi-cards-row-2{grid-template-columns:1fr 1fr}\
+\
+/* Card */\
+.pi-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;\
+  display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 2px rgba(0,0,0,.03);\
+  transition:box-shadow .15s,border-color .15s}\
+.pi-card:hover{box-shadow:0 3px 12px rgba(0,0,0,.05);border-color:#d0d5dd}\
+.pi-card-head{display:flex;align-items:center;gap:6px}\
+.pi-card-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}\
+.pi-card-title{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}\
+.pi-card-sub{font-size:9.5px;color:var(--text-light);font-weight:500}\
+\
+/* Funnel */\
+.pi-funnel{display:flex;flex-direction:column;gap:4px;align-items:flex-start}\
+.pi-funnel-row{display:flex;align-items:center;gap:8px;width:100%}\
+.pi-funnel-bar-wrap{transition:width .4s;min-width:30px}\
+.pi-funnel-bar{height:24px;border-radius:5px;display:flex;align-items:center;padding:0 8px;\
+  transition:width .4s;min-width:30px}\
+.pi-funnel-amt{font-size:10px;font-weight:700;color:#fff;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.15)}\
+.pi-funnel-meta{display:flex;align-items:baseline;gap:3px}\
+.pi-funnel-count{font-size:12px;font-weight:700;color:var(--text)}\
+.pi-funnel-label{font-size:9px;color:var(--text-light);font-weight:500}\
+.pi-funnel-footer{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);\
+  padding-top:6px;border-top:1px solid var(--border)}\
+.pi-funnel-footer strong{font-size:13px;color:var(--text)}\
+.pi-funnel-total-icon{font-size:8px;color:var(--text-light)}\
+.pi-funnel-total-deals{font-size:10px;color:var(--text-light);margin-left:auto}\
+\
+/* Stage Distribution */\
+.pi-dist{display:flex;flex-direction:column;gap:5px}\
+.pi-dist-row{display:flex;align-items:center;gap:8px}\
+.pi-dist-label{width:72px;font-size:10.5px;font-weight:600;color:var(--text-muted);text-align:right;flex-shrink:0}\
+.pi-dist-track{flex:1;height:14px;background:#f1f5f9;border-radius:4px;overflow:hidden}\
+.pi-dist-fill{height:100%;border-radius:4px;transition:width .4s}\
+.pi-dist-count{width:20px;font-size:11px;font-weight:700;color:var(--text);text-align:right}\
+.pi-dist-footer{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);\
+  padding-top:6px;border-top:1px solid var(--border)}\
+.pi-dist-footer strong{font-size:13px;color:var(--text)}\
+\
+/* Donut */\
+.pi-donut-wrap{display:flex;align-items:center;gap:16px}\
+.pi-donut-chart{position:relative;flex-shrink:0}\
+.pi-donut-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}\
+.pi-donut-num{font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.5px}\
+.pi-donut-legend{display:flex;flex-direction:column;gap:6px;flex:1}\
+.pi-donut-legend-row{display:flex;align-items:center;gap:6px}\
+.pi-donut-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}\
+.pi-donut-label{font-size:11px;font-weight:500;color:var(--text-muted);flex:1}\
+.pi-donut-val{font-size:12px;font-weight:700;color:var(--text)}\
+.pi-act-footer{display:flex;flex-wrap:wrap;gap:6px 12px;padding-top:8px;border-top:1px solid var(--border)}\
+.pi-act-sum{display:flex;align-items:center;gap:3px;font-size:9px;color:var(--text-muted);font-weight:500}\
+.pi-act-sum-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}\
+\
+/* Lifecycle Summary */\
+.pi-lifecycle{padding:8px 14px 4px}\
+.pi-lifecycle-bar{display:flex;gap:2px}\
+.pi-lc-col{display:flex;flex-direction:column;gap:4px;min-width:0;\
+  background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;\
+  transition:box-shadow .15s}\
+.pi-lc-col:hover{box-shadow:0 2px 8px rgba(0,0,0,.04)}\
+.pi-lc-head{display:flex;align-items:center;gap:4px}\
+.pi-lc-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}\
+.pi-lc-stage{font-size:9px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\
+.pi-lc-vals{display:flex;flex-direction:column;gap:1px}\
+.pi-lc-amount{font-size:15px;font-weight:800;color:var(--text);letter-spacing:-.3px;line-height:1.1}\
+.pi-lc-count{font-size:9px;color:var(--text-light);font-weight:500}\
+.pi-lc-bar{height:4px;border-radius:2px;width:100%;transition:background .3s}\
+\
+/* Analytics Full View */\
+.pi-analytics-full{padding-bottom:20px}\
+\
+/* Top Deals */\
+.pi-top-list{display:flex;flex-direction:column;gap:2px}\
+.pi-top-row{display:flex;align-items:center;gap:8px;padding:6px 4px;border-radius:5px;transition:background .12s}\
+.pi-top-row:hover{background:#f8f9fb}\
+.pi-top-rank{font-size:10px;font-weight:700;color:var(--text-light);width:22px;flex-shrink:0;text-align:center}\
+.pi-top-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}\
+.pi-top-name{font-size:11px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\
+.pi-top-account{font-size:9px;color:var(--text-light)}\
+.pi-top-val{font-size:12px;font-weight:700;color:var(--text);flex-shrink:0}\
+\
+/* Breakdown */\
+.pi-breakdown{display:flex;flex-direction:column;gap:6px}\
+.pi-break-row{display:flex;align-items:center;gap:8px}\
+.pi-break-label{display:flex;align-items:center;gap:4px;width:80px;flex-shrink:0;font-size:10px;font-weight:600;color:var(--text-muted)}\
+.pi-break-bar-track{flex:1;height:12px;background:#f1f5f9;border-radius:4px;overflow:hidden}\
+.pi-break-bar-fill{height:100%;border-radius:4px;transition:width .4s}\
+.pi-break-meta{display:flex;flex-direction:column;align-items:flex-end;width:55px;flex-shrink:0}\
+.pi-break-amt{font-size:10px;font-weight:700;color:var(--text)}\
+.pi-break-cnt{font-size:8px;color:var(--text-light)}\
+\
+/* ═══ Responsive ═══ */\
+@media(max-width:1024px){\
+  .pi-cards-row{grid-template-columns:1fr 1fr}\
+  .pi-cards-row-2{grid-template-columns:1fr}\
+  .pi-lifecycle-bar{flex-wrap:wrap}\
+  .pi-lc-col{flex:1 0 calc(33% - 2px);min-width:100px}\
+}\
+@media(max-width:640px){\
+  .pi-cards-row{grid-template-columns:1fr}\
+  .pi-cards-row-2{grid-template-columns:1fr}\
+  .pi-section{padding:8px 10px 0}\
+  .pi-lifecycle{padding:6px 10px 2px}\
+  .pi-lc-col{flex:1 0 calc(50% - 2px)}\
+  .pi-donut-wrap{flex-direction:column;align-items:flex-start}\
+  .pi-dist-label{width:56px;font-size:9px}\
+}\
+';
+  document.head.appendChild(s);
 }
 
 /* ─── Create Modal ───────────────────────────────────── */
