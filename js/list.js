@@ -9,32 +9,32 @@ function injectListV2Styles() {
   if (document.getElementById('list-v2-css')) return;
   var s = document.createElement('style'); s.id = 'list-v2-css';
   s.textContent = '\
-/* ═══ V2 Container — centered layout ═══════════ */\
+/* ═══ V2 Centered Container ════════════════════ */\
 .lv2-container{max-width:1400px;margin:0 auto;padding:32px 40px 40px}\
 \
 /* ═══ Key Relationships Strip ═══════════════════ */\
 .lv2-key-section{margin-bottom:32px}\
-.lv2-key-title{font-size:12px;font-weight:700;color:var(--text-light);margin-bottom:10px;display:flex;align-items:center;gap:5px;text-transform:uppercase;letter-spacing:.04em}\
+.lv2-key-title{font-size:12px;font-weight:700;color:var(--text-light);margin-bottom:12px;display:flex;align-items:center;gap:5px;text-transform:uppercase;letter-spacing:.04em}\
 .lv2-key-title svg{flex-shrink:0}\
-.lv2-key-cards{display:grid;grid-template-columns:repeat(4,minmax(0,260px));gap:12px}\
-.lv2-key-card{background:var(--card);border-radius:10px;padding:12px 14px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px}\
-.lv2-key-card:hover{box-shadow:0 4px 14px rgba(0,0,0,.07);border-color:#d0d5dd;transform:translateY(-1px)}\
-.lv2-key-inner{display:flex;align-items:center;gap:10px;width:100%}\
-.lv2-key-avatar{width:40px;height:40px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border);flex-shrink:0;background:#f8fafc}\
-.lv2-key-avatar-placeholder{width:40px;height:40px;border-radius:50%;background:#f1f5f9;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0}\
-.lv2-key-avatar-acct{border-radius:8px}\
-.lv2-key-initials{font-size:13px;font-weight:700;color:var(--text-light)}\
-.lv2-key-info{flex:1;min-width:0}\
-.lv2-key-name{font-size:12.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\
-.lv2-key-meta{font-size:11px;color:var(--text-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\
-.lv2-key-pipeline{font-size:11px;margin-top:2px}\
+.lv2-key-cards{display:flex;flex-wrap:wrap;justify-content:center;align-items:stretch;gap:20px}\
+.lv2-key-card{width:280px;max-width:320px;flex:0 0 280px;background:var(--card);border-radius:11px;padding:14px 16px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);cursor:pointer;transition:all .15s;display:flex;flex-direction:column}\
+.lv2-key-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-1px)}\
+.lv2-key-inner{display:flex;align-items:center;gap:12px;min-width:0}\
+.lv2-key-avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border);flex-shrink:0;background:#f8fafc}\
+.lv2-key-avatar-placeholder{width:42px;height:42px;border-radius:50%;background:#f1f5f9;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0}\
+.lv2-key-avatar-acct{border-radius:9px}\
+.lv2-key-initials{font-size:14px;font-weight:700;color:var(--text-light)}\
+.lv2-key-info{flex:1;min-width:0;overflow:hidden}\
+.lv2-key-name{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\
+.lv2-key-meta{font-size:11.5px;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\
+.lv2-key-pipeline{font-size:11.5px;margin-top:3px;white-space:nowrap}\
 .lv2-key-pipeline-val{font-weight:700;color:var(--accent)}\
 .lv2-key-pipeline-lbl{color:var(--text-light);font-size:11px}\
-.lv2-key-extra{display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid #f1f5f9}\
+.lv2-key-extra{display:flex;align-items:center;gap:6px;margin-top:auto;padding-top:10px;border-top:1px solid #f1f5f9}\
 .lv2-key-extra-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}\
 .lv2-key-extra-text{font-size:11px;color:var(--text-muted)}\
 .lv2-key-extra-sep{color:#e2e8f0;font-size:11px}\
-.lv2-key-add{background:var(--card);border:1.5px dashed var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--text-light);font-size:12px;font-weight:600}\
+.lv2-key-add{width:280px;max-width:320px;flex:0 0 280px;background:var(--card);border:1.5px dashed var(--border);border-radius:11px;padding:14px 16px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--text-light);font-size:12.5px;font-weight:600}\
 .lv2-key-add:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}\
 \
 /* ═══ Enhanced Table ════════════════════════════ */\
@@ -77,17 +77,19 @@ function injectListV2Styles() {
 \
 /* ═══ Responsive ════════════════════════════════ */\
 @media(max-width:1024px){\
-  .lv2-container{padding:20px 20px 28px}\
-  .lv2-key-cards{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}\
+  .lv2-container{padding:24px 20px 32px}\
+  .lv2-key-card,.lv2-key-add{width:240px;flex:0 0 240px}\
+  .lv2-key-cards{gap:14px}\
   .lv2-table-wrap{overflow-x:auto}\
   .lv2-table{min-width:700px}\
 }\
 @media(max-width:640px){\
   .lv2-container{padding:16px 12px 24px}\
   .lv2-key-section{margin-bottom:20px}\
-  .lv2-key-cards{grid-template-columns:repeat(2,1fr);gap:8px}\
-  .lv2-key-card{padding:10px}\
-  .lv2-key-avatar,.lv2-key-avatar-placeholder{width:34px;height:34px}\
+  .lv2-key-cards{gap:10px}\
+  .lv2-key-card,.lv2-key-add{width:100%;flex:0 0 100%;max-width:100%}\
+  .lv2-key-card{padding:12px}\
+  .lv2-key-avatar,.lv2-key-avatar-placeholder{width:36px;height:36px}\
   .lv2-table{min-width:550px}\
   .lv2-table th,.lv2-table td{padding:7px 10px;font-size:11px}\
 }\
@@ -201,6 +203,8 @@ function renderListViewV2(items, columns, container, objKey) {
     }
     keyRecords = ranked.slice(0, 3);
   }
+  /* Cap at 5 max */
+  if (keyRecords.length > 5) keyRecords = keyRecords.slice(0, 5);
 
   var _starTitleSvg = '<svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
 
@@ -259,7 +263,7 @@ function renderListViewV2(items, columns, container, objKey) {
         '</div></div>' + extraHTML + '</div>';
     });
 
-    keyHTML += '<div class="lv2-key-add" id="lv2-add-key">' + svgIcon('plus',13,'currentColor') + ' Add Key</div>';
+    keyHTML += '<div class="lv2-key-add" id="lv2-add-key">' + svgIcon('plus',14,'currentColor') + ' Add Key</div>';
     keyHTML += '</div></div>';
   }
 
@@ -394,7 +398,7 @@ function renderListViewV2(items, columns, container, objKey) {
 
   tableHTML += '</tbody></table></div></div>';
 
-  /* ── Inject into container — wrapped in centered layout ── */
+  /* ── Inject into container — centered layout ── */
   container.innerHTML = '<div class="lv2-container">' + keyHTML + tableHTML + '</div>';
 
   /* ── Wire events ── */
