@@ -552,25 +552,61 @@ function renderFunnelCard(objKey, cfg, items) {
     var total = stageItems.reduce(function(sum, it) { return sum + (it.amount || it.estimatedValue || 0); }, 0);
     return { label: s.label, color: s.color, count: stageItems.length, total: total };
   });
-  var maxTotal = Math.max.apply(null, funnelData.map(function(d) { return d.total; })) || 1;
   var grandTotal = funnelData.reduce(function(s, d) { return s + d.total; }, 0);
   var totalDeals = items.length;
+  var n = funnelData.length;
 
+  /* ── SVG Funnel — trapezoids narrowing downward ── */
+  var svgW = 220, rowH = 28, gap = 3;
+  var svgH = n * (rowH + gap) - gap;
+  var maxWidthPct = 0.95;   /* widest row = 95% of SVG */
+  var minWidthPct = 0.22;   /* narrowest row */
+  var centerX = svgW / 2;
+
+  var funnelSvg = '<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" class="pi-funnel-svg">';
+
+  funnelData.forEach(function(d, i) {
+    var y = i * (rowH + gap);
+    /* Top width for this row — linear taper from max to min */
+    var topPct = maxWidthPct - (i / Math.max(n - 1, 1)) * (maxWidthPct - minWidthPct);
+    /* Bottom width — next step narrower, except last row uses minWidthPct */
+    var botPct = (i < n - 1)
+      ? maxWidthPct - ((i + 1) / Math.max(n - 1, 1)) * (maxWidthPct - minWidthPct)
+      : minWidthPct * 0.8;
+
+    var topHalf = (topPct * svgW) / 2;
+    var botHalf = (botPct * svgW) / 2;
+
+    /* Trapezoid points: top-left, top-right, bottom-right, bottom-left */
+    var x1 = centerX - topHalf, x2 = centerX + topHalf;
+    var x3 = centerX + botHalf, x4 = centerX - botHalf;
+    var points = x1 + ',' + y + ' ' + x2 + ',' + y + ' ' + x3 + ',' + (y + rowH) + ' ' + x4 + ',' + (y + rowH);
+
+    funnelSvg += '<polygon points="' + points + '" fill="' + d.color + '" rx="3" opacity="0.92" />';
+
+    /* Amount text centered in trapezoid */
+    var textY = y + rowH / 2 + 1;
+    var amtText = _piAmt(d.total);
+    funnelSvg += '<text x="' + centerX + '" y="' + textY + '" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="10" font-weight="700" font-family="DM Sans,sans-serif" style="text-shadow:0 1px 2px rgba(0,0,0,.2)">' + amtText + '</text>';
+  });
+
+  funnelSvg += '</svg>';
+
+  /* ── Build card ── */
   var h = '<div class="pi-card">';
   h += '<div class="pi-card-head"><div class="pi-card-dot" style="background:var(--accent)"></div><span class="pi-card-title">Pipeline Funnel</span></div>';
-  h += '<div class="pi-funnel">';
+  h += '<div class="pi-funnel-visual">';
+  h += '<div class="pi-funnel-svg-col">' + funnelSvg + '</div>';
+  h += '<div class="pi-funnel-labels">';
   funnelData.forEach(function(d, i) {
-    var widthPct = Math.max((d.total / maxTotal) * 100, d.count > 0 ? 18 : 5);
-    h += '<div class="pi-funnel-row">';
-    h += '<div class="pi-funnel-bar-wrap" style="width:' + widthPct + '%">';
-    h += '<div class="pi-funnel-bar" style="background:' + d.color + '">';
-    h += '<span class="pi-funnel-amt">' + _piAmt(d.total) + '</span>';
-    h += '</div></div>';
-    h += '<div class="pi-funnel-meta"><span class="pi-funnel-count">' + d.count + '</span><span class="pi-funnel-label">' + (d.count === 1 ? 'deal' : 'deals') + '</span></div>';
+    h += '<div class="pi-funnel-label-row" style="height:' + rowH + 'px;margin-bottom:' + gap + 'px">';
+    h += '<span class="pi-funnel-count">' + d.count + '</span>';
+    h += '<span class="pi-funnel-label">' + (d.count === 1 ? 'deal' : 'deals') + '</span>';
     h += '</div>';
   });
-  h += '</div>';
+  h += '</div></div>';
   h += '<div class="pi-funnel-footer">';
+  h += '<span class="pi-funnel-won-badge" style="background:' + (funnelData.length > 0 ? funnelData[funnelData.length - 1].color : 'var(--success)') + '">' + (funnelData.length > 0 ? funnelData[funnelData.length - 1].label : 'Won') + ' ' + (funnelData.length > 0 ? funnelData[funnelData.length - 1].count : 0) + '</span>';
   h += '<span class="pi-funnel-total-icon">&#9660;</span> <strong>' + _piAmt(grandTotal) + '</strong>';
   h += '<span class="pi-funnel-total-deals">' + totalDeals + ' ' + (objKey === 'leads' ? 'leads' : 'deals') + '</span>';
   h += '</div></div>';
@@ -691,8 +727,9 @@ function renderLifecycleSummary(objKey, cfg, items) {
   var h = '<div class="pi-lifecycle">';
   h += '<div class="pi-lifecycle-bar">';
   stageData.forEach(function(d, i) {
-    var barPct = Math.max((d.total / grandTotal) * 100, d.count > 0 ? 6 : 2);
-    h += '<div class="pi-lc-col" style="flex:' + barPct + '">';
+    /* Equal width columns — bar inside shows proportional fill */
+    var fillPct = Math.max((d.total / grandTotal) * 100, d.count > 0 ? 12 : 0);
+    h += '<div class="pi-lc-col">';
     h += '<div class="pi-lc-head">';
     h += '<span class="pi-lc-dot" style="background:' + d.color + '"></span>';
     h += '<span class="pi-lc-stage">' + d.label.toUpperCase() + '</span>';
@@ -701,7 +738,7 @@ function renderLifecycleSummary(objKey, cfg, items) {
     h += '<span class="pi-lc-amount">' + _piAmt(d.total) + '</span>';
     h += '<span class="pi-lc-count">' + d.count + ' ' + (d.count === 1 ? 'deal' : 'deals') + '</span>';
     h += '</div>';
-    h += '<div class="pi-lc-bar" style="background:' + d.color + '"></div>';
+    h += '<div class="pi-lc-bar-track"><div class="pi-lc-bar-fill" style="width:' + fillPct + '%;background:' + d.color + '"></div></div>';
     h += '</div>';
   });
   h += '</div></div>';
@@ -784,13 +821,11 @@ function injectPipelineInsightStyles() {
 .pi-card-sub{font-size:9.5px;color:var(--text-light);font-weight:500}\
 \
 /* Funnel */\
-.pi-funnel{display:flex;flex-direction:column;gap:4px;align-items:flex-start}\
-.pi-funnel-row{display:flex;align-items:center;gap:8px;width:100%}\
-.pi-funnel-bar-wrap{transition:width .4s;min-width:30px}\
-.pi-funnel-bar{height:24px;border-radius:5px;display:flex;align-items:center;padding:0 8px;\
-  transition:width .4s;min-width:30px}\
-.pi-funnel-amt{font-size:10px;font-weight:700;color:#fff;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.15)}\
-.pi-funnel-meta{display:flex;align-items:baseline;gap:3px}\
+.pi-funnel-visual{display:flex;align-items:flex-start;gap:10px}\
+.pi-funnel-svg-col{flex:1;min-width:0}\
+.pi-funnel-svg{display:block}\
+.pi-funnel-labels{display:flex;flex-direction:column;flex-shrink:0}\
+.pi-funnel-label-row{display:flex;align-items:center;gap:3px}\
 .pi-funnel-count{font-size:12px;font-weight:700;color:var(--text)}\
 .pi-funnel-label{font-size:9px;color:var(--text-light);font-weight:500}\
 .pi-funnel-footer{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);\
@@ -798,6 +833,7 @@ function injectPipelineInsightStyles() {
 .pi-funnel-footer strong{font-size:13px;color:var(--text)}\
 .pi-funnel-total-icon{font-size:8px;color:var(--text-light)}\
 .pi-funnel-total-deals{font-size:10px;color:var(--text-light);margin-left:auto}\
+.pi-funnel-won-badge{font-size:9px;font-weight:700;color:#fff;padding:2px 8px;border-radius:5px;letter-spacing:.02em}\
 \
 /* Stage Distribution */\
 .pi-dist{display:flex;flex-direction:column;gap:5px}\
@@ -826,8 +862,8 @@ function injectPipelineInsightStyles() {
 \
 /* Lifecycle Summary */\
 .pi-lifecycle{padding:8px 14px 4px}\
-.pi-lifecycle-bar{display:flex;gap:2px}\
-.pi-lc-col{display:flex;flex-direction:column;gap:4px;min-width:0;\
+.pi-lifecycle-bar{display:flex;gap:6px}\
+.pi-lc-col{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0;\
   background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;\
   transition:box-shadow .15s}\
 .pi-lc-col:hover{box-shadow:0 2px 8px rgba(0,0,0,.04)}\
@@ -837,7 +873,8 @@ function injectPipelineInsightStyles() {
 .pi-lc-vals{display:flex;flex-direction:column;gap:1px}\
 .pi-lc-amount{font-size:15px;font-weight:800;color:var(--text);letter-spacing:-.3px;line-height:1.1}\
 .pi-lc-count{font-size:9px;color:var(--text-light);font-weight:500}\
-.pi-lc-bar{height:4px;border-radius:2px;width:100%;transition:background .3s}\
+.pi-lc-bar-track{height:4px;border-radius:2px;background:#f1f5f9;overflow:hidden;width:100%}\
+.pi-lc-bar-fill{height:100%;border-radius:2px;transition:width .4s}\
 \
 /* Analytics Full View */\
 .pi-analytics-full{padding-bottom:20px}\
