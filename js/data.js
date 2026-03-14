@@ -1,9 +1,9 @@
 /* data.js — Mock Data (10 per object, BTP/Construction sector) */
 window.DATA = {
   accounts: [
-    {id:'a1',name:'Bouygues Construction',industry:'General Contractor',city:'Paris',pipeline:109500000,opps:3,status:'Active'},
-    {id:'a2',name:'Vinci Immobilier',industry:'Real Estate Developer',city:'Nanterre',pipeline:12000000,opps:1,status:'Active'},
-    {id:'a3',name:'Eiffage Génie Civil',industry:'Civil Engineering',city:'Vélizy',pipeline:23000000,opps:1,status:'Active'},
+    {id:'a1',name:'Bouygues Construction',industry:'General Contractor',city:'Paris',pipeline:109500000,opps:3,status:'Active',keyRelationship:true},
+    {id:'a2',name:'Vinci Immobilier',industry:'Real Estate Developer',city:'Nanterre',pipeline:12000000,opps:1,status:'Active',keyRelationship:true},
+    {id:'a3',name:'Eiffage Génie Civil',industry:'Civil Engineering',city:'Vélizy',pipeline:23000000,opps:1,status:'Active',keyRelationship:true},
     {id:'a4',name:'Spie Batignolles',industry:'General Contractor',city:'Neuilly-sur-Seine',pipeline:19000000,opps:1,status:'Active'},
     {id:'a5',name:'Colas Group',industry:'Road & Rail',city:'Boulogne',pipeline:32000000,opps:1,status:'Active'},
     {id:'a6',name:'NGE Fondations',industry:'Foundations & Piling',city:'Lyon',pipeline:0,opps:0,status:'Prospect'},
@@ -13,9 +13,9 @@ window.DATA = {
     {id:'a10',name:'Soletanche Bachy',industry:'Foundations & Piling',city:'Nice',pipeline:18000000,opps:1,status:'Active'}
   ],
   contacts: [
-    {id:'c1',name:'Jean-Pierre Martin',account:'a1',role:'Directeur Travaux',email:'jp.martin@bouygues.fr',phone:'+33 6 12 34 56 78'},
-    {id:'c2',name:'Sophie Durand',account:'a2',role:'Chef de Projet',email:'s.durand@vinci.com',phone:'+33 6 23 45 67 89'},
-    {id:'c3',name:'Marc Lefèvre',account:'a3',role:'Responsable Achats',email:'m.lefevre@eiffage.com',phone:'+33 6 34 56 78 90'},
+    {id:'c1',name:'Jean-Pierre Martin',account:'a1',role:'Directeur Travaux',email:'jp.martin@bouygues.fr',phone:'+33 6 12 34 56 78',keyRelationship:true},
+    {id:'c2',name:'Sophie Durand',account:'a2',role:'Chef de Projet',email:'s.durand@vinci.com',phone:'+33 6 23 45 67 89',keyRelationship:true},
+    {id:'c3',name:'Marc Lefèvre',account:'a3',role:'Responsable Achats',email:'m.lefevre@eiffage.com',phone:'+33 6 34 56 78 90',keyRelationship:true},
     {id:'c4',name:'Isabelle Moreau',account:'a4',role:'DG Adjoint',email:'i.moreau@spie.com',phone:'+33 6 45 67 89 01'},
     {id:'c5',name:'Thomas Girard',account:'a5',role:'Ingénieur Études',email:'t.girard@colas.com',phone:'+33 6 56 78 90 12'},
     {id:'c6',name:'Claire Rousseau',account:'a6',role:'Directrice Commerciale',email:'c.rousseau@nge.fr',phone:'+33 6 67 89 01 23'},

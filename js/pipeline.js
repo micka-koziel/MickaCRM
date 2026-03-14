@@ -104,7 +104,8 @@ var OBJ_CONFIG = {
         {value:'Engineering Consultancy',label:'Engineering Consultancy'}
       ];}},
       {key:'city',label:'City',type:'text'},
-      {key:'status',label:'Status',type:'select',options:function(){return [{value:'Active',label:'Active'},{value:'Prospect',label:'Prospect'}];}}
+      {key:'status',label:'Status',type:'select',options:function(){return [{value:'Active',label:'Active'},{value:'Prospect',label:'Prospect'}];}},
+      {key:'keyRelationship',label:'Key Relationship',type:'select',options:function(){return [{value:true,label:'Yes'},{value:false,label:'No'}];}}
     ]
   },
   contacts: {
@@ -135,7 +136,8 @@ var OBJ_CONFIG = {
         {value:'Other',label:'Other'}
       ];}},
       {key:'email',label:'Email',type:'text'},
-      {key:'phone',label:'Phone',type:'text'}
+      {key:'phone',label:'Phone',type:'text'},
+      {key:'keyRelationship',label:'Key Relationship',type:'select',options:function(){return [{value:true,label:'Yes'},{value:false,label:'No'}];}}
     ]
   },
   quotes: {
@@ -509,7 +511,12 @@ function renderObjContent(objKey, cfg, mode, contentEl) {
     }
     var listContainer = document.createElement('div');
     contentEl.appendChild(listContainer);
-    renderListView(filtered, cfg.columns, listContainer, objKey);
+    /* V2 enhanced list for contacts & accounts */
+    if ((objKey === 'contacts' || objKey === 'accounts') && typeof renderListViewV2 === 'function') {
+      renderListViewV2(filtered, cfg.columns, listContainer, objKey);
+    } else {
+      renderListView(filtered, cfg.columns, listContainer, objKey);
+    }
     bindFilterEvents(objKey, cfg, contentEl);
   }
   else if (mode==='analytics' && isPipelineObj) {
