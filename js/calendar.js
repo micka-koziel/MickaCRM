@@ -4,7 +4,7 @@
    Styles injected via injectCalStyles()
    ═══════════════════════════════════════════════════════ */
 
-var calState = { view: 'month', currentDate: new Date(), editingId: null };
+var calState = { view: 'week', currentDate: new Date(), editingId: null };
 
 /* ── Type colors ── */
 var CAL_TYPE_COLORS = {
@@ -127,6 +127,16 @@ function renderCalendarPage(headerEl, contentEl) {
       calOpenModal(null, ds, hour + ':00', headerEl, contentEl);
     });
   });
+
+  /* Auto-scroll to current hour in week view */
+  if (calState.view === 'week') {
+    var nowRow = document.getElementById('cal-now-row');
+    var weekBody = document.getElementById('cal-week-body');
+    if (nowRow && weekBody) {
+      var offset = nowRow.offsetTop - weekBody.offsetTop - 80;
+      weekBody.scrollTop = Math.max(0, offset);
+    }
+  }
 }
 
 function calGetTitle(d) {
@@ -213,8 +223,18 @@ function calRenderMonth(d) {
 function calRenderWeek(d) {
   var ws = calGetWeekStart(d);
   var today = calDateStr(new Date());
+  var now = new Date();
+  var nowHour = now.getHours();
+  var nowMin = now.getMinutes();
   var hours = [];
   for (var hh = 7; hh <= 20; hh++) hours.push(hh);
+
+  /* Find today's column index (0-6, -1 if not in this week) */
+  var todayCol = -1;
+  for (var ti = 0; ti < 7; ti++) {
+    var td = new Date(ws); td.setDate(td.getDate() + ti);
+    if (calDateStr(td) === today) { todayCol = ti; break; }
+  }
 
   var h = '<div class="cal-week">';
 
@@ -232,9 +252,10 @@ function calRenderWeek(d) {
   h += '</div>';
 
   /* Body */
-  h += '<div class="cal-week-body">';
+  h += '<div class="cal-week-body" id="cal-week-body">';
   hours.forEach(function(hr) {
-    h += '<div class="cal-week-row">';
+    var isNowRow = (todayCol >= 0 && hr === nowHour && nowHour >= 7 && nowHour <= 20);
+    h += '<div class="cal-week-row' + (isNowRow ? ' cal-week-row-now' : '') + '" ' + (hr === nowHour ? 'id="cal-now-row"' : '') + '>';
     h += '<div class="cal-week-gutter"><span class="cal-week-time">' + String(hr).padStart(2, '0') + ':00</span></div>';
     for (var i = 0; i < 7; i++) {
       var dd = new Date(ws); dd.setDate(dd.getDate() + i);
@@ -247,6 +268,13 @@ function calRenderWeek(d) {
       });
 
       h += '<div class="cal-hour-slot' + (isToday ? ' cal-hour-slot-today' : '') + '" data-date="' + ds + '" data-hour="' + hr + '">';
+
+      /* Now-line indicator inside today's cell at the current hour */
+      if (isToday && hr === nowHour && nowHour >= 7 && nowHour <= 20) {
+        var pct = (nowMin / 60) * 100;
+        h += '<div class="cal-now-line" style="top:' + pct + '%"><span class="cal-now-dot"></span></div>';
+      }
+
       cellActs.forEach(function(act) {
         var col = CAL_TYPE_COLORS[act.type] || '#64748b';
         var dur = act.duration || 60;
@@ -538,7 +566,6 @@ function injectCalStyles() {
 .cal-week-gutter{width:56px;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;padding-right:8px}\
 .cal-week-time{font-size:10px;color:var(--text-light);font-weight:500}\
 .cal-week-day-hdr{flex:1;text-align:center;padding:8px 4px;display:flex;flex-direction:column;gap:2px;align-items:center}\
-.cal-week-day-hdr-today{background:#eff6ff}\
 .cal-week-day-name{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px}\
 .cal-week-day-num{font-size:14px;font-weight:700;color:var(--text);width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%}\
 .cal-week-day-num-today{background:var(--accent);color:#fff}\
@@ -548,7 +575,12 @@ function injectCalStyles() {
 .cal-hour-slot{flex:1;border-right:1px solid var(--border);padding:2px 3px;cursor:pointer;position:relative;transition:background .08s;display:flex;flex-direction:column;gap:2px}\
 .cal-hour-slot:last-child{border-right:none}\
 .cal-hour-slot:hover{background:#fafbfc}\
-.cal-hour-slot-today{background:#f8faff}\
+.cal-hour-slot-today{background:#eff6ff;border-right:1px solid #dbeafe}\
+\
+.cal-now-line{position:absolute;left:0;right:0;height:2px;background:#ef4444;z-index:5;pointer-events:none}\
+.cal-now-dot{position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:#ef4444}\
+\
+.cal-week-day-hdr-today{background:#eff6ff;border-bottom:2px solid var(--accent)}\
 \
 .cal-event-week{border-radius:5px;padding:3px 6px;overflow:hidden;cursor:pointer;border-left:3px solid var(--evt-color);background:color-mix(in srgb,var(--evt-color) 10%,transparent)}\
 .cal-event-week:hover{background:color-mix(in srgb,var(--evt-color) 20%,transparent)}\
