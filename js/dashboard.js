@@ -396,7 +396,8 @@ function injectCKStyles() {
 \
 /* ── Responsive ── */\
 @media(max-width:1100px){.ck-grid4{grid-template-columns:repeat(2,1fr)}.ck-hero-metrics{flex-wrap:wrap;gap:8px}}\
-@media(max-width:768px){.ck-grid4{grid-template-columns:1fr}.ck-grid2{grid-template-columns:1fr}.ck-hero{height:auto;padding:16px}.ck-hero-content{flex-direction:column;align-items:flex-start}}\
+@media(max-width:768px){.ck-grid4{grid-template-columns:1fr}.ck-grid2{grid-template-columns:1fr}.ck-hero{height:auto;padding:16px}.ck-hero-content{flex-direction:column;align-items:flex-start;padding:16px}}\
+@media(max-width:640px){.ck-hero-greeting{font-size:20px}.ck-hero-metric-val{font-size:16px}.ck-hero-metric{padding:0 10px}.ck-hero-metrics{gap:4px}.ck{padding:0}.ck-cell{padding:10px 12px}.ck-big{font-size:20px}.ck-num-lg{font-size:18px}}\
 ';
   document.head.appendChild(s);
 }

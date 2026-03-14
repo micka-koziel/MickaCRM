@@ -930,6 +930,16 @@ function injectModalStyles() {
 .crm-modal-btn-cancel:hover{border-color:#bbb;color:var(--text)}\
 .crm-modal-btn-save{background:var(--accent);border:none;color:#fff}\
 .crm-modal-btn-save:hover{background:var(--accent-hover)}\
+\
+/* Responsive modal */\
+@media(max-width:640px){\
+  .crm-modal{width:100%;max-width:100%;border-radius:12px 12px 0 0;max-height:90vh}\
+  .crm-modal-header{padding:14px 16px 10px}\
+  .crm-modal-body{padding:14px 16px}\
+  .crm-modal-footer{padding:10px 16px 14px}\
+  .filter-panel-row{flex-direction:column}\
+  .filter-field{min-width:unset;width:100%}\
+}\
 ';
   document.head.appendChild(s);
 }

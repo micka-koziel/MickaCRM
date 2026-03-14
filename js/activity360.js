@@ -631,6 +631,17 @@ function injectAT360Styles() {
   .at3-funnel-step{flex-direction:column;align-items:center;flex:0 0 auto}\
   .at3-rel-fields{grid-template-columns:1fr}\
 }\
+@media(max-width:640px){\
+  .at3{padding:10px 10px 32px}\
+  .at3-header-top{padding:16px 14px 12px;gap:12px}\
+  .at3-avatar{width:48px;height:48px}\
+  .at3-name{font-size:17px}\
+  .at3-kpi-value{font-size:22px}\
+  .at3-actions{padding:10px 14px}\
+  .at3-action-btn{padding:6px 10px;font-size:11px}\
+  .at3-funnel-card{padding:14px 12px}\
+  .at3-funnel-dot{width:28px;height:28px}\
+}\
 ';
   document.head.appendChild(s);
 }

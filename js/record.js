@@ -1513,6 +1513,17 @@ function injectO360Styles() {
   .o360-funnel-label{position:static;transform:none;margin-top:4px}\
   .o360-funnel-step{flex-direction:column;align-items:center;flex:0 0 auto}\
 }\
+@media(max-width:640px){\
+  .o360{padding:10px 10px 32px}\
+  .o360-header-top{padding:16px 14px 12px;gap:12px}\
+  .o360-photo{width:64px;height:64px;font-size:20px}\
+  .o360-name{font-size:17px}\
+  .o360-kpi-value{font-size:22px}\
+  .o360-actions{padding:10px 14px}\
+  .o360-action-btn{padding:6px 10px;font-size:11px}\
+  .o360-funnel-card{padding:14px 12px}\
+  .o360-funnel-dot{width:22px;height:22px}\
+}\
 ';
   document.head.appendChild(s);
 }
@@ -1658,6 +1669,10 @@ function injectA360Styles() {
 .rec-field-value{font-size:13px;color:var(--text);font-weight:500}\
 @media(max-width:1100px){.a360-grid2{grid-template-columns:1fr}.a360-kpi-grid{grid-template-columns:repeat(3,1fr)}.a360-header-top{flex-wrap:wrap}.a360-header-metrics{margin-top:10px}}\
 @media(max-width:768px){.a360-kpi-grid{grid-template-columns:repeat(2,1fr)}}\
+@media(max-width:640px){.a360{padding:10px 10px 32px}.a360-header-top{padding:16px 14px 12px;gap:12px}.a360-avatar{width:64px;height:64px;font-size:20px}\
+.a360-name{font-size:18px}.a360-kpi-grid{grid-template-columns:1fr 1fr}.a360-kpi-value{font-size:22px}\
+.a360-header-actions{padding:10px 14px}.a360-qa{padding:6px 10px;font-size:11px}\
+.rec-fields{grid-template-columns:1fr}.rec-field:nth-child(odd){border-right:none}}\
 ';
   document.head.appendChild(s);
 }
@@ -1771,6 +1786,15 @@ function injectC360Styles() {
 @media(max-width:768px){\
   .c360-kpi-row{grid-template-columns:repeat(2,1fr)}\
   .c360-header-actions{flex-wrap:wrap}\
+}\
+@media(max-width:640px){\
+  .c360{padding:10px 10px 32px}\
+  .c360-header-top{padding:16px 14px 12px;gap:12px}\
+  .c360-photo{width:64px;height:64px;font-size:20px}\
+  .c360-name{font-size:18px}\
+  .c360-kpi-value{font-size:22px}\
+  .c360-header-actions{padding:10px 14px}\
+  .c360-action-btn{padding:6px 10px;font-size:11px}\
 }\
 ';
   document.head.appendChild(s);
@@ -1945,6 +1969,15 @@ function injectL360Styles() {
   .l360-funnel-line{display:none}\
   .l360-funnel-label{position:static;transform:none;margin-top:4px}\
   .l360-funnel-step{flex-direction:column;align-items:center;flex:0 0 auto}\
+}\
+@media(max-width:640px){\
+  .l360{padding:10px 10px 32px}\
+  .l360-header-top{padding:16px 14px 12px;gap:12px}\
+  .l360-photo{width:64px;height:64px;font-size:20px}\
+  .l360-name{font-size:17px}\
+  .l360-kpi-value{font-size:22px}\
+  .l360-actions{padding:10px 14px}\
+  .l360-action-btn{padding:6px 10px;font-size:11px}\
 }\
 ';
   document.head.appendChild(s);

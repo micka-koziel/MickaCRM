@@ -235,6 +235,38 @@ function injectQ360Styles() {
 
     /* ── Summary Text ── */
     .q360-desc { font-size: 13px; color: #475569; line-height: 1.6; margin-bottom: 14px; }
+
+    /* ── Responsive ── */
+    @media(max-width:1100px) {
+      .q360-grid { grid-template-columns: 1fr; }
+      .q360-kpi-row { grid-template-columns: repeat(2, 1fr); }
+      .q360-header-inner { flex-direction: column; gap: 14px; }
+      .q360-header-right { align-items: flex-start; flex-direction: row; gap: 16px; }
+    }
+    @media(max-width:768px) {
+      .q360-wrapper { padding: 12px 14px; }
+      .q360-header { padding: 14px 16px; }
+      .q360-lifecycle { padding: 12px 16px; }
+      .q360-fields { grid-template-columns: 1fr; }
+      .q360-nego-grid { grid-template-columns: 1fr; }
+      .q360-lifecycle-label { font-size: 10px; margin-left: 4px; }
+      .q360-lifecycle-line { margin: 0 6px; }
+    }
+    @media(max-width:640px) {
+      .q360-wrapper { padding: 10px 10px; }
+      .q360-kpi-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .q360-header-title { font-size: 15px; }
+      .q360-header-value { font-size: 18px; }
+      .q360-header-avatar { width: 44px; height: 44px; }
+      .q360-table { font-size: 11px; }
+      .q360-table th, .q360-table td { padding: 6px 8px; }
+      .q360-pricing-footer { flex-direction: column; gap: 10px; }
+      .q360-pricing-col { text-align: left; }
+      .q360-lifecycle-track { flex-wrap: wrap; gap: 6px; }
+      .q360-lifecycle-line { display: none; }
+      .q360-lifecycle-stage { margin-bottom: 4px; }
+      .q360-btn { padding: 6px 10px; font-size: 11.5px; }
+    }
   `;
   document.head.appendChild(style);
 }

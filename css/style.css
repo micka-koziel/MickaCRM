@@ -661,3 +661,161 @@ body {
 .record-link:hover {
   text-decoration: underline;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE TOPBAR — visible only on mobile/tablet
+   ═══════════════════════════════════════════════════════════ */
+.mobile-topbar {
+  display: none;
+  height: 52px;
+  background: var(--dark);
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  flex-shrink: 0;
+  z-index: 110;
+}
+.mobile-topbar-logo {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+.mobile-topbar-logo .sb-logo-360 {
+  font-size: 13px;
+}
+.mobile-hamburger {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mobile-hamburger:hover {
+  background: rgba(255,255,255,.14);
+  color: #fff;
+}
+
+/* Sidebar overlay backdrop */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,.5);
+  backdrop-filter: blur(3px);
+  z-index: 99;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.sidebar-overlay.active {
+  opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE — TABLET (≤1024px)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  /* Show mobile topbar, hide sidebar by default */
+  .mobile-topbar { display: flex; }
+
+  #app-shell { flex-direction: column; }
+
+  #sidebar {
+    position: fixed;
+    top: 0;
+    left: -260px;
+    width: 240px;
+    min-width: 240px;
+    height: 100vh;
+    z-index: 200;
+    transition: left 0.25s cubic-bezier(.4,0,.2,1);
+    box-shadow: none;
+  }
+  #sidebar.collapsed {
+    width: 240px;
+    min-width: 240px;
+  }
+  #sidebar.mobile-open {
+    left: 0;
+    box-shadow: 4px 0 24px rgba(0,0,0,.25);
+  }
+  .sidebar-overlay.active { display: block; }
+
+  /* Hide collapse button on mobile — use hamburger instead */
+  .sb-footer { display: none; }
+
+  /* Force sidebar expanded look on mobile */
+  #sidebar.mobile-open .sb-item { justify-content: flex-start; padding: 8px 10px; }
+  #sidebar.mobile-open .sb-item span { display: inline; }
+  #sidebar.mobile-open .sb-logo { justify-content: flex-start; height: 72px; }
+
+  /* Main area takes full width */
+  #main-area {
+    width: 100%;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* Page header responsive */
+  .obj-header { padding: 10px 12px; gap: 8px; }
+  .obj-header-left h1 { font-size: 15px; }
+  .obj-search { min-width: 120px; }
+
+  /* Kanban horizontal scroll helper */
+  .kanban-board { padding: 10px; }
+  .kanban-col { min-width: 200px; flex: 1 0 200px; }
+
+  /* List view scroll */
+  .list-view { padding: 10px; overflow-x: auto; }
+  .list-view table { min-width: 600px; }
+
+  /* Dashboard grid tablets: 4→2 cols */
+  .ck-row.r4 { grid-template-columns: 1fr 1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE — MOBILE (≤640px)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  /* Dashboard single col */
+  .ck-row.r4 { grid-template-columns: 1fr; }
+  .ck-row.r2 { grid-template-columns: 1fr; }
+
+  /* Page header stack */
+  .obj-header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px 12px;
+  }
+  .obj-header-right {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .obj-search { width: 100%; min-width: unset; }
+
+  /* View switcher smaller */
+  .view-sw-btn { padding: 4px 7px; font-size: 11px; }
+
+  /* Kanban cols narrower */
+  .kanban-board { padding: 8px; gap: 6px; }
+  .kanban-col { min-width: 170px; flex: 1 0 170px; }
+
+  /* Smaller cards */
+  .ck-card, .ck-card-flat { border-radius: 8px; }
+  .ck-grid, .ck-dashboard { padding: 8px 10px; }
+
+  /* List view compact */
+  .list-view { padding: 8px; }
+  .list-view th, .list-view td { padding: 6px 8px; font-size: 11px; }
+  .list-view table { min-width: 500px; }
+
+  /* Record fields 1-col on mobile */
+  .rec-fields { grid-template-columns: 1fr; }
+  .rec-field:nth-child(odd) { border-right: none; }
+}

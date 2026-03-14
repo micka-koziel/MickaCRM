@@ -35,8 +35,19 @@
       <nav id="sidebar-nav"></nav>
     </aside>
 
+    <!-- ── Sidebar overlay (mobile) ──────────────────────────────── -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
     <!-- ── Main Area ─────────────────────────────────────────────── -->
     <main id="main-area">
+      <!-- Mobile topbar (hidden on desktop) -->
+      <div class="mobile-topbar" id="mobile-topbar">
+        <button class="mobile-hamburger" id="mobile-hamburger" aria-label="Menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <span class="mobile-topbar-logo">MickaCRM<span class="sb-logo-360">360</span></span>
+        <div style="width:36px"></div>
+      </div>
       <div id="page-header"></div>
       <div id="page-content"></div>
     </main>

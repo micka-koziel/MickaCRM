@@ -589,6 +589,26 @@ function injectCalStyles() {
   .cal-modal{width:100%;max-width:100%;border-radius:12px 12px 0 0;margin-top:auto}\
   .cal-modal-row{flex-direction:column;gap:8px}\
   .cal-day{min-height:60px}\
+  .cal-toolbar{flex-direction:column;align-items:stretch;gap:8px;padding:10px 12px}\
+  .cal-toolbar-left{justify-content:space-between}\
+  .cal-toolbar-right{justify-content:space-between}\
+  .cal-title{font-size:14px}\
+  .cal-dow{padding:6px 2px;font-size:9px}\
+  .cal-day-num{font-size:10px;width:20px;height:20px}\
+  .cal-event-label{font-size:9px}\
+  .cal-week-gutter{width:40px}\
+  .cal-week-time{font-size:9px}\
+  .cal-week-day-name{font-size:9px}\
+  .cal-week-day-num{font-size:12px;width:24px;height:24px}\
+  .cal-legend{flex-wrap:wrap;gap:8px;padding:6px 12px}\
+}\
+@media(max-width:480px){\
+  .cal-day{min-height:44px;padding:2px 3px}\
+  .cal-event{padding:1px 4px}\
+  .cal-event-label{font-size:8px}\
+  .cal-view-btn{padding:4px 8px;font-size:11px}\
+  .cal-new-btn{padding:6px 10px;font-size:11px}\
+  .cal-nav-btn{width:28px;height:28px}\
 }\
 ';
   document.head.appendChild(s);
