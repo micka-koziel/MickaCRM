@@ -354,6 +354,10 @@ function renderObjHeader(objKey, cfg, headerEl) {
   }
   var data = applyAllFilters(cfg.getData(), objKey);
   var activeCount = Object.keys(_activeFilters).length;
+  /* Include V2 filter count for contacts/accounts */
+  if ((objKey === 'contacts' || objKey === 'accounts') && typeof _lv2Filters !== 'undefined') {
+    activeCount += Object.keys(_lv2Filters).length;
+  }
   var filterBadge = activeCount > 0 ? '<span class="filter-badge">'+activeCount+'</span>' : '';
 
   headerEl.innerHTML = '<div class="obj-header"><div class="obj-header-left"><h1>'+cfg.title+'</h1><span class="obj-count">'+data.length+'</span></div>' +
@@ -379,10 +383,16 @@ function renderObjHeader(objKey, cfg, headerEl) {
   });
 
   // Filter toggle
-  document.getElementById('obj-filter-toggle').addEventListener('click', function() {
-    _filterPanelOpen = !_filterPanelOpen;
-    renderObjHeader(objKey, cfg, headerEl);
-    refreshContent(objKey, cfg);
+  var filterToggleBtn = document.getElementById('obj-filter-toggle');
+  filterToggleBtn.addEventListener('click', function() {
+    /* V2 floating filter panel for contacts & accounts */
+    if ((objKey === 'contacts' || objKey === 'accounts') && typeof lv2ToggleFilterPanel === 'function') {
+      lv2ToggleFilterPanel(objKey, filterToggleBtn);
+    } else {
+      _filterPanelOpen = !_filterPanelOpen;
+      renderObjHeader(objKey, cfg, headerEl);
+      refreshContent(objKey, cfg);
+    }
   });
 
   // Create button
@@ -502,7 +512,9 @@ function renderObjContent(objKey, cfg, mode, contentEl) {
     bindFilterEvents(objKey, cfg, contentEl);
   }
   else if (mode==='list') {
-    contentEl.innerHTML = filterHTML;
+    /* V2 list views handle their own filter UI */
+    var isV2Obj = (objKey === 'contacts' || objKey === 'accounts') && typeof renderListViewV2 === 'function';
+    contentEl.innerHTML = isV2Obj ? '' : filterHTML;
     if (isPipelineObj) {
       injectPipelineInsightStyles();
       var insightDiv2 = document.createElement('div');
@@ -517,7 +529,7 @@ function renderObjContent(objKey, cfg, mode, contentEl) {
     } else {
       renderListView(filtered, cfg.columns, listContainer, objKey);
     }
-    bindFilterEvents(objKey, cfg, contentEl);
+    if (!isV2Obj) bindFilterEvents(objKey, cfg, contentEl);
   }
   else if (mode==='analytics' && isPipelineObj) {
     contentEl.innerHTML = filterHTML;
