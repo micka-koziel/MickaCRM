@@ -179,8 +179,19 @@ function renderListViewV2(items, columns, container, objKey) {
   var isContacts = (objKey === 'contacts');
   var allItems = (isContacts ? (window.DATA.contacts||[]) : (window.DATA.accounts||[]));
 
-  /* Key records = items with keyRelationship flag */
+  /* Key records = items with keyRelationship flag, or fallback top 3 by pipeline */
   var keyRecords = allItems.filter(function(r) { return r.keyRelationship; });
+
+  if (keyRecords.length === 0) {
+    /* Fallback: top 3 by pipeline value */
+    var ranked = allItems.slice();
+    if (isContacts) {
+      ranked.sort(function(a,b) { return _lv2ContactPipeline(b) - _lv2ContactPipeline(a); });
+    } else {
+      ranked.sort(function(a,b) { return (b.pipeline||0) - (a.pipeline||0); });
+    }
+    keyRecords = ranked.slice(0, 3);
+  }
 
   /* ── Build Key Cards HTML ── */
   var keyHTML = '';
