@@ -138,7 +138,7 @@ function renderCalendarPage(headerEl, contentEl) {
 function calGetTitle(d) {
   var months = calMonthNames();
   if (calState.view === 'month') return months[d.getMonth()] + ' ' + d.getFullYear();
-  var ws = calGetWeekStart(d), we = new Date(ws); we.setDate(we.getDate() + 6);
+  var ws = calGetWeekStart(d), we = new Date(ws); we.setDate(we.getDate() + 4);
   var fmt = function(dt) { return calShortMonths()[dt.getMonth()] + ' ' + dt.getDate(); };
   return fmt(ws) + ' \u2013 ' + fmt(we) + ', ' + we.getFullYear();
 }
@@ -164,7 +164,7 @@ function calRenderMiniCal() {
   var today = calDateStr(new Date());
   var months = calShortMonths();
   var ws = calGetWeekStart(calState.currentDate);
-  var we = new Date(ws); we.setDate(we.getDate() + 6);
+  var we = new Date(ws); we.setDate(we.getDate() + 4); /* Fri = +4 */
   var wsStr = calDateStr(ws), weStr = calDateStr(we);
   var firstDay = new Date(year, month, 1);
   var startDow = firstDay.getDay();
@@ -187,11 +187,13 @@ function calRenderMiniCal() {
     var ds = calDateStr(cellDate);
     var isToday = ds === today;
     var inWeek = ds >= wsStr && ds <= weStr;
+    var isWeekend = cellDate.getDay() === 0 || cellDate.getDay() === 6;
     var hasActs = isCurrentMonth && calGetActivities(ds).length > 0;
     var cls = 'mc-day';
     if (!isCurrentMonth) cls += ' mc-day-other';
+    if (isWeekend) cls += ' mc-day-weekend';
     if (isToday) cls += ' mc-day-today';
-    if (inWeek) cls += ' mc-day-inweek';
+    if (inWeek && !isWeekend) cls += ' mc-day-inweek';
     h += '<div class="' + cls + '" data-mc-date="' + ds + '"><span>' + cellDate.getDate() + '</span>';
     if (hasActs) h += '<span class="mc-dot"></span>';
     h += '</div>';
@@ -319,14 +321,14 @@ var CAL_TOTAL_HOURS = CAL_END_HOUR - CAL_START_HOUR + 1; /* 14 hours */
 function calRenderWeek(d) {
   var ws = calGetWeekStart(d), today = calDateStr(new Date()), now = new Date();
   var nowHour = now.getHours(), nowMin = now.getMinutes();
-  var dayNames = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+  var dayNames = ['MON','TUE','WED','THU','FRI'];
   var totalH = CAL_TOTAL_HOURS * CAL_ROW_H;
 
   var h = '<div class="cal-week">';
 
   /* Header */
   h += '<div class="cal-week-header"><div class="cal-week-gutter"></div>';
-  for (var i = 0; i < 7; i++) {
+  for (var i = 0; i < 5; i++) {
     var dd = new Date(ws); dd.setDate(dd.getDate() + i); var ds = calDateStr(dd);
     h += '<div class="cal-week-day-hdr' + (ds === today ? ' cal-week-day-hdr-today' : '') + '">';
     h += '<span class="cal-week-day-name">' + dayNames[i] + '</span>';
@@ -352,8 +354,8 @@ function calRenderWeek(d) {
     h += '<div class="cal-grid-line" style="top:' + top + 'px"></div>';
   }
 
-  /* Day columns */
-  for (var i = 0; i < 7; i++) {
+  /* Day columns (Mon-Fri only) */
+  for (var i = 0; i < 5; i++) {
     var dd = new Date(ws); dd.setDate(dd.getDate() + i);
     var ds = calDateStr(dd);
     var isToday = ds === today;
@@ -613,9 +615,9 @@ function injectCalStyles() {
 .cal-new-btn:hover{background:var(--accent-hover)}\
 \
 .cal-body-3col{flex:1;display:flex;overflow:hidden}\
-.cal-sidebar{width:220px;flex-shrink:0;border-right:1px solid var(--border);background:var(--card);display:flex;flex-direction:column;overflow-y:auto}\
+.cal-sidebar{width:260px;flex-shrink:0;border-right:1px solid var(--border);background:var(--card);display:flex;flex-direction:column;overflow-y:auto}\
 .cal-center{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}\
-.cal-preview{width:260px;flex-shrink:0;border-left:1px solid var(--border);background:var(--card);overflow-y:auto}\
+.cal-preview{width:300px;flex-shrink:0;border-left:1px solid var(--border);background:var(--card);overflow-y:auto}\
 \
 .mc-wrap{padding:12px 14px 8px}\
 .mc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}\
@@ -627,6 +629,7 @@ function injectCalStyles() {
 .mc-day{text-align:center;padding:3px 0;font-size:11px;font-weight:500;color:var(--text);cursor:pointer;border-radius:4px;position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;transition:background .08s}\
 .mc-day:hover{background:#f1f5f9}\
 .mc-day-other{color:var(--text-light);opacity:.35}\
+.mc-day-weekend{color:var(--text-light);opacity:.5}\
 .mc-day-today span:first-child{background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700}\
 .mc-day-inweek{background:#eef2ff}\
 .mc-day-inweek:hover{background:#dbeafe}\
