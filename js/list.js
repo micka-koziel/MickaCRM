@@ -1,14 +1,7 @@
 /* ═══════════════════════════════════════════════════════
    list.js — V2 Enhanced List Views (Contacts & Accounts)
-   Compact Key Strip + Floating Filters + Enriched Table
+   Key Relationships section + enriched table rows
    ═══════════════════════════════════════════════════════ */
-
-/* ─── State ─────────────────────────────────────────── */
-
-var _lv2FilterOpen = false;
-var _lv2Filters = {};
-var _lv2SortCol = null;
-var _lv2SortDir = 'asc';
 
 /* ─── CSS Injection ─────────────────────────────────── */
 
@@ -16,46 +9,33 @@ function injectListV2Styles() {
   if (document.getElementById('list-v2-css')) return;
   var s = document.createElement('style'); s.id = 'list-v2-css';
   s.textContent = '\
-/* ═══ Key Relationship Strip ════════════════════ */\
-.lv2-strip{margin-bottom:16px}\
-.lv2-strip-title{font-size:12px;font-weight:700;color:var(--text-light);margin-bottom:8px;display:flex;align-items:center;gap:5px;text-transform:uppercase;letter-spacing:.04em}\
-.lv2-strip-title svg{flex-shrink:0}\
-.lv2-strip-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}\
-.lv2-strip-card{background:var(--card);border-radius:10px;padding:10px 14px;border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.03);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px;min-width:200px;max-width:240px;flex-shrink:0}\
-.lv2-strip-card:hover{box-shadow:0 3px 12px rgba(0,0,0,.07);border-color:#d0d5dd;transform:translateY(-1px)}\
-.lv2-strip-avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border);flex-shrink:0;background:#f8fafc}\
-.lv2-strip-avatar-placeholder{width:36px;height:36px;border-radius:50%;background:#f1f5f9;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0}\
-.lv2-strip-avatar-acct{border-radius:8px}\
-.lv2-strip-initials{font-size:12px;font-weight:700;color:var(--text-light)}\
-.lv2-strip-info{flex:1;min-width:0}\
-.lv2-strip-name{font-size:12.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\
-.lv2-strip-meta{font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}\
-.lv2-strip-pipeline{font-size:11px;margin-top:2px}\
-.lv2-strip-pipeline b{color:var(--accent);font-weight:700}\
-.lv2-strip-add{background:var(--card);border:1.5px dashed var(--border);border-radius:10px;padding:10px 18px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;min-width:110px;flex-shrink:0;color:var(--text-light);font-size:12px;font-weight:600}\
-.lv2-strip-add:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}\
+/* ═══ V2 Container — centered layout ═══════════ */\
+.lv2-container{max-width:1400px;margin:0 auto;padding:32px 40px 40px}\
 \
-/* ═══ Floating Filter Panel ═════════════════════ */\
-.lv2-filter-overlay{position:fixed;inset:0;z-index:900;background:transparent}\
-.lv2-filter-panel{position:absolute;top:100%;right:0;z-index:901;margin-top:6px;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.12);padding:16px 18px;min-width:320px;max-width:400px;display:flex;flex-direction:column;gap:12px;animation:lv2FadeIn .12s ease}\
-@keyframes lv2FadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}\
-.lv2-fp-title{font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;justify-content:space-between}\
-.lv2-fp-clear{font-size:11px;font-weight:600;color:var(--danger);cursor:pointer;background:none;border:none;font-family:inherit;padding:2px 6px;border-radius:4px;transition:background .1s}\
-.lv2-fp-clear:hover{background:#fef2f2}\
-.lv2-fp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}\
-.lv2-fp-field{display:flex;flex-direction:column;gap:3px}\
-.lv2-fp-field.lv2-fp-full{grid-column:1/-1}\
-.lv2-fp-label{font-size:9.5px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.04em}\
-.lv2-fp-select{padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;color:var(--text);background:var(--card);outline:none;transition:border-color .12s;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'2\'%3E%3Cpath d=\'m6 9 6 6 6-6\'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:28px}\
-.lv2-fp-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.08)}\
-.lv2-fp-input{padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;color:var(--text);background:var(--card);outline:none;transition:border-color .12s}\
-.lv2-fp-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.08)}\
-\
-/* ═══ Active Filter Chips ═══════════════════════ */\
-.lv2-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}\
-.lv2-chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#eff6ff;border:1px solid #dbeafe;border-radius:16px;font-size:11px;font-weight:600;color:var(--accent)}\
-.lv2-chip-x{cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:transparent;transition:background .1s;margin-left:2px;border:none;color:var(--accent);font-size:14px;font-family:inherit;line-height:1;padding:0}\
-.lv2-chip-x:hover{background:#dbeafe}\
+/* ═══ Key Relationships Strip ═══════════════════ */\
+.lv2-key-section{margin-bottom:32px}\
+.lv2-key-title{font-size:12px;font-weight:700;color:var(--text-light);margin-bottom:10px;display:flex;align-items:center;gap:5px;text-transform:uppercase;letter-spacing:.04em}\
+.lv2-key-title svg{flex-shrink:0}\
+.lv2-key-cards{display:grid;grid-template-columns:repeat(4,minmax(0,260px));gap:12px}\
+.lv2-key-card{background:var(--card);border-radius:10px;padding:12px 14px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px}\
+.lv2-key-card:hover{box-shadow:0 4px 14px rgba(0,0,0,.07);border-color:#d0d5dd;transform:translateY(-1px)}\
+.lv2-key-inner{display:flex;align-items:center;gap:10px;width:100%}\
+.lv2-key-avatar{width:40px;height:40px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border);flex-shrink:0;background:#f8fafc}\
+.lv2-key-avatar-placeholder{width:40px;height:40px;border-radius:50%;background:#f1f5f9;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0}\
+.lv2-key-avatar-acct{border-radius:8px}\
+.lv2-key-initials{font-size:13px;font-weight:700;color:var(--text-light)}\
+.lv2-key-info{flex:1;min-width:0}\
+.lv2-key-name{font-size:12.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\
+.lv2-key-meta{font-size:11px;color:var(--text-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\
+.lv2-key-pipeline{font-size:11px;margin-top:2px}\
+.lv2-key-pipeline-val{font-weight:700;color:var(--accent)}\
+.lv2-key-pipeline-lbl{color:var(--text-light);font-size:11px}\
+.lv2-key-extra{display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid #f1f5f9}\
+.lv2-key-extra-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}\
+.lv2-key-extra-text{font-size:11px;color:var(--text-muted)}\
+.lv2-key-extra-sep{color:#e2e8f0;font-size:11px}\
+.lv2-key-add{background:var(--card);border:1.5px dashed var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--text-light);font-size:12px;font-weight:600}\
+.lv2-key-add:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}\
 \
 /* ═══ Enhanced Table ════════════════════════════ */\
 .lv2-table-section{background:var(--card);border-radius:11px;border:1px solid var(--border);overflow:hidden}\
@@ -97,25 +77,25 @@ function injectListV2Styles() {
 \
 /* ═══ Responsive ════════════════════════════════ */\
 @media(max-width:1024px){\
-  .lv2-strip-row{gap:8px}\
-  .lv2-strip-card{min-width:170px;max-width:200px;padding:8px 12px}\
+  .lv2-container{padding:20px 20px 28px}\
+  .lv2-key-cards{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}\
   .lv2-table-wrap{overflow-x:auto}\
   .lv2-table{min-width:700px}\
-  .lv2-filter-panel{min-width:280px;right:-10px}\
 }\
 @media(max-width:640px){\
-  .lv2-strip-card{min-width:160px;padding:8px 10px}\
-  .lv2-strip-avatar,.lv2-strip-avatar-placeholder{width:30px;height:30px}\
+  .lv2-container{padding:16px 12px 24px}\
+  .lv2-key-section{margin-bottom:20px}\
+  .lv2-key-cards{grid-template-columns:repeat(2,1fr);gap:8px}\
+  .lv2-key-card{padding:10px}\
+  .lv2-key-avatar,.lv2-key-avatar-placeholder{width:34px;height:34px}\
   .lv2-table{min-width:550px}\
   .lv2-table th,.lv2-table td{padding:7px 10px;font-size:11px}\
-  .lv2-filter-panel{min-width:260px;max-width:92vw;right:0;left:0;margin:6px auto}\
-  .lv2-fp-grid{grid-template-columns:1fr}\
 }\
 ';
   document.head.appendChild(s);
 }
 
-/* ─── Constants ──────────────────────────────────────── */
+/* ─── Activity color helpers ─────────────────────────── */
 
 var LV2_ACT_COLORS = {Call:'#3b82f6',Meeting:'#8b5cf6',Email:'#10b981','Site Visit':'#ef4444'};
 var LV2_ACT_ICONS = {
@@ -132,9 +112,8 @@ function _lv2Icon(pathD, size, color) {
   return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="'+pathD+'"/></svg>';
 }
 
-var _lv2StarSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
-var _lv2StarSmall = '<svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
-var _lv2BuildingSmall = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 012-2h8a2 2 0 012 2v18Z"/><path d="M6 12H4a2 2 0 00-2 2v6a2 2 0 002 2h2"/><path d="M18 9h2a2 2 0 012 2v9a2 2 0 01-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></svg>';
+var _lv2StarSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+var _lv2BuildingSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 012-2h8a2 2 0 012 2v18Z"/><path d="M6 12H4a2 2 0 00-2 2v6a2 2 0 002 2h2"/><path d="M18 9h2a2 2 0 012 2v9a2 2 0 01-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></svg>';
 
 /* ─── Last activity resolver ─────────────────────────── */
 
@@ -143,342 +122,412 @@ function _lv2GetLastActivity(recordId, objKey) {
   var matches = [];
   activities.forEach(function(act) {
     if (act.status !== 'Completed') return;
-    if (objKey === 'contacts' && act.contactId === recordId) matches.push(act);
-    else if (objKey === 'accounts' && act.accountId === recordId) matches.push(act);
+    if (objKey === 'contacts') {
+      if (act.contactId === recordId) matches.push(act);
+    } else if (objKey === 'accounts') {
+      if (act.accountId === recordId) matches.push(act);
+    }
   });
   if (matches.length === 0) return null;
   matches.sort(function(a,b) { return new Date(b.date) - new Date(a.date); });
-  return { type: matches[0].type, when: _lv2TimeAgo(matches[0].date) };
+  var last = matches[0];
+  var diff = _lv2TimeAgo(last.date);
+  return { type: last.type, when: diff };
 }
 
 function _lv2TimeAgo(dateStr) {
   if (!dateStr) return '';
-  var diffH = Math.floor((new Date() - new Date(dateStr)) / 3600000);
+  var now = new Date();
+  var then = new Date(dateStr);
+  var diffMs = now - then;
+  var diffH = Math.floor(diffMs / 3600000);
   if (diffH < 1) return 'Just now';
   if (diffH < 24) return diffH + 'h ago';
-  var d = Math.floor(diffH / 24);
-  return d === 1 ? '1 day ago' : d + ' days ago';
+  var diffD = Math.floor(diffH / 24);
+  if (diffD === 1) return '1 day ago';
+  return diffD + ' days ago';
 }
 
-function _lv2ContactPipeline(c) {
-  if (!c.account) return 0;
-  var t = 0;
-  (window.DATA.opportunities||[]).forEach(function(o){ if (o.account === c.account) t += (o.amount||0); });
-  return t;
+/* ─── Compute pipeline for contact ───────────────────── */
+
+function _lv2ContactPipeline(contactRec) {
+  /* Sum pipeline from account's opportunities */
+  var accId = contactRec.account;
+  if (!accId) return 0;
+  var opps = window.DATA.opportunities || [];
+  var total = 0;
+  opps.forEach(function(o) {
+    if (o.account === accId) total += (o.amount || 0);
+  });
+  return total;
 }
 
-function _lv2ContactCity(c) {
-  if (c.city) return c.city;
-  if (!c.account) return '';
-  var a = (window.DATA.accounts||[]).find(function(x){return x.id===c.account;});
-  return a ? a.city : '';
+/* ─── Get city for contact (from linked account) ─────── */
+
+function _lv2ContactCity(contactRec) {
+  if (contactRec.city) return contactRec.city;
+  var accId = contactRec.account;
+  if (!accId) return '';
+  var acc = (window.DATA.accounts||[]).find(function(a){return a.id===accId;});
+  return acc ? acc.city : '';
 }
 
 /* ═══════════════════════════════════════════════════════
-   FILTER DEFINITIONS
-   ═══════════════════════════════════════════════════════ */
-
-function _lv2GetFilterDefs(objKey) {
-  if (objKey === 'contacts') return [
-    {key:'account',label:'Account',type:'select',options:function(){return (window.DATA.accounts||[]).map(function(a){return{value:a.id,label:a.name};});}},
-    {key:'role',label:'Role',type:'select',options:function(){var r=[];(window.DATA.contacts||[]).forEach(function(c){if(c.role&&r.indexOf(c.role)<0)r.push(c.role);});return r.sort().map(function(v){return{value:v,label:v};});}},
-    {key:'city',label:'City',type:'select',options:function(){var s={};(window.DATA.contacts||[]).forEach(function(c){var city=_lv2ContactCity(c);if(city)s[city]=1;});return Object.keys(s).sort().map(function(v){return{value:v,label:v};});}},
-    {key:'activityType',label:'Last Activity',type:'select',options:function(){return [{value:'Call',label:'Call'},{value:'Meeting',label:'Meeting'},{value:'Email',label:'Email'},{value:'Site Visit',label:'Site Visit'}];}}
-  ];
-  if (objKey === 'accounts') return [
-    {key:'industry',label:'Industry',type:'select',options:function(){var s=[];(window.DATA.accounts||[]).forEach(function(a){if(a.industry&&s.indexOf(a.industry)<0)s.push(a.industry);});return s.sort().map(function(v){return{value:v,label:v};});}},
-    {key:'city',label:'City',type:'select',options:function(){var s=[];(window.DATA.accounts||[]).forEach(function(a){if(a.city&&s.indexOf(a.city)<0)s.push(a.city);});return s.sort().map(function(v){return{value:v,label:v};});}},
-    {key:'status',label:'Status',type:'select',options:function(){return [{value:'Active',label:'Active'},{value:'Prospect',label:'Prospect'}];}},
-    {key:'pipelineMin',label:'Pipeline Min',type:'number'}
-  ];
-  return [];
-}
-
-function _lv2ApplyFilters(items, objKey) {
-  var f = _lv2Filters;
-  return items.filter(function(item) {
-    if (objKey === 'contacts') {
-      if (f.account && item.account !== f.account) return false;
-      if (f.role && item.role !== f.role) return false;
-      if (f.city && _lv2ContactCity(item) !== f.city) return false;
-      if (f.activityType) { var a = _lv2GetLastActivity(item.id,'contacts'); if (!a || a.type !== f.activityType) return false; }
-    }
-    if (objKey === 'accounts') {
-      if (f.industry && item.industry !== f.industry) return false;
-      if (f.city && item.city !== f.city) return false;
-      if (f.status && item.status !== f.status) return false;
-      if (f.pipelineMin && (item.pipeline||0) < Number(f.pipelineMin)) return false;
-    }
-    return true;
-  });
-}
-
-function _lv2FilterLabel(key, val) {
-  if (key === 'account') { var a = (window.DATA.accounts||[]).find(function(x){return x.id===val;}); return a ? a.name : val; }
-  if (key === 'pipelineMin') return fmtAmount(Number(val)) + '+';
-  return val;
-}
-
-/* ═══════════════════════════════════════════════════════
-   FLOATING FILTER PANEL
-   ═══════════════════════════════════════════════════════ */
-
-function _lv2BuildFilterPanel(objKey) {
-  var defs = _lv2GetFilterDefs(objKey);
-  var hasActive = Object.keys(_lv2Filters).length > 0;
-  var h = '<div class="lv2-fp-title"><span>Filters</span>'+(hasActive?'<button class="lv2-fp-clear" id="lv2-fp-clear-all">Clear all</button>':'')+'</div><div class="lv2-fp-grid">';
-  defs.forEach(function(fd) {
-    var cur = _lv2Filters[fd.key] || '';
-    h += '<div class="lv2-fp-field"><label class="lv2-fp-label">'+fd.label+'</label>';
-    if (fd.type === 'select') {
-      var opts = typeof fd.options === 'function' ? fd.options() : [];
-      h += '<select class="lv2-fp-select" data-fk="'+fd.key+'"><option value="">All</option>';
-      opts.forEach(function(o){ h += '<option value="'+o.value+'"'+(cur===String(o.value)?' selected':'')+'>'+o.label+'</option>'; });
-      h += '</select>';
-    } else if (fd.type === 'number') {
-      h += '<input type="number" class="lv2-fp-input" data-fk="'+fd.key+'" value="'+cur+'" placeholder="Any"/>';
-    }
-    h += '</div>';
-  });
-  h += '</div>';
-  return h;
-}
-
-function _lv2BindFilterPanel(panelEl, objKey, onApply) {
-  panelEl.querySelectorAll('.lv2-fp-select').forEach(function(sel) {
-    sel.addEventListener('change', function() {
-      var k = sel.getAttribute('data-fk');
-      if (sel.value) _lv2Filters[k] = sel.value; else delete _lv2Filters[k];
-      onApply();
-    });
-  });
-  panelEl.querySelectorAll('.lv2-fp-input').forEach(function(inp) {
-    inp.addEventListener('input', function() {
-      var k = inp.getAttribute('data-fk');
-      if (inp.value) _lv2Filters[k] = inp.value; else delete _lv2Filters[k];
-      onApply();
-    });
-  });
-  var cb = document.getElementById('lv2-fp-clear-all');
-  if (cb) cb.addEventListener('click', function() { _lv2Filters = {}; onApply(); });
-}
-
-/* Public: toggle filter panel from header button */
-function lv2ToggleFilterPanel(objKey, anchorEl) {
-  var existing = document.getElementById('lv2-fp-wrap');
-  if (existing) { existing.remove(); _lv2FilterOpen = false; return; }
-  _lv2FilterOpen = true;
-  injectListV2Styles();
-
-  var wrap = document.createElement('div');
-  wrap.id = 'lv2-fp-wrap';
-
-  var overlay = document.createElement('div');
-  overlay.className = 'lv2-filter-overlay';
-  overlay.addEventListener('click', function() { wrap.remove(); _lv2FilterOpen = false; });
-
-  var panel = document.createElement('div');
-  panel.className = 'lv2-filter-panel';
-  panel.innerHTML = _lv2BuildFilterPanel(objKey);
-  panel.addEventListener('click', function(e) { e.stopPropagation(); });
-
-  var anchor = anchorEl.closest('.obj-header-right') || anchorEl.parentElement;
-  anchor.style.position = 'relative';
-  anchor.appendChild(wrap);
-  wrap.appendChild(overlay);
-  wrap.appendChild(panel);
-
-  _lv2BindFilterPanel(panel, objKey, function() {
-    wrap.remove(); _lv2FilterOpen = false;
-    /* Trigger full re-render via pipeline.js */
-    var cfg = OBJ_CONFIG[objKey];
-    if (cfg) { renderObjHeader(objKey, cfg, document.getElementById('page-header')); refreshContent(objKey, cfg); }
-  });
-}
-
-/* ═══════════════════════════════════════════════════════
-   ACTIVE FILTER CHIPS
-   ═══════════════════════════════════════════════════════ */
-
-function _lv2BuildChips(objKey) {
-  var keys = Object.keys(_lv2Filters);
-  if (!keys.length) return '';
-  var defs = _lv2GetFilterDefs(objKey);
-  var h = '<div class="lv2-chips">';
-  keys.forEach(function(k) {
-    var fd = defs.find(function(d){return d.key===k;});
-    h += '<span class="lv2-chip">'+(fd?fd.label:k)+': '+_lv2FilterLabel(k,_lv2Filters[k])+' <button class="lv2-chip-x" data-fk="'+k+'">&times;</button></span>';
-  });
-  return h + '</div>';
-}
-
-function _lv2BindChips(container, objKey) {
-  container.querySelectorAll('.lv2-chip-x').forEach(function(btn) {
-    btn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      delete _lv2Filters[btn.getAttribute('data-fk')];
-      var cfg = OBJ_CONFIG[objKey];
-      if (cfg) { renderObjHeader(objKey, cfg, document.getElementById('page-header')); refreshContent(objKey, cfg); }
-    });
-  });
-}
-
-/* ═══════════════════════════════════════════════════════
-   MAIN RENDER
+   MAIN RENDER — Called from pipeline.js renderObjContent
    ═══════════════════════════════════════════════════════ */
 
 function renderListViewV2(items, columns, container, objKey) {
+  /* Only V2 for contacts & accounts — fallback to classic for others */
   if (objKey !== 'contacts' && objKey !== 'accounts') {
     renderListView(items, columns, container, objKey);
     return;
   }
+
   injectListV2Styles();
 
   var isContacts = (objKey === 'contacts');
-  var allItems = isContacts ? (window.DATA.contacts||[]) : (window.DATA.accounts||[]);
+  var allItems = (isContacts ? (window.DATA.contacts||[]) : (window.DATA.accounts||[]));
 
-  /* Apply V2 filters on top of pipeline.js search */
-  var displayed = _lv2ApplyFilters(items, objKey);
+  /* Key records = items with keyRelationship flag, or fallback top 3 by pipeline */
+  var keyRecords = allItems.filter(function(r) { return r.keyRelationship; });
 
-  /* Key records */
-  var keyRecords = allItems.filter(function(r){ return r.keyRelationship; });
   if (keyRecords.length === 0) {
+    /* Fallback: top 3 by pipeline value */
     var ranked = allItems.slice();
-    if (isContacts) ranked.sort(function(a,b){ return _lv2ContactPipeline(b) - _lv2ContactPipeline(a); });
-    else ranked.sort(function(a,b){ return (b.pipeline||0) - (a.pipeline||0); });
+    if (isContacts) {
+      ranked.sort(function(a,b) { return _lv2ContactPipeline(b) - _lv2ContactPipeline(a); });
+    } else {
+      ranked.sort(function(a,b) { return (b.pipeline||0) - (a.pipeline||0); });
+    }
     keyRecords = ranked.slice(0, 3);
   }
 
-  /* ═══ 1. Compact Key Strip ═══ */
-  var html = '<div class="lv2-strip"><div class="lv2-strip-title">'+_lv2StarSmall+' Key Relationships</div><div class="lv2-strip-row">';
+  var _starTitleSvg = '<svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
 
-  keyRecords.forEach(function(r) {
-    var av = '';
-    if (isContacts) {
-      if (r.photoURL) av = '<img src="'+r.photoURL+'" alt="" class="lv2-strip-avatar"/>';
-      else { var i = r.name.split(' ').map(function(w){return w[0];}).join('').substring(0,2); av = '<div class="lv2-strip-avatar-placeholder"><span class="lv2-strip-initials">'+i+'</span></div>'; }
-    } else {
-      if (r.photoURL) av = '<img src="'+r.photoURL+'" alt="" class="lv2-strip-avatar lv2-strip-avatar-acct"/>';
-      else av = '<div class="lv2-strip-avatar-placeholder lv2-strip-avatar-acct">'+_lv2BuildingSmall+'</div>';
-    }
-    var meta = isContacts ? getAccountName(r.account) : (r.industry||'');
-    var pv = isContacts ? _lv2ContactPipeline(r) : (r.pipeline||0);
-    html += '<div class="lv2-strip-card" data-id="'+r.id+'" data-obj="'+objKey+'">'+av+
-      '<div class="lv2-strip-info"><div class="lv2-strip-name">'+r.name+'</div><div class="lv2-strip-meta">'+meta+'</div><div class="lv2-strip-pipeline"><b>'+fmtAmount(pv)+'</b> pipeline</div></div></div>';
-  });
-  html += '<div class="lv2-strip-add" id="lv2-add-key">'+svgIcon('plus',13,'currentColor')+' Add Key</div></div></div>';
+  /* ── Build Key Cards HTML ── */
+  var keyHTML = '';
+  if (keyRecords.length > 0) {
+    keyHTML = '<div class="lv2-key-section">' +
+      '<div class="lv2-key-title">' + _starTitleSvg + ' Key Relationships</div>' +
+      '<div class="lv2-key-cards">';
 
-  /* ═══ 2. Filter Chips ═══ */
-  html += _lv2BuildChips(objKey);
+    keyRecords.forEach(function(r) {
+      var avatarHTML = '';
+      if (isContacts) {
+        if (r.photoURL) {
+          avatarHTML = '<img src="'+r.photoURL+'" alt="" class="lv2-key-avatar"/>';
+        } else {
+          var initials = r.name.split(' ').map(function(w){return w[0];}).join('').substring(0,2);
+          avatarHTML = '<div class="lv2-key-avatar-placeholder"><span class="lv2-key-initials">'+initials+'</span></div>';
+        }
+      } else {
+        if (r.photoURL) {
+          avatarHTML = '<img src="'+r.photoURL+'" alt="" class="lv2-key-avatar lv2-key-avatar-acct"/>';
+        } else {
+          avatarHTML = '<div class="lv2-key-avatar-placeholder lv2-key-avatar-acct">'+_lv2BuildingSvg+'</div>';
+        }
+      }
 
-  /* ═══ 3. Table ═══ */
+      var metaText = '';
+      var pipelineVal = 0;
+      if (isContacts) {
+        var accName = getAccountName(r.account);
+        metaText = (r.role || '') + (accName ? ' - ' + accName : '');
+        pipelineVal = _lv2ContactPipeline(r);
+      } else {
+        metaText = r.industry || '';
+        pipelineVal = r.pipeline || 0;
+      }
+
+      var extraHTML = '';
+      if (!isContacts) {
+        var sc = LV2_STATUS_COLORS[r.status] || '#94a3b8';
+        extraHTML = '<div class="lv2-key-extra">' +
+          '<span class="lv2-key-extra-dot" style="background:'+sc+'"></span>' +
+          '<span class="lv2-key-extra-text">'+r.status+'</span>' +
+          '<span class="lv2-key-extra-sep">|</span>' +
+          '<span class="lv2-key-extra-text">'+(r.opps||0)+' opps</span>' +
+          '</div>';
+      }
+
+      keyHTML += '<div class="lv2-key-card" data-id="'+r.id+'" data-obj="'+objKey+'">' +
+        '<div class="lv2-key-inner">' + avatarHTML +
+        '<div class="lv2-key-info">' +
+          '<div class="lv2-key-name">'+r.name+'</div>' +
+          '<div class="lv2-key-meta">'+metaText+'</div>' +
+          '<div class="lv2-key-pipeline"><span class="lv2-key-pipeline-val">'+fmtAmount(pipelineVal)+'</span> <span class="lv2-key-pipeline-lbl">pipeline</span></div>' +
+        '</div></div>' + extraHTML + '</div>';
+    });
+
+    keyHTML += '<div class="lv2-key-add" id="lv2-add-key">' + svgIcon('plus',13,'currentColor') + ' Add Key</div>';
+    keyHTML += '</div></div>';
+  }
+
+  /* ── Key IDs set for row highlighting ── */
   var keyIds = {};
   keyRecords.forEach(function(r){ keyIds[r.id] = true; });
 
-  html += '<div class="lv2-table-section"><div class="lv2-table-bar"><div class="lv2-table-bar-left">'+
-    svgIcon('list',14,'var(--accent)')+' <span>All '+(isContacts?'Contacts':'Accounts')+'</span> <span class="lv2-table-bar-count">('+displayed.length+')</span></div><div id="lv2-sel-info"></div></div>'+
-    '<div class="lv2-table-wrap"><table class="lv2-table"><thead><tr><th style="width:36px"><input type="checkbox" class="lv2-checkbox" id="lv2-check-all"/></th>';
+  /* ── Build Table HTML ── */
+  var tableHTML = '<div class="lv2-table-section">' +
+    '<div class="lv2-table-bar">' +
+      '<div class="lv2-table-bar-left">' +
+        svgIcon('list',14,'var(--accent)') +
+        ' <span>All ' + (isContacts ? 'Contacts' : 'Accounts') + '</span>' +
+        ' <span class="lv2-table-bar-count">(' + items.length + ')</span>' +
+      '</div>' +
+      '<div id="lv2-sel-info"></div>' +
+    '</div>' +
+    '<div class="lv2-table-wrap"><table class="lv2-table"><thead><tr>' +
+    '<th style="width:36px"><input type="checkbox" class="lv2-checkbox" id="lv2-check-all"/></th>';
 
-  if (isContacts) html += '<th data-sort="name">CONTACT</th><th data-sort="company">COMPANY</th><th data-sort="role">ROLE</th><th data-sort="city">CITY</th><th>LAST ACTIVITY</th><th>EMAIL</th>';
-  else html += '<th data-sort="name">ACCOUNT</th><th data-sort="industry">INDUSTRY</th><th data-sort="city">CITY</th><th data-sort="pipeline">PIPELINE</th><th data-sort="opps">OPPORTUNITIES</th><th>STATUS</th>';
-  html += '</tr></thead><tbody>';
+  if (isContacts) {
+    tableHTML += '<th data-sort="name">CONTACT</th>' +
+      '<th data-sort="company">COMPANY</th>' +
+      '<th data-sort="role">ROLE</th>' +
+      '<th data-sort="city">CITY</th>' +
+      '<th>LAST ACTIVITY</th>' +
+      '<th>EMAIL</th>';
+  } else {
+    tableHTML += '<th data-sort="name">ACCOUNT</th>' +
+      '<th data-sort="industry">INDUSTRY</th>' +
+      '<th data-sort="city">CITY</th>' +
+      '<th data-sort="pipeline">PIPELINE</th>' +
+      '<th data-sort="opps">OPPORTUNITIES</th>' +
+      '<th>STATUS</th>';
+  }
 
-  displayed.forEach(function(item) {
+  tableHTML += '</tr></thead><tbody>';
+
+  items.forEach(function(item) {
     var isKey = !!keyIds[item.id];
-    html += '<tr data-id="'+item.id+'" data-obj="'+objKey+'"'+(isKey?' class="lv2-row-key"':'')+'>';
-    html += '<td><input type="checkbox" class="lv2-checkbox lv2-row-check" data-id="'+item.id+'"/></td>';
+    var rowClass = isKey ? ' class="lv2-row-key"' : '';
+
+    tableHTML += '<tr data-id="'+item.id+'" data-obj="'+objKey+'"'+rowClass+'>';
+    tableHTML += '<td><input type="checkbox" class="lv2-checkbox lv2-row-check" data-id="'+item.id+'"/></td>';
 
     if (isContacts) {
+      /* ── Contact row ── */
       var accName = getAccountName(item.account);
       var city = _lv2ContactCity(item);
-      var pipe = _lv2ContactPipeline(item);
-      var la = _lv2GetLastActivity(item.id,'contacts');
-      var av2 = item.photoURL ? '<img src="'+item.photoURL+'" alt="" class="lv2-row-avatar"/>' :
-        '<div class="lv2-row-avatar" style="display:flex;align-items:center;justify-content:center;background:#f1f5f9;font-size:11px;font-weight:700;color:var(--text-light)">'+item.name.split(' ').map(function(w){return w[0];}).join('').substring(0,2)+'</div>';
+      var pipeline = _lv2ContactPipeline(item);
+      var lastAct = _lv2GetLastActivity(item.id, 'contacts');
 
-      html += '<td><div class="lv2-name-cell">'+av2+'<div><div class="lv2-row-name">'+
-        (isKey?'<span class="lv2-star">'+_lv2StarSvg+'</span>':'')+
-        '<a class="record-link" data-id="'+item.id+'" data-obj="contacts">'+item.name+'</a>'+
-        (isKey?' <span class="lv2-key-badge">KEY</span>':'')+
-        '</div><div class="lv2-row-sub">'+(item.role||'')+(accName?' - '+accName:'')+'</div>'+
-        (pipe>0?'<div class="lv2-row-pipeline">'+fmtAmount(pipe)+' pipeline</div>':'')+
-        '</div></div></td>';
-      html += '<td><div class="lv2-cell-main">'+accName+'</div>'+(city?'<div class="lv2-cell-sub">'+city+'</div>':'')+'</td>';
-      html += '<td><span class="lv2-cell-main">'+(item.role||'')+'</span></td>';
-      html += '<td><span class="lv2-cell-main">'+city+'</span></td>';
-
-      if (la) {
-        var ac=LV2_ACT_COLORS[la.type]||'#94a3b8', ap=LV2_ACT_ICONS[la.type]||'';
-        html += '<td><div class="lv2-activity-badge">'+(ap?_lv2Icon(ap,13,ac):'')+' <span>'+la.when+'</span></div></td>';
-        var pl2=LV2_ACT_LABELS[la.type]||la.type;
-        html += '<td><span class="lv2-activity-pill" style="background:'+ac+'14;color:'+ac+'">'+(ap?_lv2Icon(ap,12,ac):'')+' '+pl2+'</span></td>';
+      var avatarTd = '';
+      if (item.photoURL) {
+        avatarTd = '<img src="'+item.photoURL+'" alt="" class="lv2-row-avatar"/>';
       } else {
-        html += '<td><span class="lv2-cell-sub">--</span></td><td><span class="lv2-cell-sub">'+(item.email||'')+'</span></td>';
+        var ini = item.name.split(' ').map(function(w){return w[0];}).join('').substring(0,2);
+        avatarTd = '<div class="lv2-row-avatar" style="display:flex;align-items:center;justify-content:center;background:#f1f5f9;font-size:11px;font-weight:700;color:var(--text-light)">'+ini+'</div>';
       }
+
+      tableHTML += '<td><div class="lv2-name-cell">' + avatarTd + '<div>' +
+        '<div class="lv2-row-name">' +
+          (isKey ? '<span class="lv2-star">'+_lv2StarSvg+'</span>' : '') +
+          '<a class="record-link" data-id="'+item.id+'" data-obj="contacts">'+item.name+'</a>' +
+          (isKey ? ' <span class="lv2-key-badge">KEY</span>' : '') +
+        '</div>' +
+        '<div class="lv2-row-sub">'+(item.role||'')+(accName?' - '+accName:'')+'</div>' +
+        (pipeline > 0 ? '<div class="lv2-row-pipeline">'+fmtAmount(pipeline)+' pipeline</div>' : '') +
+        '</div></div></td>';
+
+      tableHTML += '<td><div class="lv2-cell-main">'+accName+'</div>' +
+        (city ? '<div class="lv2-cell-sub">'+city+'</div>' : '') + '</td>';
+
+      tableHTML += '<td><span class="lv2-cell-main">'+(item.role||'')+'</span></td>';
+      tableHTML += '<td><span class="lv2-cell-main">'+city+'</span></td>';
+
+      /* Last activity */
+      if (lastAct) {
+        var actColor = LV2_ACT_COLORS[lastAct.type] || '#94a3b8';
+        var actIconPath = LV2_ACT_ICONS[lastAct.type] || '';
+        tableHTML += '<td><div class="lv2-activity-badge">' +
+          (actIconPath ? _lv2Icon(actIconPath, 13, actColor) : '') +
+          ' <span>'+lastAct.when+'</span></div></td>';
+      } else {
+        tableHTML += '<td><span class="lv2-cell-sub">--</span></td>';
+      }
+
+      /* Email / last activity pill */
+      if (lastAct) {
+        var pillColor = LV2_ACT_COLORS[lastAct.type] || '#94a3b8';
+        var pillLabel = LV2_ACT_LABELS[lastAct.type] || lastAct.type;
+        var pillIconPath = LV2_ACT_ICONS[lastAct.type] || '';
+        tableHTML += '<td><span class="lv2-activity-pill" style="background:'+pillColor+'14;color:'+pillColor+'">' +
+          (pillIconPath ? _lv2Icon(pillIconPath, 12, pillColor) : '') +
+          ' '+pillLabel+'</span></td>';
+      } else {
+        tableHTML += '<td><span class="lv2-cell-sub">'+(item.email||'')+'</span></td>';
+      }
+
     } else {
-      var aav = item.photoURL ? '<img src="'+item.photoURL+'" alt="" class="lv2-row-avatar" style="border-radius:8px"/>' :
-        '<div class="lv2-row-avatar-acct" style="width:34px;height:34px">'+_lv2BuildingSmall+'</div>';
-      html += '<td><div class="lv2-name-cell">'+aav+'<div><div class="lv2-row-name">'+
-        (isKey?'<span class="lv2-star">'+_lv2StarSvg+'</span>':'')+
-        '<a class="record-link" data-id="'+item.id+'" data-obj="accounts">'+item.name+'</a>'+
-        (isKey?' <span class="lv2-key-badge">KEY</span>':'')+
+      /* ── Account row ── */
+      var acctAvatar = '';
+      if (item.photoURL) {
+        acctAvatar = '<img src="'+item.photoURL+'" alt="" class="lv2-row-avatar" style="border-radius:8px"/>';
+      } else {
+        acctAvatar = '<div class="lv2-row-avatar-acct" style="width:34px;height:34px">'+
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 012-2h8a2 2 0 012 2v18Z"/><path d="M6 12H4a2 2 0 00-2 2v6a2 2 0 002 2h2"/><path d="M18 9h2a2 2 0 012 2v9a2 2 0 01-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></svg>' +
+          '</div>';
+      }
+
+      tableHTML += '<td><div class="lv2-name-cell">' + acctAvatar + '<div>' +
+        '<div class="lv2-row-name">' +
+          (isKey ? '<span class="lv2-star">'+_lv2StarSvg+'</span>' : '') +
+          '<a class="record-link" data-id="'+item.id+'" data-obj="accounts">'+item.name+'</a>' +
+          (isKey ? ' <span class="lv2-key-badge">KEY</span>' : '') +
         '</div></div></div></td>';
-      html += '<td><span class="lv2-cell-main">'+(item.industry||'')+'</span></td>';
-      html += '<td><span class="lv2-cell-main">'+(item.city||'')+'</span></td>';
-      html += '<td><span class="lv2-pipeline-cell">'+fmtAmount(item.pipeline||0)+'</span></td>';
-      html += '<td><span class="lv2-opp-count">'+(item.opps||0)+'</span></td>';
-      var sc=LV2_STATUS_COLORS[item.status]||'#94a3b8';
-      html += '<td><span class="lv2-status-pill" style="background:'+sc+'14;color:'+sc+'"><span class="lv2-status-dot" style="background:'+sc+'"></span>'+(item.status||'')+'</span></td>';
+
+      tableHTML += '<td><span class="lv2-cell-main">'+(item.industry||'')+'</span></td>';
+      tableHTML += '<td><span class="lv2-cell-main">'+(item.city||'')+'</span></td>';
+      tableHTML += '<td><span class="lv2-pipeline-cell">'+fmtAmount(item.pipeline||0)+'</span></td>';
+      tableHTML += '<td><span class="lv2-opp-count">'+(item.opps||0)+'</span></td>';
+
+      /* Status pill */
+      var stColor = LV2_STATUS_COLORS[item.status] || '#94a3b8';
+      tableHTML += '<td><span class="lv2-status-pill" style="background:'+stColor+'14;color:'+stColor+'">' +
+        '<span class="lv2-status-dot" style="background:'+stColor+'"></span>' +
+        (item.status||'') + '</span></td>';
     }
-    html += '</tr>';
+
+    tableHTML += '</tr>';
   });
-  html += '</tbody></table></div></div>';
 
-  container.innerHTML = html;
+  tableHTML += '</tbody></table></div></div>';
 
-  /* ═══ Wire events ═══ */
-  container.querySelectorAll('.lv2-strip-card').forEach(function(c){ c.addEventListener('click', function(){ navigate('record',c.dataset.obj,c.dataset.id); }); });
-  var ak = document.getElementById('lv2-add-key');
-  if (ak) ak.addEventListener('click', function(){ _lv2ShowToast('Mark a '+(isContacts?'contact':'account')+' as Key from its record page'); });
-  container.querySelectorAll('.record-link').forEach(function(l){ l.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); navigate('record',l.dataset.obj,l.dataset.id); }); });
-  container.querySelectorAll('.lv2-table tbody tr[data-id]').forEach(function(tr){ tr.addEventListener('click', function(e){ if(e.target.type==='checkbox'||e.target.closest('.record-link'))return; navigate('record',tr.dataset.obj,tr.dataset.id); }); });
-  var ca = document.getElementById('lv2-check-all');
-  if (ca) ca.addEventListener('change', function(){ container.querySelectorAll('.lv2-row-check').forEach(function(cb){ cb.checked=ca.checked; }); _lv2UpdateSelInfo(container); });
-  container.querySelectorAll('.lv2-row-check').forEach(function(cb){ cb.addEventListener('change', function(){ _lv2UpdateSelInfo(container); }); });
-  container.querySelectorAll('.lv2-table th[data-sort]').forEach(function(th){ th.addEventListener('click', function(){ _lv2SortAndRerender(th.dataset.sort,items,container,objKey); }); });
-  _lv2BindChips(container, objKey);
+  /* ── Inject into container — wrapped in centered layout ── */
+  container.innerHTML = '<div class="lv2-container">' + keyHTML + tableHTML + '</div>';
+
+  /* ── Wire events ── */
+
+  /* Key card clicks */
+  container.querySelectorAll('.lv2-key-card').forEach(function(card) {
+    card.addEventListener('click', function() {
+      navigate('record', card.dataset.obj, card.dataset.id);
+    });
+  });
+
+  /* + Add Key button */
+  var addKeyBtn = document.getElementById('lv2-add-key');
+  if (addKeyBtn) {
+    addKeyBtn.addEventListener('click', function() {
+      _lv2ShowToast('Mark a ' + (isContacts ? 'contact' : 'account') + ' as Key from its record page');
+    });
+  }
+
+  /* Record link clicks */
+  container.querySelectorAll('.record-link').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      navigate('record', link.dataset.obj, link.dataset.id);
+    });
+  });
+
+  /* Row clicks */
+  container.querySelectorAll('.lv2-table tbody tr[data-id]').forEach(function(tr) {
+    tr.addEventListener('click', function(e) {
+      if (e.target.type === 'checkbox' || e.target.closest('.record-link')) return;
+      navigate('record', tr.dataset.obj, tr.dataset.id);
+    });
+  });
+
+  /* Checkbox: select all */
+  var checkAll = document.getElementById('lv2-check-all');
+  if (checkAll) {
+    checkAll.addEventListener('change', function() {
+      var boxes = container.querySelectorAll('.lv2-row-check');
+      boxes.forEach(function(cb) { cb.checked = checkAll.checked; });
+      _lv2UpdateSelInfo(container);
+    });
+  }
+
+  /* Checkbox: individual */
+  container.querySelectorAll('.lv2-row-check').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      _lv2UpdateSelInfo(container);
+    });
+  });
+
+  /* Column sort */
+  container.querySelectorAll('.lv2-table th[data-sort]').forEach(function(th) {
+    th.addEventListener('click', function() {
+      var col = th.dataset.sort;
+      _lv2SortAndRerender(col, items, container, objKey);
+    });
+  });
 }
 
-/* ─── Helpers ─────────────────────────────────────────── */
+/* ─── Selection count ─────────────────────────────────── */
 
 function _lv2UpdateSelInfo(container) {
-  var n = container.querySelectorAll('.lv2-row-check:checked').length;
-  var el = document.getElementById('lv2-sel-info');
-  if (el) el.innerHTML = n > 0 ? '<span class="lv2-sel-info">'+n+' selected</span>' : '';
+  var checked = container.querySelectorAll('.lv2-row-check:checked');
+  var info = document.getElementById('lv2-sel-info');
+  if (info) {
+    info.innerHTML = checked.length > 0
+      ? '<span class="lv2-sel-info">'+checked.length+' selected</span>'
+      : '';
+  }
 }
+
+/* ─── Sort state ──────────────────────────────────────── */
+
+var _lv2SortCol = null;
+var _lv2SortDir = 'asc';
 
 function _lv2SortAndRerender(col, items, container, objKey) {
-  if (_lv2SortCol === col) _lv2SortDir = _lv2SortDir === 'asc' ? 'desc' : 'asc';
-  else { _lv2SortCol = col; _lv2SortDir = 'asc'; }
-  var sorted = items.slice().sort(function(a,b) {
+  if (_lv2SortCol === col) {
+    _lv2SortDir = (_lv2SortDir === 'asc') ? 'desc' : 'asc';
+  } else {
+    _lv2SortCol = col;
+    _lv2SortDir = 'asc';
+  }
+
+  /* Sort for contacts: resolve computed fields */
+  var sorted = items.slice();
+  sorted.sort(function(a,b) {
     var va, vb;
-    if (col==='company'&&objKey==='contacts'){va=getAccountName(a.account).toLowerCase();vb=getAccountName(b.account).toLowerCase();}
-    else if(col==='city'&&objKey==='contacts'){va=_lv2ContactCity(a).toLowerCase();vb=_lv2ContactCity(b).toLowerCase();}
-    else{va=a[col];vb=b[col];if(typeof va==='string')va=va.toLowerCase();if(typeof vb==='string')vb=vb.toLowerCase();}
-    if(va==null)va='';if(vb==null)vb='';
-    return va<vb?(_lv2SortDir==='asc'?-1:1):va>vb?(_lv2SortDir==='asc'?1:-1):0;
+
+    if (col === 'company' && objKey === 'contacts') {
+      va = getAccountName(a.account).toLowerCase();
+      vb = getAccountName(b.account).toLowerCase();
+    } else if (col === 'city' && objKey === 'contacts') {
+      va = _lv2ContactCity(a).toLowerCase();
+      vb = _lv2ContactCity(b).toLowerCase();
+    } else {
+      va = a[col]; vb = b[col];
+      if (typeof va === 'string') va = va.toLowerCase();
+      if (typeof vb === 'string') vb = vb.toLowerCase();
+    }
+
+    if (va == null) va = '';
+    if (vb == null) vb = '';
+    if (va < vb) return _lv2SortDir === 'asc' ? -1 : 1;
+    if (va > vb) return _lv2SortDir === 'asc' ? 1 : -1;
+    return 0;
   });
+
   renderListViewV2(sorted, null, container, objKey);
-  container.querySelectorAll('.lv2-table th[data-sort]').forEach(function(th){
-    if(th.dataset.sort===_lv2SortCol){th.classList.add('lv2-th-active');th.innerHTML=th.textContent.replace(/[\u25B2\u25BC]/g,'').trim()+' <span class="lv2-sort-arrow">'+(_lv2SortDir==='asc'?'&#x25B2;':'&#x25BC;')+'</span>';}
+
+  /* Highlight active sort header */
+  container.querySelectorAll('.lv2-table th[data-sort]').forEach(function(th) {
+    if (th.dataset.sort === _lv2SortCol) {
+      th.classList.add('lv2-th-active');
+      th.innerHTML = th.textContent.replace(/[▲▼]/g,'').trim() +
+        ' <span class="lv2-sort-arrow">' + (_lv2SortDir==='asc' ? '&#x25B2;' : '&#x25BC;') + '</span>';
+    }
   });
 }
 
+/* ─── Toast helper ────────────────────────────────────── */
+
 function _lv2ShowToast(msg) {
-  var old = document.getElementById('lv2-toast'); if (old) old.remove();
-  var t = document.createElement('div'); t.id = 'lv2-toast';
+  var old = document.getElementById('lv2-toast');
+  if (old) old.remove();
+  var t = document.createElement('div');
+  t.id = 'lv2-toast';
   t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(12px);opacity:0;z-index:9999;background:#0f172a;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;font-family:inherit;box-shadow:0 8px 32px rgba(0,0,0,.18);pointer-events:none;transition:all .25s;white-space:nowrap';
-  t.textContent = msg; document.body.appendChild(t);
-  requestAnimationFrame(function(){ t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)'; });
-  setTimeout(function(){ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(12px)'; setTimeout(function(){ t.remove(); },250); },2400);
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(function() { t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)'; });
+  setTimeout(function() { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(12px)'; setTimeout(function() { t.remove(); }, 250); }, 2400);
 }
