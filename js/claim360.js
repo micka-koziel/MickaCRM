@@ -14,7 +14,9 @@
     clock:         'M12 6v6l4 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z',
     target:        'M12 2a10 10 0 100 20 10 10 0 000-20zm0 4a6 6 0 100 12 6 6 0 000-12zm0 4a2 2 0 100 4 2 2 0 000-4z',
     userCheck:     'M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m12.5-11.5L16 12l4-4M12.5 7a4 4 0 11-8 0 4 4 0 018 0z',
-    checkCircle:   'M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3'
+    checkCircle:   'M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3',
+    edit:          'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
+    trash:         'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
   };
   for (var k in extra) {
     if (!NAV_ICONS[k]) NAV_ICONS[k] = extra[k];
@@ -178,6 +180,8 @@ function renderClaim360(container, rec) {
   h += '<button class="cl36-btn cl36-btn--ol">' + cl36Icon('userCheck',14) + ' Assign Owner</button>';
   h += '<button class="cl36-btn cl36-btn--ol">' + cl36Icon('upload',14) + ' Upload Document</button>';
   h += '<button class="cl36-btn cl36-btn--gn">' + cl36Icon('checkCircle',14,'#fff') + ' Resolve Claim</button>';
+  h += '<button class="cl36-btn cl36-btn--ol crm-edit-btn" data-obj="claims" data-rec="'+rec.id+'">' + cl36Icon('edit',14) + ' Edit</button>';
+  h += '<button class="cl36-btn cl36-btn--ol crm-delete-btn" data-obj="claims" data-rec="'+rec.id+'" style="color:#ef4444;border-color:#fecaca">' + cl36Icon('trash',14,'#ef4444') + ' Delete</button>';
   h += '</div>';
 
   h += '</div>'; /* header-card */
@@ -426,6 +430,7 @@ function renderClaim360(container, rec) {
   container.querySelectorAll('.cl36-section-link[data-nav]').forEach(function(el) {
     el.addEventListener('click', function(){ navigate(el.getAttribute('data-nav')); });
   });
+  if (typeof bindCrmActionButtons === 'function') bindCrmActionButtons(container);
 }
 
 /* ── Section card helper ── */

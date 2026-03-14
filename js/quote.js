@@ -362,10 +362,11 @@ function renderQuote360(rec) {
   html += '</div>';
   html += '<div class="q360-header-sep"></div>';
   html += '<div class="q360-header-actions">';
-  html += '<button class="q360-btn q360-btn-primary" data-action="edit">' + q360icon('edit', 14, '#fff') + ' Edit</button>';
+  html += '<button class="q360-btn q360-btn-primary crm-edit-btn" data-obj="quotes" data-rec="' + rec.id + '">' + q360icon('edit', 14, '#fff') + ' Edit</button>';
   html += '<button class="q360-btn q360-btn-outline" data-action="send">' + q360icon('send', 14, '#475569') + ' Send</button>';
   html += '<button class="q360-btn q360-btn-outline" data-action="revise">' + q360icon('copy', 14, '#475569') + ' Revise</button>';
   html += '<button class="q360-btn q360-btn-outline" data-action="pdf">' + q360icon('download', 14, '#475569') + ' PDF</button>';
+  html += '<button class="q360-btn q360-btn-outline crm-delete-btn" data-obj="quotes" data-rec="' + rec.id + '" style="color:#ef4444;border-color:#fecaca">' + q360icon('trash', 14, '#ef4444') + ' Delete</button>';
   html += '</div>';
   html += '</div>';
 
@@ -620,6 +621,8 @@ function bindQuote360Events(container) {
       // TODO: wire to modals / Firebase
     }
   });
+
+  if (typeof bindCrmActionButtons === 'function') bindCrmActionButtons(container);
 }
 
 

@@ -134,7 +134,12 @@ function renderAccount360(container, rec) {
 
   h += '<div class="a360-header-actions"><div class="a360-qa-row">';
   h += a360QA('contacts','Contact',true) + a360QA('opportunities','Opportunity',true) + a360QA('quotes','Quote') + a360QA('activities','Activity') + a360QA('projects','Project');
-  h += '</div></div></div>';
+  h += '</div></div>';
+  /* Edit / Delete */
+  h += '<div class="a360-header-actions" style="display:flex;gap:7px;padding:0 26px 14px;flex-wrap:wrap">';
+  h += crmActionButtons('a360', 'accounts', accId);
+  h += '</div>';
+  h += '</div>';
 
   // KPIs dark
   h += '<div class="a360-kpi-grid">';
@@ -293,6 +298,7 @@ function renderAccount360(container, rec) {
   container.querySelectorAll('.a360-kpi-card[data-nav]').forEach(function(el) {
     el.addEventListener('click', function(){ navigate(el.getAttribute('data-nav')); });
   });
+  bindCrmActionButtons(container);
 }
 
 // ─── Account 360 Helpers ───
@@ -380,6 +386,7 @@ function renderContact360(container, rec) {
   h += '<button class="c360-action-btn c360-action-primary">' + svgIcon('mail',13,'#fff') + '<span>Send Email</span></button>';
   h += '<button class="c360-action-btn c360-action-outline">' + svgIcon('activities',13,'var(--text-muted)') + '<span>Add Activity</span></button>';
   h += '<button class="c360-action-btn c360-action-outline">' + svgIcon('opportunities',13,'var(--text-muted)') + '<span>Create Opportunity</span></button>';
+  h += crmActionButtons('c360', 'contacts', contactId);
   h += '</div>';
 
   h += '</div></div>';
@@ -598,6 +605,7 @@ function renderContact360(container, rec) {
   container.querySelectorAll('.c360-section-link[data-nav]').forEach(function(el) {
     el.addEventListener('click', function(){ navigate(el.getAttribute('data-nav')); });
   });
+  bindCrmActionButtons(container);
 }
 
 // ─── Contact 360 Helpers ───
@@ -734,6 +742,7 @@ function renderLead360(container, rec) {
   h += '<button class="l360-action-btn l360-action-primary">' + svgIcon('mail',13,'#fff') + '<span>Send Email</span></button>';
   h += '<button class="l360-action-btn l360-action-outline">' + svgIcon('activities',13,'var(--text-muted)') + '<span>Add Activity</span></button>';
   h += '<button class="l360-action-btn l360-action-convert" id="l360-convert">' + svgIcon('opportunities',13,'#fff') + '<span>Convert to Opportunity</span></button>';
+  h += crmActionButtons('l360', 'leads', rec.id);
   h += '</div>';
 
   h += '</div>'; /* header-card */
@@ -979,6 +988,7 @@ function renderLead360(container, rec) {
   container.querySelectorAll('.l360-section-link[data-nav]').forEach(function(el) {
     el.addEventListener('click', function(){ navigate(el.getAttribute('data-nav')); });
   });
+  bindCrmActionButtons(container);
 }
 
 /* ─── Lead 360 Helpers ─── */
@@ -1128,6 +1138,7 @@ function renderOpp360(container, rec) {
   h += '<button class="o360-action-btn o360-action-outline">' + svgIcon('activities',13,'var(--text-muted)') + '<span>Add Activity</span></button>';
   h += '<button class="o360-action-btn o360-action-outline">' + svgIcon('quotes',13,'var(--text-muted)') + '<span>Create Quote</span></button>';
   h += '<button class="o360-action-btn o360-action-success" id="o360-advance">' + svgIcon('check',13,'#fff') + '<span>Mark Stage Complete</span></button>';
+  h += crmActionButtons('o360', 'opportunities', oppId);
   h += '</div></div>';
 
   /* ── 4 KPI Cards (like Lead) ── */
@@ -1341,6 +1352,7 @@ function renderOpp360(container, rec) {
   container.querySelectorAll('.o360-section-link[data-nav]').forEach(function(el) {
     el.addEventListener('click', function(){ navigate(el.getAttribute('data-nav')); });
   });
+  bindCrmActionButtons(container);
 }
 
 /* ─── Opp 360 Helpers ─── */
@@ -1541,7 +1553,11 @@ function renderGenericRecord(objKey, rec, headerEl, contentEl) {
   headerEl.innerHTML = '<div class="obj-header"><div class="obj-header-left">'+
     '<button class="rec-back-btn" id="rec-back">'+svgIcon('arrowLeft',14)+'</button>'+
     '<div><h1 style="font-size:16px">'+title+'</h1>'+
-    '<div style="font-size:11px;color:var(--text-light)">'+parentLabel+'</div></div></div></div>';
+    '<div style="font-size:11px;color:var(--text-light)">'+parentLabel+'</div></div></div>'+
+    '<div style="display:flex;gap:6px">'+
+    '<button class="crm-edit-btn" data-obj="'+objKey+'" data-rec="'+rec.id+'" style="display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:7px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;color:var(--text-muted);transition:all .12s">'+svgIcon('edit',13,'var(--text-muted)')+' Edit</button>'+
+    '<button class="crm-delete-btn" data-obj="'+objKey+'" data-rec="'+rec.id+'" style="display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:7px;border:1px solid #fecaca;background:#fff;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;color:#ef4444;transition:all .12s">'+svgIcon('trash',13,'#ef4444')+' Delete</button>'+
+    '</div></div>';
 
   document.getElementById('rec-back').addEventListener('click', function(){ navigate(objKey); });
 
@@ -1570,12 +1586,353 @@ function renderGenericRecord(objKey, rec, headerEl, contentEl) {
 
   html += '</div></div></div>';
   contentEl.innerHTML = html;
+  bindCrmActionButtons(headerEl);
 }
 
 
 /* ════════════════════════════════════════════════════════
-   CSS INJECTION — ACCOUNT 360
+   EDIT / DELETE — Centralized Modal System
+   Shared across ALL 360 layouts
    ════════════════════════════════════════════════════════ */
+
+/* ── Editable fields per object ── */
+var EDIT_FIELDS = {
+  accounts: [
+    {key:'name',      label:'Account Name',  type:'text'},
+    {key:'industry',  label:'Industry',      type:'text'},
+    {key:'city',      label:'City',          type:'text'},
+    {key:'phone',     label:'Phone',         type:'text'},
+    {key:'website',   label:'Website',       type:'text'},
+    {key:'status',    label:'Status',        type:'select', options:['Active','Prospect','Inactive']}
+  ],
+  contacts: [
+    {key:'name',      label:'Contact Name',  type:'text'},
+    {key:'role',      label:'Role / Title',  type:'text'},
+    {key:'email',     label:'Email',         type:'text'},
+    {key:'phone',     label:'Phone',         type:'text'},
+    {key:'city',      label:'City',          type:'text'}
+  ],
+  leads: [
+    {key:'name',          label:'Lead Name',       type:'text'},
+    {key:'source',        label:'Source',           type:'select', options:['Website','Trade Show','Referral','Cold Call','Inbound','Partner']},
+    {key:'priority',      label:'Priority',         type:'select', options:['High','Medium','Low']},
+    {key:'stage',         label:'Stage',            type:'select', options:['new','contacted','qualified','proposal','converted']},
+    {key:'estimatedValue',label:'Estimated Value',  type:'number'}
+  ],
+  opportunities: [
+    {key:'name',    label:'Opportunity Name', type:'text'},
+    {key:'amount',  label:'Amount',           type:'number'},
+    {key:'prob',    label:'Probability (%)',   type:'number'},
+    {key:'stage',   label:'Stage',            type:'select', options:['lead','study','tender','proposal','negotiation','closed_won','launched']},
+    {key:'close',   label:'Close Date',       type:'date'},
+    {key:'owner',   label:'Owner',            type:'text'}
+  ],
+  projects: [
+    {key:'name',              label:'Project Name',     type:'text'},
+    {key:'phase',             label:'Phase',            type:'select', options:['prestudy','tender','contracting','construction','delivered']},
+    {key:'location',          label:'Location',         type:'text'},
+    {key:'budget',            label:'Budget',           type:'number'},
+    {key:'owner',             label:'Owner',            type:'text'},
+    {key:'startDate',         label:'Start Date',       type:'date'},
+    {key:'expectedDelivery',  label:'Expected Delivery',type:'date'},
+    {key:'health',            label:'Health',           type:'select', options:['Healthy','Attention','At Risk']}
+  ],
+  claims: [
+    {key:'title',         label:'Claim Title',    type:'text'},
+    {key:'name',          label:'Name',           type:'text'},
+    {key:'status',        label:'Status',         type:'select', options:['Open','In Progress','Resolved','Closed']},
+    {key:'priority',      label:'Priority',       type:'select', options:['Critical','High','Medium','Low']},
+    {key:'category',      label:'Category',       type:'text'},
+    {key:'impactValue',   label:'Impact Value',   type:'number'},
+    {key:'owner',         label:'Owner',          type:'text'},
+    {key:'riskLevel',     label:'Risk Level',     type:'select', options:['High','Medium','Low']}
+  ],
+  activities: [
+    {key:'subject',   label:'Subject',    type:'text'},
+    {key:'type',      label:'Type',       type:'select', options:['Call','Meeting','Email','Site Visit']},
+    {key:'status',    label:'Status',     type:'select', options:['Planned','In Progress','Completed']},
+    {key:'date',      label:'Date',       type:'date'},
+    {key:'time',      label:'Time',       type:'text'},
+    {key:'duration',  label:'Duration (min)', type:'number'},
+    {key:'location',  label:'Location',   type:'text'},
+    {key:'owner',     label:'Owner',      type:'text'}
+  ],
+  quotes: [
+    {key:'name',      label:'Quote Name',   type:'text'},
+    {key:'amount',    label:'Amount',        type:'number'},
+    {key:'status',    label:'Status',        type:'select', options:['Draft','Sent','Accepted','Rejected','Expired']},
+    {key:'date',      label:'Date',          type:'date'},
+    {key:'validUntil',label:'Valid Until',   type:'date'},
+    {key:'discount',  label:'Discount (%)',  type:'number'}
+  ]
+};
+
+/* ── Inject modal styles (once) ── */
+function injectModalStyles() {
+  if (document.getElementById('crm-modal-css')) return;
+  var s = document.createElement('style'); s.id = 'crm-modal-css';
+  s.textContent = '\
+.crm-modal-backdrop{position:fixed;inset:0;z-index:10000;background:rgba(15,23,42,.45);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s ease}\
+.crm-modal-backdrop.crm-modal-show{opacity:1}\
+.crm-modal{background:#fff;border-radius:14px;box-shadow:0 24px 64px rgba(0,0,0,.18);width:min(520px,92vw);max-height:85vh;display:flex;flex-direction:column;transform:translateY(12px) scale(.97);transition:transform .25s ease}\
+.crm-modal-backdrop.crm-modal-show .crm-modal{transform:translateY(0) scale(1)}\
+.crm-modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid #e8eaed}\
+.crm-modal-title{font-size:15px;font-weight:700;color:#0f172a;letter-spacing:-.2px}\
+.crm-modal-close{width:30px;height:30px;border-radius:8px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#94a3b8;transition:all .12s}\
+.crm-modal-close:hover{background:#f0f2f5;color:#1e293b}\
+.crm-modal-body{padding:18px 22px;overflow-y:auto;flex:1}\
+.crm-modal-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:14px 22px;border-top:1px solid #e8eaed}\
+.crm-modal-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .12s}\
+.crm-modal-btn-cancel{background:#f0f2f5;color:#475569}\
+.crm-modal-btn-cancel:hover{background:#e2e5e9}\
+.crm-modal-btn-save{background:#2563eb;color:#fff}\
+.crm-modal-btn-save:hover{background:#1d4ed8}\
+.crm-modal-btn-delete{background:#ef4444;color:#fff}\
+.crm-modal-btn-delete:hover{background:#dc2626}\
+.crm-modal-btn[disabled]{opacity:.5;pointer-events:none}\
+\
+.crm-field-group{margin-bottom:14px}\
+.crm-field-label{display:block;font-size:10.5px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}\
+.crm-field-input{width:100%;padding:9px 12px;border:1.5px solid #e2e5e9;border-radius:8px;font-size:13px;font-family:inherit;color:#1e293b;background:#fff;transition:border-color .15s,box-shadow .15s;box-sizing:border-box}\
+.crm-field-input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1)}\
+select.crm-field-input{appearance:auto;cursor:pointer}\
+\
+.crm-delete-icon{width:52px;height:52px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}\
+.crm-delete-title{font-size:16px;font-weight:700;color:#0f172a;text-align:center;margin-bottom:6px}\
+.crm-delete-msg{font-size:13px;color:#64748b;text-align:center;line-height:1.5;margin-bottom:4px}\
+.crm-delete-name{font-weight:700;color:#1e293b}\
+\
+@media(max-width:640px){\
+  .crm-modal{width:96vw;max-height:90vh;border-radius:12px}\
+  .crm-modal-header{padding:14px 16px 12px}\
+  .crm-modal-body{padding:14px 16px}\
+  .crm-modal-footer{padding:12px 16px}\
+}\
+';
+  document.head.appendChild(s);
+}
+
+
+/* ── Open Edit Modal ──
+   Usage: openEditModal('accounts', 'a1')
+   Finds the record in window.DATA, builds form,
+   saves via fbUpdate + updates DATA + re-renders page
+   ─────────────────────────────────────────────────── */
+function openEditModal(objKey, recId) {
+  injectModalStyles();
+  var records = window.DATA[objKey] || [];
+  var rec = records.find(function(r) { return r.id === recId; });
+  if (!rec) { console.error('[Edit] Record not found:', objKey, recId); return; }
+
+  var fields = EDIT_FIELDS[objKey];
+  if (!fields) {
+    /* Fallback: auto-detect fields from record */
+    fields = Object.keys(rec).filter(function(k) {
+      return k !== 'id' && k !== 'photoURL' && k !== 'photo' && k !== 'keyRelationship';
+    }).map(function(k) {
+      return {key: k, label: k.charAt(0).toUpperCase() + k.slice(1).replace(/([A-Z])/g,' $1'), type: 'text'};
+    });
+  }
+
+  var recName = rec.name || rec.title || rec.subject || rec.id;
+  var objLabel = objKey.charAt(0).toUpperCase() + objKey.slice(1);
+
+  /* Build form fields */
+  var formHtml = '';
+  fields.forEach(function(f) {
+    var val = rec[f.key];
+    if (val === undefined || val === null) val = '';
+    formHtml += '<div class="crm-field-group">';
+    formHtml += '<label class="crm-field-label">' + f.label + '</label>';
+    if (f.type === 'select' && f.options) {
+      formHtml += '<select class="crm-field-input" data-field="' + f.key + '">';
+      formHtml += '<option value="">— Select —</option>';
+      f.options.forEach(function(opt) {
+        formHtml += '<option value="' + opt + '"' + (String(val) === opt ? ' selected' : '') + '>' + opt + '</option>';
+      });
+      formHtml += '</select>';
+    } else if (f.type === 'date') {
+      formHtml += '<input class="crm-field-input" type="date" data-field="' + f.key + '" value="' + (val || '') + '" />';
+    } else if (f.type === 'number') {
+      formHtml += '<input class="crm-field-input" type="number" data-field="' + f.key + '" value="' + (val || '') + '" step="any" />';
+    } else {
+      formHtml += '<input class="crm-field-input" type="text" data-field="' + f.key + '" value="' + String(val).replace(/"/g, '&quot;') + '" />';
+    }
+    formHtml += '</div>';
+  });
+
+  /* Build modal */
+  var backdrop = document.createElement('div');
+  backdrop.className = 'crm-modal-backdrop';
+  backdrop.innerHTML = '\
+<div class="crm-modal">\
+  <div class="crm-modal-header">\
+    <div class="crm-modal-title">' + svgIcon('edit', 15, 'var(--accent)') + ' Edit ' + objLabel.replace(/s$/, '') + '</div>\
+    <button class="crm-modal-close" id="crm-edit-close">' + svgIcon('x', 16) + '</button>\
+  </div>\
+  <div class="crm-modal-body">' + formHtml + '</div>\
+  <div class="crm-modal-footer">\
+    <button class="crm-modal-btn crm-modal-btn-cancel" id="crm-edit-cancel">Cancel</button>\
+    <button class="crm-modal-btn crm-modal-btn-save" id="crm-edit-save">' + svgIcon('save', 14, '#fff') + ' Save Changes</button>\
+  </div>\
+</div>';
+  document.body.appendChild(backdrop);
+  requestAnimationFrame(function() { backdrop.classList.add('crm-modal-show'); });
+
+  /* Close */
+  function closeEdit() {
+    backdrop.classList.remove('crm-modal-show');
+    setTimeout(function() { backdrop.remove(); }, 220);
+  }
+
+  backdrop.querySelector('#crm-edit-close').addEventListener('click', closeEdit);
+  backdrop.querySelector('#crm-edit-cancel').addEventListener('click', closeEdit);
+  backdrop.addEventListener('click', function(e) { if (e.target === backdrop) closeEdit(); });
+
+  /* Save */
+  backdrop.querySelector('#crm-edit-save').addEventListener('click', function() {
+    var saveBtn = backdrop.querySelector('#crm-edit-save');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<div style="width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite"></div> Saving...';
+
+    var updates = {};
+    backdrop.querySelectorAll('[data-field]').forEach(function(input) {
+      var fieldKey = input.getAttribute('data-field');
+      var fieldDef = fields.find(function(f) { return f.key === fieldKey; });
+      var newVal = input.value;
+      if (fieldDef && fieldDef.type === 'number' && newVal !== '') {
+        newVal = parseFloat(newVal);
+        if (isNaN(newVal)) newVal = 0;
+      }
+      updates[fieldKey] = newVal;
+    });
+
+    /* Update window.DATA */
+    Object.keys(updates).forEach(function(k) { rec[k] = updates[k]; });
+
+    /* Update Firestore */
+    if (typeof fbUpdate === 'function') {
+      fbUpdate(objKey, recId, updates).then(function() {
+        if (typeof fbShowStatus === 'function') fbShowStatus('Record updated');
+        closeEdit();
+        /* Re-render current page */
+        renderCurrentPage();
+      }).catch(function(err) {
+        console.error('[Edit] Save error:', err);
+        if (typeof fbShowStatus === 'function') fbShowStatus('Save failed — local changes kept', true);
+        closeEdit();
+        renderCurrentPage();
+      });
+    } else {
+      closeEdit();
+      renderCurrentPage();
+    }
+  });
+}
+
+
+/* ── Open Delete Modal ──
+   Usage: openDeleteModal('accounts', 'a1')
+   Confirms, then removes from Firestore + DATA + navigates to list
+   ─────────────────────────────────────────────────── */
+function openDeleteModal(objKey, recId) {
+  injectModalStyles();
+  var records = window.DATA[objKey] || [];
+  var rec = records.find(function(r) { return r.id === recId; });
+  if (!rec) { console.error('[Delete] Record not found:', objKey, recId); return; }
+
+  var recName = rec.name || rec.title || rec.subject || rec.id;
+  var objLabel = objKey.charAt(0).toUpperCase() + objKey.slice(1).replace(/s$/, '');
+
+  var backdrop = document.createElement('div');
+  backdrop.className = 'crm-modal-backdrop';
+  backdrop.innerHTML = '\
+<div class="crm-modal" style="max-width:400px">\
+  <div class="crm-modal-header">\
+    <div class="crm-modal-title">Delete ' + objLabel + '</div>\
+    <button class="crm-modal-close" id="crm-del-close">' + svgIcon('x', 16) + '</button>\
+  </div>\
+  <div class="crm-modal-body" style="text-align:center;padding:24px 22px">\
+    <div class="crm-delete-icon">' + svgIcon('trash', 24, '#ef4444') + '</div>\
+    <div class="crm-delete-title">Delete this ' + objLabel.toLowerCase() + '?</div>\
+    <div class="crm-delete-msg">You are about to permanently delete<br/><span class="crm-delete-name">' + recName + '</span></div>\
+    <div class="crm-delete-msg" style="font-size:11.5px;color:#94a3b8;margin-top:6px">This action cannot be undone.</div>\
+  </div>\
+  <div class="crm-modal-footer" style="justify-content:center;gap:10px">\
+    <button class="crm-modal-btn crm-modal-btn-cancel" id="crm-del-cancel">Cancel</button>\
+    <button class="crm-modal-btn crm-modal-btn-delete" id="crm-del-confirm">' + svgIcon('trash', 14, '#fff') + ' Delete</button>\
+  </div>\
+</div>';
+  document.body.appendChild(backdrop);
+  requestAnimationFrame(function() { backdrop.classList.add('crm-modal-show'); });
+
+  function closeDel() {
+    backdrop.classList.remove('crm-modal-show');
+    setTimeout(function() { backdrop.remove(); }, 220);
+  }
+
+  backdrop.querySelector('#crm-del-close').addEventListener('click', closeDel);
+  backdrop.querySelector('#crm-del-cancel').addEventListener('click', closeDel);
+  backdrop.addEventListener('click', function(e) { if (e.target === backdrop) closeDel(); });
+
+  backdrop.querySelector('#crm-del-confirm').addEventListener('click', function() {
+    var delBtn = backdrop.querySelector('#crm-del-confirm');
+    delBtn.disabled = true;
+    delBtn.innerHTML = '<div style="width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite"></div> Deleting...';
+
+    /* Remove from window.DATA */
+    var idx = records.findIndex(function(r) { return r.id === recId; });
+    if (idx !== -1) records.splice(idx, 1);
+
+    /* Remove from Firestore */
+    if (typeof fbDelete === 'function') {
+      fbDelete(objKey, recId).then(function() {
+        if (typeof fbShowStatus === 'function') fbShowStatus('Record deleted');
+        closeDel();
+        navigate(objKey);
+      }).catch(function(err) {
+        console.error('[Delete] Error:', err);
+        if (typeof fbShowStatus === 'function') fbShowStatus('Delete failed', true);
+        closeDel();
+        navigate(objKey);
+      });
+    } else {
+      closeDel();
+      navigate(objKey);
+    }
+  });
+}
+
+
+/* ── Helper: Generate Edit + Delete buttons HTML ──
+   Returns HTML string for 2 buttons with consistent style
+   prefix = CSS class prefix (e.g. 'a360', 'c360', 'o360')
+   objKey = 'accounts', 'contacts', etc.
+   recId  = record ID
+   ─────────────────────────────────────────────────── */
+function crmActionButtons(prefix, objKey, recId) {
+  return '<button class="' + prefix + '-action-btn ' + prefix + '-action-outline crm-edit-btn" data-obj="' + objKey + '" data-rec="' + recId + '">' +
+    svgIcon('edit', 13, 'var(--text-muted)') + '<span>Edit</span></button>' +
+    '<button class="' + prefix + '-action-btn ' + prefix + '-action-outline crm-delete-btn" data-obj="' + objKey + '" data-rec="' + recId + '" style="color:#ef4444;border-color:#fecaca">' +
+    svgIcon('trash', 13, '#ef4444') + '<span>Delete</span></button>';
+}
+
+
+/* ── Bind Edit/Delete buttons (call after container.innerHTML is set) ── */
+function bindCrmActionButtons(container) {
+  container.querySelectorAll('.crm-edit-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      openEditModal(btn.getAttribute('data-obj'), btn.getAttribute('data-rec'));
+    });
+  });
+  container.querySelectorAll('.crm-delete-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      openDeleteModal(btn.getAttribute('data-obj'), btn.getAttribute('data-rec'));
+    });
+  });
+}
 
 function injectA360Styles() {
   if (document.getElementById('a360-css')) return;

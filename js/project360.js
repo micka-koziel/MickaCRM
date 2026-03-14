@@ -21,7 +21,9 @@
     alertTriangle:  'M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4m0 4h.01',
     user:           'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2m8-10a4 4 0 100-8 4 4 0 000 8',
     dollarSign:     'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6',
-    check:          'M20 6L9 17l-5-5'
+    check:          'M20 6L9 17l-5-5',
+    edit:           'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
+    trash:          'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
   };
   for (var k in extra) {
     if (!NAV_ICONS[k]) NAV_ICONS[k] = extra[k];
@@ -175,6 +177,8 @@ function renderProject360(container, rec) {
   h += '<button class="p3-btn p3-btn--bl">'+p3Icon('plus',14,'#fff')+' Add Activity</button>';
   h += '<button class="p3-btn p3-btn--ol">'+p3Icon('upload',14)+' Upload Document</button>';
   h += '<button class="p3-btn p3-btn--am">'+p3Icon('refreshCw',14,'#fff')+' Update Phase</button>';
+  h += '<button class="p3-btn p3-btn--ol crm-edit-btn" data-obj="projects" data-rec="'+rec.id+'">'+p3Icon('edit',14)+' Edit</button>';
+  h += '<button class="p3-btn p3-btn--ol crm-delete-btn" data-obj="projects" data-rec="'+rec.id+'" style="color:#ef4444;border-color:#fecaca">'+p3Icon('trash',14,'#ef4444')+' Delete</button>';
   h += '</div>';
 
   /* ═══ KPI TILES ═══ */
@@ -433,6 +437,7 @@ function renderProject360(container, rec) {
       }
     });
   });
+  if (typeof bindCrmActionButtons === 'function') bindCrmActionButtons(container);
 }
 
 

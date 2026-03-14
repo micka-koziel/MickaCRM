@@ -18,7 +18,8 @@
     fileText:       'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M16 13H8m8 4H8m2-8H8',
     target:         'M12 2a10 10 0 100 20 10 10 0 000-20zm0 4a6 6 0 100 12 6 6 0 000-12zm0 4a2 2 0 100 4 2 2 0 000-4z',
     eye:            'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 15a3 3 0 100-6 3 3 0 000 6z',
-    check:          'M20 6L9 17l-5-5'
+    check:          'M20 6L9 17l-5-5',
+    trash:          'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
   };
   for (var k in extra) {
     if (!NAV_ICONS[k]) NAV_ICONS[k] = extra[k];
@@ -228,6 +229,8 @@ function renderActivity360(container, rec) {
   h += '<button class="at3-action-btn at3-action-success" id="at3-complete">' + at3Icon('checkCircle', 13, '#fff') + '<span>Mark Completed</span></button>';
   h += '<button class="at3-action-btn at3-action-outline">' + at3Icon('messageSquare', 13, 'var(--text-muted)') + '<span>Add Note</span></button>';
   h += '<button class="at3-action-btn at3-action-outline">' + at3Icon('paperclip', 13, 'var(--text-muted)') + '<span>Attach Document</span></button>';
+  h += '<button class="at3-action-btn at3-action-outline crm-edit-btn" data-obj="activities" data-rec="' + rec.id + '">' + at3Icon('edit', 13, 'var(--text-muted)') + '<span>Edit</span></button>';
+  h += '<button class="at3-action-btn at3-action-outline crm-delete-btn" data-obj="activities" data-rec="' + rec.id + '" style="color:#ef4444;border-color:#fecaca">' + at3Icon('trash', 13, '#ef4444') + '<span>Delete</span></button>';
   h += '</div>';
 
   h += '</div>'; /* header-card */
@@ -446,6 +449,7 @@ function renderActivity360(container, rec) {
       navigate('record', el.getAttribute('data-nav-obj'), el.getAttribute('data-nav-id'));
     });
   });
+  if (typeof bindCrmActionButtons === 'function') bindCrmActionButtons(container);
 }
 
 
