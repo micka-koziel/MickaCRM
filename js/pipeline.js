@@ -39,7 +39,8 @@ var OBJ_CONFIG = {
       {key:'stage',label:'Stage',type:'select',options:function(){return (STAGES.opportunities||[]).map(function(s){return{value:s.key,label:s.label};});}},
       {key:'amount',label:'Amount (€)',type:'number'},
       {key:'prob',label:'Probability (%)',type:'number'},
-      {key:'close',label:'Close Date',type:'date'}
+      {key:'close',label:'Close Date',type:'date'},
+      {key:'owner',label:'Owner',type:'text'}
     ]
   },
   leads: {
@@ -104,6 +105,8 @@ var OBJ_CONFIG = {
         {value:'Engineering Consultancy',label:'Engineering Consultancy'}
       ];}},
       {key:'city',label:'City',type:'text'},
+      {key:'phone',label:'Phone',type:'text'},
+      {key:'website',label:'Website',type:'text'},
       {key:'status',label:'Status',type:'select',options:function(){return [{value:'Active',label:'Active'},{value:'Prospect',label:'Prospect'}];}},
       {key:'keyRelationship',label:'Key Relationship',type:'select',options:function(){return [{value:true,label:'Yes'},{value:false,label:'No'}];}}
     ]
@@ -137,6 +140,7 @@ var OBJ_CONFIG = {
       ];}},
       {key:'email',label:'Email',type:'text'},
       {key:'phone',label:'Phone',type:'text'},
+      {key:'city',label:'City',type:'text'},
       {key:'keyRelationship',label:'Key Relationship',type:'select',options:function(){return [{value:true,label:'Yes'},{value:false,label:'No'}];}}
     ]
   },
@@ -218,7 +222,8 @@ var OBJ_CONFIG = {
       {key:'health',label:'Health',type:'select',options:function(){return [{value:'Healthy',label:'Healthy'},{value:'Attention',label:'Attention'},{value:'At Risk',label:'At Risk'}];}},
       {key:'owner',label:'Owner',type:'text'},
       {key:'start',label:'Start Date',type:'date'},
-      {key:'end',label:'Expected Delivery',type:'date'}
+      {key:'end',label:'Expected Delivery',type:'date'},
+      {key:'description',label:'Description',type:'textarea'}
     ]
   },
   claims: {
@@ -264,7 +269,7 @@ var OBJ_CONFIG = {
       {key:'impactValue',label:'Impact Value (€)',type:'number'},
       {key:'category',label:'Category',type:'select',options:function(){return [{value:'Supply Chain',label:'Supply Chain'},{value:'Quality',label:'Quality'},{value:'Logistics',label:'Logistics'},{value:'Safety',label:'Safety'},{value:'Contractual',label:'Contractual'},{value:'Other',label:'Other'}];}},
       {key:'owner',label:'Owner',type:'text'},
-      {key:'description',label:'Description',type:'text'}
+      {key:'description',label:'Description',type:'textarea'}
     ]
   },
   activities: {
@@ -301,7 +306,7 @@ var OBJ_CONFIG = {
       {key:'time',label:'Time',type:'text'},
       {key:'duration',label:'Duration (min)',type:'number'},
       {key:'location',label:'Location',type:'text'},
-      {key:'purpose',label:'Purpose',type:'text'}
+      {key:'purpose',label:'Purpose / Notes',type:'textarea'}
     ]
   }
 };
@@ -933,11 +938,50 @@ function injectPipelineInsightStyles() {
   document.head.appendChild(s);
 }
 
-/* ─── Create Modal ───────────────────────────────────── */
+/* ─── Create Modal ───────────────────────────────────── 
+   Supports: all 9 objects, photo upload, textarea,
+   Firestore persistence, proper ID generation.
+   ────────────────────────────────────────────────────── */
+
+/* Objects that support photo upload in create modal */
+var CREATE_PHOTO_OBJECTS = ['accounts','contacts','leads','opportunities','projects'];
+
+/* Users formFields config (not in OBJ_CONFIG) */
+var USERS_FORM_FIELDS = [
+  {key:'name',label:'Full Name',type:'text',required:true},
+  {key:'email',label:'Email',type:'text',required:true},
+  {key:'phone',label:'Phone',type:'text'},
+  {key:'title',label:'Job Title',type:'text'},
+  {key:'department',label:'Department',type:'select',options:function(){return [
+    {value:'IT Direction',label:'IT Direction'},
+    {value:'Sales',label:'Sales'},
+    {value:'Sales Management',label:'Sales Management'},
+    {value:'Operations',label:'Operations'},
+    {value:'Field Ops',label:'Field Ops'},
+    {value:'Marketing',label:'Marketing'},
+    {value:'Finance',label:'Finance'},
+    {value:'HR',label:'HR'}
+  ];}},
+  {key:'location',label:'Location',type:'text'},
+  {key:'role',label:'Role',type:'select',options:function(){return [{value:'admin',label:'Admin'},{value:'user',label:'User'}];}},
+  {key:'status',label:'Status',type:'select',options:function(){return [{value:'active',label:'Active'},{value:'inactive',label:'Inactive'}];}}
+];
 
 function openCreateModal(objKey, cfg) {
-  if (!cfg.formFields) return;
+  /* Resolve formFields — support users even without OBJ_CONFIG entry */
+  var fields;
+  var modalTitle;
+  if (objKey === 'users') {
+    fields = USERS_FORM_FIELDS;
+    modalTitle = 'User';
+  } else {
+    if (!cfg || !cfg.formFields) return;
+    fields = cfg.formFields;
+    modalTitle = (cfg.title || objKey).replace(/s$/, '');
+  }
+
   injectModalStyles();
+  injectCreatePhotoStyles();
 
   var old = document.getElementById('crm-modal-overlay');
   if (old) old.remove();
@@ -946,28 +990,47 @@ function openCreateModal(objKey, cfg) {
   overlay.id = 'crm-modal-overlay';
   overlay.className = 'crm-modal-overlay';
 
+  var hasPhoto = CREATE_PHOTO_OBJECTS.indexOf(objKey) >= 0;
+
   var h = '<div class="crm-modal">';
-  h += '<div class="crm-modal-header"><h2 class="crm-modal-title">Create '+cfg.title.replace(/s$/,'')+'</h2>';
-  h += '<button class="crm-modal-close" id="crm-modal-close">'+svgIcon('plus',14,'var(--text-muted)')+'</button></div>';
+  h += '<div class="crm-modal-header"><h2 class="crm-modal-title">Create ' + modalTitle + '</h2>';
+  h += '<button class="crm-modal-close" id="crm-modal-close">' + svgIcon('plus', 14, 'var(--text-muted)') + '</button></div>';
   h += '<div class="crm-modal-body">';
 
-  cfg.formFields.forEach(function(f) {
+  /* ── Photo upload section ── */
+  if (hasPhoto) {
+    h += '<div class="crm-create-photo-section">';
+    h += '<div class="crm-create-photo-circle" id="crm-create-photo-circle" title="Click to add photo">';
+    h += '<div class="crm-create-photo-placeholder" id="crm-create-photo-placeholder">';
+    h += svgIcon('camera', 22, '#94a3b8');
+    h += '<span>Add Photo</span></div>';
+    h += '<img id="crm-create-photo-preview" class="crm-create-photo-img" style="display:none" />';
+    h += '</div>';
+    h += '<input type="file" id="crm-create-photo-input" accept="image/*" style="display:none" />';
+    h += '</div>';
+  }
+
+  /* ── Form fields ── */
+  fields.forEach(function(f) {
     h += '<div class="crm-form-group">';
-    h += '<label class="crm-form-label">'+f.label+(f.required?' <span style="color:var(--danger)">*</span>':'')+'</label>';
+    h += '<label class="crm-form-label">' + f.label + (f.required ? ' <span style="color:var(--danger)">*</span>' : '') + '</label>';
+
     if (f.type === 'select') {
-      var opts = typeof f.options === 'function' ? f.options() : (f.options||[]);
-      h += '<select class="crm-form-input" data-field="'+f.key+'">';
+      var opts = typeof f.options === 'function' ? f.options() : (f.options || []);
+      h += '<select class="crm-form-input" data-field="' + f.key + '">';
       h += '<option value="">— Select —</option>';
       opts.forEach(function(o) {
-        h += '<option value="'+o.value+'">'+o.label+'</option>';
+        h += '<option value="' + o.value + '">' + o.label + '</option>';
       });
       h += '</select>';
+    } else if (f.type === 'textarea') {
+      h += '<textarea class="crm-form-input crm-form-textarea" data-field="' + f.key + '" placeholder="' + f.label + '" rows="3"></textarea>';
     } else if (f.type === 'number') {
-      h += '<input type="number" class="crm-form-input" data-field="'+f.key+'" placeholder="'+f.label+'" />';
+      h += '<input type="number" class="crm-form-input" data-field="' + f.key + '" placeholder="' + f.label + '" />';
     } else if (f.type === 'date') {
-      h += '<input type="date" class="crm-form-input" data-field="'+f.key+'" />';
+      h += '<input type="date" class="crm-form-input" data-field="' + f.key + '" />';
     } else {
-      h += '<input type="text" class="crm-form-input" data-field="'+f.key+'" placeholder="'+f.label+'" '+(f.required?'required':'')+' />';
+      h += '<input type="text" class="crm-form-input" data-field="' + f.key + '" placeholder="' + f.label + '" ' + (f.required ? 'required' : '') + ' />';
     }
     h += '</div>';
   });
@@ -975,7 +1038,7 @@ function openCreateModal(objKey, cfg) {
   h += '</div>';
   h += '<div class="crm-modal-footer">';
   h += '<button class="crm-modal-btn crm-modal-btn-cancel" id="crm-modal-cancel">Cancel</button>';
-  h += '<button class="crm-modal-btn crm-modal-btn-save" id="crm-modal-save">'+svgIcon('plus',13,'#fff')+' Create</button>';
+  h += '<button class="crm-modal-btn crm-modal-btn-save" id="crm-modal-save">' + svgIcon('plus', 13, '#fff') + ' Create</button>';
   h += '</div></div>';
 
   overlay.innerHTML = h;
@@ -983,6 +1046,7 @@ function openCreateModal(objKey, cfg) {
 
   requestAnimationFrame(function() { overlay.classList.add('visible'); });
 
+  /* ── Close handlers ── */
   var closeModal = function() {
     overlay.classList.remove('visible');
     setTimeout(function() { overlay.remove(); }, 150);
@@ -991,44 +1055,186 @@ function openCreateModal(objKey, cfg) {
   document.getElementById('crm-modal-cancel').addEventListener('click', closeModal);
   overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });
 
+  /* ── Photo upload handling ── */
+  var _pendingPhotoFile = null;
+  if (hasPhoto) {
+    var photoCircle = document.getElementById('crm-create-photo-circle');
+    var photoInput  = document.getElementById('crm-create-photo-input');
+    var photoPreview = document.getElementById('crm-create-photo-preview');
+    var photoPlaceholder = document.getElementById('crm-create-photo-placeholder');
+
+    photoCircle.addEventListener('click', function() { photoInput.click(); });
+
+    photoInput.addEventListener('change', function(e) {
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+      _pendingPhotoFile = file;
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        photoPreview.src = ev.target.result;
+        photoPreview.style.display = 'block';
+        photoPlaceholder.style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /* ── Save handler ── */
   document.getElementById('crm-modal-save').addEventListener('click', function() {
     var record = {};
     var valid = true;
-    cfg.formFields.forEach(function(f) {
-      var el = overlay.querySelector('[data-field="'+f.key+'"]');
+
+    fields.forEach(function(f) {
+      var el = overlay.querySelector('[data-field="' + f.key + '"]');
       var val = el ? el.value.trim() : '';
-      if (f.required && !val) { valid = false; el.style.borderColor = 'var(--danger)'; }
-      else if (el) { el.style.borderColor = ''; }
-      if (f.type === 'number' && val) val = Number(val);
+      if (f.required && !val) {
+        valid = false;
+        if (el) el.style.borderColor = 'var(--danger)';
+      } else if (el) {
+        el.style.borderColor = '';
+      }
+      if (f.type === 'number' && val !== '') val = Number(val);
+      if (f.type === 'number' && val === '') val = 0;
       record[f.key] = val;
     });
     if (!valid) return;
 
-    var arr = window.DATA[objKey] || [];
-    var prefix = objKey.charAt(0);
-    var maxNum = arr.reduce(function(mx, r) {
-      var n = parseInt(r.id.replace(/\D/g,''), 10);
-      return n > mx ? n : mx;
-    }, 0);
-    record.id = prefix + (maxNum + 1);
+    /* Disable save button + show spinner */
+    var saveBtn = document.getElementById('crm-modal-save');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<div style="width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite"></div> Creating...';
 
-    if (objKey === 'accounts') {
-      record.pipeline = 0;
-      record.opps = 0;
+    /* ── Generate unique ID ── */
+    if (objKey === 'users') {
+      record.id = 'u_' + Date.now().toString(36);
+      record.status = record.status || 'active';
+      record.role = record.role || 'user';
+      record.sessions = 0;
+      record.lastLogin = '';
+      record.createdAt = new Date().toISOString().split('T')[0];
+    } else {
+      var arr = window.DATA[objKey] || [];
+      var prefix = objKey.charAt(0);
+      var maxNum = arr.reduce(function(mx, r) {
+        var n = parseInt((r.id || '').replace(/\D/g, ''), 10);
+        return n > mx ? n : mx;
+      }, 0);
+      record.id = prefix + (maxNum + 1);
     }
 
-    arr.push(record);
-    window.DATA[objKey] = arr;
+    /* ── Set defaults per object ── */
+    if (objKey === 'accounts') {
+      record.pipeline = record.pipeline || 0;
+      record.opps = record.opps || 0;
+      record.status = record.status || 'Active';
+    }
+    if (objKey === 'contacts') {
+      record.keyRelationship = record.keyRelationship === 'true' || record.keyRelationship === true;
+    }
+    if (objKey === 'leads') {
+      record.stage = record.stage || 'new';
+      record.priority = record.priority || 'Medium';
+    }
+    if (objKey === 'opportunities') {
+      record.prob = record.prob || 0;
+      record.amount = record.amount || 0;
+      record.stage = record.stage || 'lead';
+    }
+    if (objKey === 'projects') {
+      record.phase = record.phase || 'prestudy';
+      record.health = record.health || 'Healthy';
+      record.budget = record.value || record.budget || 0;
+      record.siteVisits = [];
+      record.claims = [];
+      record.documents = [];
+    }
+    if (objKey === 'claims') {
+      record.status = record.status || 'Open';
+      record.priority = record.priority || 'Medium';
+      record.riskLevel = record.riskLevel || 'Medium';
+      record.impactValue = record.impactValue || record.impact || 0;
+      record.date = record.date || new Date().toISOString().split('T')[0];
+      record.name = record.name || record.title;
+    }
+    if (objKey === 'activities') {
+      record.status = record.status || 'Planned';
+      record.type = record.type || 'Call';
+      record.name = record.name || record.subject;
+    }
+    if (objKey === 'quotes') {
+      record.stage = record.stage || 'Draft';
+      record.status = record.status || 'Draft';
+      record.value = record.value || record.amount || 0;
+      record.discount = record.discount || 0;
+      record.date = record.date || new Date().toISOString().split('T')[0];
+    }
+
+    record.createdAt = record.createdAt || new Date().toISOString().split('T')[0];
+
+    /* ── Push to in-memory DATA ── */
+    if (objKey === 'users') {
+      if (typeof UM_USERS !== 'undefined') UM_USERS.push(record);
+    } else {
+      var dataArr = window.DATA[objKey] || [];
+      dataArr.push(record);
+      window.DATA[objKey] = dataArr;
+    }
 
     /* ── Persist to Firestore ── */
-    fbCreate(objKey, record);
-    fbShowStatus('Created in Firestore');
+    var createPromise;
+    if (objKey === 'users') {
+      createPromise = fbDB.collection('users').doc(record.id).set(record);
+    } else {
+      createPromise = fbCreate(objKey, record);
+    }
 
-    closeModal();
-
-    renderObjHeader(objKey, cfg, document.getElementById('page-header'));
-    refreshContent(objKey, cfg);
+    /* ── Handle photo upload after record creation ── */
+    createPromise.then(function() {
+      if (_pendingPhotoFile && typeof fbCompressAndSavePhoto === 'function') {
+        return fbCompressAndSavePhoto(_pendingPhotoFile, objKey, record.id);
+      }
+      return null;
+    }).then(function() {
+      fbShowStatus(modalTitle + ' created');
+      closeModal();
+      /* Refresh the current page */
+      if (objKey === 'users') {
+        if (typeof AC_TAB !== 'undefined') AC_TAB = 'users';
+        navigate('agentConsole');
+      } else {
+        renderObjHeader(objKey, cfg, document.getElementById('page-header'));
+        refreshContent(objKey, cfg);
+      }
+    }).catch(function(err) {
+      console.error('[Create] Error:', err);
+      fbShowStatus('Created locally (sync pending)', true);
+      closeModal();
+      if (objKey === 'users') {
+        if (typeof AC_TAB !== 'undefined') AC_TAB = 'users';
+        navigate('agentConsole');
+      } else {
+        renderObjHeader(objKey, cfg, document.getElementById('page-header'));
+        refreshContent(objKey, cfg);
+      }
+    });
   });
+}
+
+/* ── CSS for photo upload in create modal ── */
+function injectCreatePhotoStyles() {
+  if (document.getElementById('crm-create-photo-css')) return;
+  var s = document.createElement('style');
+  s.id = 'crm-create-photo-css';
+  s.textContent = '\
+.crm-create-photo-section{display:flex;justify-content:center;padding:4px 0 10px}\
+.crm-create-photo-circle{width:88px;height:88px;border-radius:50%;border:2px dashed #d1d5db;background:#f8fafc;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:all .2s;position:relative}\
+.crm-create-photo-circle:hover{border-color:var(--accent);background:var(--accent-light);transform:scale(1.04)}\
+.crm-create-photo-placeholder{display:flex;flex-direction:column;align-items:center;gap:4px}\
+.crm-create-photo-placeholder span{font-size:9px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.3px}\
+.crm-create-photo-img{width:100%;height:100%;object-fit:cover;border-radius:50%}\
+.crm-form-textarea{resize:vertical;min-height:60px;line-height:1.5}\
+';
+  document.head.appendChild(s);
 }
 
 /* ═══════════════════════════════════════════════════════

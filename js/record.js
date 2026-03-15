@@ -1645,17 +1645,19 @@ var EDIT_FIELDS = {
     {key:'owner',             label:'Owner',            type:'text'},
     {key:'startDate',         label:'Start Date',       type:'date'},
     {key:'expectedDelivery',  label:'Expected Delivery',type:'date'},
-    {key:'health',            label:'Health',           type:'select', options:['Healthy','Attention','At Risk']}
+    {key:'health',            label:'Health',           type:'select', options:['Healthy','Attention','At Risk']},
+    {key:'description',       label:'Description',      type:'textarea'}
   ],
   claims: [
     {key:'title',         label:'Claim Title',    type:'text'},
     {key:'name',          label:'Name',           type:'text'},
-    {key:'status',        label:'Status',         type:'select', options:['Open','In Progress','Resolved','Closed']},
+    {key:'status',        label:'Status',         type:'select', options:['Open','In Progress','Investigation','Negotiation','Resolved','Closed']},
     {key:'priority',      label:'Priority',       type:'select', options:['Critical','High','Medium','Low']},
     {key:'category',      label:'Category',       type:'text'},
     {key:'impactValue',   label:'Impact Value',   type:'number'},
     {key:'owner',         label:'Owner',          type:'text'},
-    {key:'riskLevel',     label:'Risk Level',     type:'select', options:['High','Medium','Low']}
+    {key:'riskLevel',     label:'Risk Level',     type:'select', options:['High','Medium','Low']},
+    {key:'description',   label:'Description',    type:'textarea'}
   ],
   activities: [
     {key:'subject',   label:'Subject',    type:'text'},
@@ -1665,7 +1667,8 @@ var EDIT_FIELDS = {
     {key:'time',      label:'Time',       type:'text'},
     {key:'duration',  label:'Duration (min)', type:'number'},
     {key:'location',  label:'Location',   type:'text'},
-    {key:'owner',     label:'Owner',      type:'text'}
+    {key:'owner',     label:'Owner',      type:'text'},
+    {key:'purpose',   label:'Purpose / Notes', type:'textarea'}
   ],
   quotes: [
     {key:'name',      label:'Quote Name',   type:'text'},
@@ -1771,6 +1774,8 @@ function openEditModal(objKey, recId) {
         formHtml += '<option value="' + opt + '"' + (String(val) === opt ? ' selected' : '') + '>' + opt + '</option>';
       });
       formHtml += '</select>';
+    } else if (f.type === 'textarea') {
+      formHtml += '<textarea class="crm-field-input" data-field="' + f.key + '" rows="3" style="resize:vertical;min-height:60px;line-height:1.5">' + String(val).replace(/</g, '&lt;') + '</textarea>';
     } else if (f.type === 'date') {
       formHtml += '<input class="crm-field-input" type="date" data-field="' + f.key + '" value="' + (val || '') + '" />';
     } else if (f.type === 'number') {

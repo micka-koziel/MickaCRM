@@ -325,39 +325,13 @@ function umDoResetPwd(userId) {
   });
 }
 
-/* ── Create modal ── */
+/* ── Create modal — delegates to centralized openCreateModal ── */
 function umShowCreateModal() {
-  var overlay = document.createElement('div');
-  overlay.id = 'um-modal-overlay';
-  overlay.className = 'um-modal-overlay';
-  overlay.innerHTML =
-    '<div class="um-modal">' +
-      '<div class="um-modal-header">' +
-        '<span>Create New User</span>' +
-        '<button class="um-modal-close" onclick="document.getElementById(\'um-modal-overlay\').remove()">'+_acSvg('M6 18L18 6M6 6l12 12',16,'#64748b')+'</button>' +
-      '</div>' +
-      '<div class="um-modal-body">' +
-        '<div class="um-modal-field"><label>Full Name</label><input id="um-new-name" placeholder="Pierre Duval" /></div>' +
-        '<div class="um-modal-field"><label>Email</label><input id="um-new-email" placeholder="p.duval@btp-group.com" /></div>' +
-        '<div class="um-modal-row">' +
-          '<div class="um-modal-field"><label>Department</label><input id="um-new-dept" placeholder="Sales" /></div>' +
-          '<div class="um-modal-field"><label>Title</label><input id="um-new-title" placeholder="Sales Representative" /></div>' +
-        '</div>' +
-        '<div class="um-modal-field"><label>Role</label>' +
-          '<div class="um-role-select">' +
-            '<button class="um-role-opt active" data-role="user" onclick="umSelectRole(this)">User</button>' +
-            '<button class="um-role-opt" data-role="admin" onclick="umSelectRole(this)">Admin</button>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="um-modal-footer">' +
-        '<button class="um-modal-cancel" onclick="document.getElementById(\'um-modal-overlay\').remove()">Cancel</button>' +
-        '<button class="um-modal-submit" onclick="umSubmitCreate()">Create User</button>' +
-      '</div>' +
-    '</div>';
-  document.body.appendChild(overlay);
-  requestAnimationFrame(function(){ overlay.classList.add('visible'); });
-  document.getElementById('um-new-name').focus();
+  if (typeof openCreateModal === 'function') {
+    openCreateModal('users', null);
+  } else {
+    console.error('[UM] openCreateModal not available');
+  }
 }
 
 function umSelectRole(btn) {
