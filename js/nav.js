@@ -33,6 +33,7 @@ const NAV_ICONS = {
   save: 'M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2zM17 21v-8H7v8M7 3v5h8',
   x: 'M18 6L6 18M6 6l12 12',
   agentConsole: 'M13 10V3L4 14h7v7l9-11h-7z',
+  logout: 'M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1',
 };
 
 function svgIcon(name, size, color) {
@@ -71,12 +72,27 @@ function renderSidebar() {
       svgIcon(item.icon) + '<span>'+item.label+'</span></button>';
   }).join('');
 
+  /* User badge (only if authenticated) */
+  var userBadgeHtml = '';
+  if (typeof AUTH_USER !== 'undefined' && AUTH_USER) {
+    var initials = typeof authUserInitials === 'function' ? authUserInitials() : '?';
+    var displayName = typeof authUserDisplayName === 'function' ? authUserDisplayName() : 'User';
+    userBadgeHtml =
+      '<div class="sb-user-badge">' +
+        '<div class="sb-user-avatar">' + initials + '</div>' +
+        '<span class="sb-user-name">' + displayName + '</span>' +
+      '</div>' +
+      '<button class="sb-logout" id="sb-logout">' +
+        svgIcon('logout', 15) + '<span>Sign Out</span></button>';
+  }
+
   sb.innerHTML =
     '<div class="sb-logo">' +
       (sidebarCollapsed ? '' : '<span class="sb-logo-text">MickaCRM<span class="sb-logo-360">360</span></span>') +
     '</div>' +
     '<div class="sb-nav">' + items + '</div>' +
-    '<div class="sb-footer"><button class="sb-collapse-btn" id="sb-toggle">' +
+    '<div class="sb-footer">' + userBadgeHtml +
+    '<button class="sb-collapse-btn" id="sb-toggle">' +
     svgIcon(sidebarCollapsed ? 'expand' : 'collapse', 15) + '<span>Collapse</span></button></div>';
 
   sb.querySelectorAll('.sb-item').forEach(function(btn) {
@@ -89,6 +105,14 @@ function renderSidebar() {
     sidebarCollapsed = !sidebarCollapsed;
     renderSidebar();
   });
+
+  /* Logout button */
+  var logoutBtn = document.getElementById('sb-logout');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', function() {
+      if (typeof authLogout === 'function') authLogout();
+    });
+  }
 
   /* ── Mobile hamburger + overlay wiring ── */
   var hamburger = document.getElementById('mobile-hamburger');
