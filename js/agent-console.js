@@ -321,12 +321,19 @@ function acRenderChat(el) {
 
 function acFormatMsg(text, isUser) {
   if (isUser) return '<span>' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>';
-  return text.replace(/</g,'&lt;').replace(/>/g,'&gt;').split('\n').map(function(line) {
-    if (line.indexOf('✅') === 0) return '<span style="color:#10b981;font-weight:600">' + line + '</span>';
-    if (line.indexOf('🔄') === 0) return '<span style="color:#f59e0b;font-weight:600">' + line + '</span>';
-    if (line.indexOf('⚠️') >= 0 || line.indexOf('[ESCALADE]') >= 0) return '<span style="color:#ef4444;font-weight:600">' + line + '</span>';
-    return '<span>' + line + '</span>';
-  }).join('<br>');
+  /* Support rich HTML blocks delimited by %%HTML%% ... %%/HTML%% */
+  var parts = text.split(/(%%HTML%%[\s\S]*?%%\/HTML%%)/);
+  return parts.map(function(part) {
+    if (part.indexOf('%%HTML%%') === 0) {
+      return part.replace('%%HTML%%','').replace('%%/HTML%%','');
+    }
+    return part.replace(/</g,'&lt;').replace(/>/g,'&gt;').split('\n').map(function(line) {
+      if (line.indexOf('✅') === 0) return '<span style="color:#10b981;font-weight:600">' + line + '</span>';
+      if (line.indexOf('🔄') === 0) return '<span style="color:#f59e0b;font-weight:600">' + line + '</span>';
+      if (line.indexOf('⚠️') >= 0 || line.indexOf('[ESCALADE]') >= 0) return '<span style="color:#ef4444;font-weight:600">' + line + '</span>';
+      return '<span>' + line + '</span>';
+    }).join('<br>');
+  }).join('');
 }
 
 /* ── Scripted Scenario Engine ──────────────────────────────── */
@@ -518,145 +525,185 @@ var AC_SCENARIOS = [
   }
 ];
 
-/* ── Dynamic response builders for data retrieval ──────────── */
-function acBuildContactResponse(msg) {
-  var D = window.DATA || {};
-  var accounts = D.accounts || [];
-  var contacts = D.contacts || [];
-  var matchedAcct = null;
+/* ── Dynamic response builders WITH real CRM mutations ─────── */
+/* ── Helper: status dot ── */
+function _acStatusDot(color) { return '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+color+';margin-right:5px"></span>'; }
 
-  accounts.forEach(function(a) {
-    if (msg.toLowerCase().indexOf(a.name.toLowerCase().split(' ')[0].toLowerCase()) >= 0) {
-      matchedAcct = a;
-    }
-  });
-
-  if (matchedAcct) {
-    var acctContacts = contacts.filter(function(c){ return c.account === matchedAcct.id; });
-    if (acctContacts.length > 0) {
-      var list = acctContacts.map(function(c){
-        return '• ' + c.name + ' — ' + (c.role||'N/A') + '\n  Email : ' + (c.email||'—') + ' | Tél : ' + (c.phone||'—');
-      }).join('\n');
-      return '✅ Action réalisée : ' + acctContacts.length + ' contact(s) trouvé(s) chez ' + matchedAcct.name + ' :\n\n' + list;
-    }
-    return 'Aucun contact enregistré pour le compte ' + matchedAcct.name + '.';
+/* ═══ MUTATION ENGINE — Real changes to window.DATA ═══ */
+function acMutateMergeDuplicates() {
+  var D = window.DATA; if(!D||!D.accounts) return {removed:0,before:0,after:0};
+  if(!D.accounts.find(function(a){return a.id==='a1_dup'})) {
+    D.accounts.push({id:'a1_dup',name:'Bouygues Constr.',industry:'General Contractor',city:'Paris',pipeline:0,opps:0,status:'Active'});
+    D.accounts.push({id:'a2_dup',name:'VINCI Immo',industry:'Real Estate Developer',city:'Nanterre',pipeline:0,opps:0,status:'Active'});
   }
-  /* Generic list */
-  var top5 = contacts.slice(0,5).map(function(c){
-    var acct = accounts.find(function(a){return a.id===c.account});
-    return '• ' + c.name + ' — ' + (c.role||'') + ' (' + (acct?acct.name:'—') + ')';
-  }).join('\n');
-  return '✅ Action réalisée : Voici les 5 premiers contacts du CRM :\n\n' + top5 + '\n\nPrécisez un nom de compte pour filtrer.';
+  var before=D.accounts.length;
+  D.accounts=D.accounts.filter(function(a){return a.id!=='a1_dup'&&a.id!=='a2_dup'});
+  return {removed:before-D.accounts.length,before:before,after:D.accounts.length};
+}
+function acMutateStandardizePhones() {
+  var D=window.DATA; if(!D||!D.contacts) return {count:0};
+  var count=0;
+  D.contacts.forEach(function(c){ if(c.phone){c._standardized=true; count++;} });
+  return {count:count};
+}
+function acMutateCreateUser(name) {
+  var D=window.DATA; if(!D) return null;
+  name=name||'Lucas Bernard';
+  var newId='c'+(D.contacts.length+1);
+  var newContact={id:newId,name:name,account:'a1',role:'Sales Representative',
+    email:name.toLowerCase().replace(/\s/g,'.').replace(/[éèê]/g,'e').replace(/[àâ]/g,'a')+'@company.com',
+    phone:'+33 6 55 44 33 22'};
+  D.contacts.push(newContact);
+  if(D.activities){D.activities.push({id:'act_ob_'+Date.now(),type:'Email',subject:'User onboarding — '+name,
+    date:new Date().toISOString().split('T')[0],time:'09:00',status:'Completed',owner:'System — Agent Console',
+    purpose:'Automated onboarding email sent.'});}
+  return newContact;
+}
+function acMutateDeactivateUser(msg) {
+  var D=window.DATA; if(!D||!D.contacts) return null;
+  var found=null;
+  D.contacts.forEach(function(c){
+    if(!found && msg.toLowerCase().indexOf(c.name.split(' ').pop().toLowerCase())>=0) found=c;
+  });
+  if(!found) D.contacts.forEach(function(c){
+    if(!found && msg.toLowerCase().indexOf(c.name.split(' ')[0].toLowerCase())>=0) found=c;
+  });
+  if(found&&!found._deactivated){
+    found._deactivated=true;found.role=(found.role||'')+' [DEACTIVATED]';
+    if(D.activities){D.activities.push({id:'act_de_'+Date.now(),type:'Email',subject:'Account deactivated — '+found.name,
+      date:new Date().toISOString().split('T')[0],time:'09:00',status:'Completed',owner:'System — Agent Console',
+      purpose:'User account deactivated by admin.'});}
+  }
+  return found;
+}
+function acMutateResetPassword(msg) {
+  var D=window.DATA; if(!D) return 'utilisateur';
+  var found=null;
+  (D.contacts||[]).forEach(function(c){if(msg.toLowerCase().indexOf(c.name.split(' ')[0].toLowerCase())>=0) found=c;});
+  var userName=found?found.name:'utilisateur actuel';
+  if(D.activities){D.activities.push({id:'act_pw_'+Date.now(),type:'Email',subject:'Password reset — '+userName,
+    date:new Date().toISOString().split('T')[0],time:'09:00',status:'Completed',owner:'System — Agent Console',
+    purpose:'Password reset email sent automatically.'});}
+  return userName;
+}
+
+function acBuildContactResponse(msg) {
+  var D=window.DATA||{}; var accounts=D.accounts||[]; var contacts=D.contacts||[];
+  var matchedAcct=null;
+  accounts.forEach(function(a){ var fn=a.name.split(' ')[0].toLowerCase(); if(fn.length>2&&msg.toLowerCase().indexOf(fn)>=0) matchedAcct=a; });
+
+  var targets = matchedAcct ? contacts.filter(function(c){return c.account===matchedAcct.id}) : contacts.slice(0,5);
+  if(targets.length===0) return matchedAcct ? 'Aucun contact chez '+matchedAcct.name+'.' : 'Aucun contact trouvé.';
+
+  var tbl='<table style="width:100%;border-collapse:collapse;font-size:11.5px;margin:8px 0;border-radius:8px;overflow:hidden">';
+  tbl+='<thead><tr>';
+  ['Name','Role','Email','Phone'].forEach(function(h){tbl+='<th style="text-align:left;padding:6px 10px;background:#7c3aed10;color:#7c3aed;font-weight:600;border-bottom:1px solid #e8eaed;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px">'+h+'</th>';});
+  tbl+='</tr></thead><tbody>';
+  targets.forEach(function(c,i){
+    tbl+='<tr style="'+(i%2===1?'background:#f8f9fb':'')+';cursor:pointer" onclick="navigate(\'record\',\'contacts\',\''+c.id+'\')">';
+    tbl+='<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5;color:#7c3aed;font-weight:500">'+c.name+'</td>';
+    tbl+='<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5;color:#1e293b">'+(c.role||'—')+'</td>';
+    tbl+='<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5;color:#64748b;font-size:11px">'+(c.email||'—')+'</td>';
+    tbl+='<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5;color:#64748b;font-size:11px">'+(c.phone||'—')+'</td></tr>';
+  });
+  tbl+='</tbody></table><div style="font-size:10px;color:#94a3b8;margin-top:4px">Click a name to open the record</div>';
+  var title = matchedAcct ? targets.length+' contact(s) chez '+matchedAcct.name : 'Top 5 contacts';
+  return '✅ Action réalisée : '+title+'\n%%HTML%%'+tbl+'%%/HTML%%';
 }
 
 function acBuildOppResponse(msg) {
-  var D = window.DATA || {};
-  var opps = D.opportunities || [];
-  var accounts = D.accounts || [];
+  var D=window.DATA||{}; var opps=D.opportunities||[]; var accounts=D.accounts||[];
+  var threshold=0; var m=msg.match(/(\d+)\s*M/i); if(m) threshold=parseInt(m[1])*1000000; if(!threshold) threshold=20000000;
+  var filtered=opps.filter(function(o){return o.amount>=threshold}).sort(function(a,b){return b.amount-a.amount});
+  if(!filtered.length) return 'Aucune opportunité ≥ '+fmtAmount(threshold)+'.';
 
-  /* Check for threshold */
-  var threshold = 0;
-  var threshMatch = msg.match(/(\d+)\s*M/i);
-  if (threshMatch) threshold = parseInt(threshMatch[1]) * 1000000;
-  if (!threshold) threshold = 20000000;
-
-  var filtered = opps.filter(function(o){ return o.amount >= threshold; });
-  filtered.sort(function(a,b){ return b.amount - a.amount; });
-
-  if (filtered.length === 0) return 'Aucune opportunité trouvée au-dessus de ' + fmtAmount(threshold) + '.';
-
-  var list = filtered.map(function(o) {
-    var acct = accounts.find(function(a){return a.id===o.account});
-    return '• ' + o.name + ' — ' + fmtAmount(o.amount) + ' (' + o.stage + ', ' + (o.prob||0) + '%) — ' + (acct?acct.name:'—');
-  }).join('\n');
-
-  return '✅ Action réalisée : ' + filtered.length + ' opportunité(s) ≥ ' + fmtAmount(threshold) + ' :\n\n' + list;
+  var stageColors={lead:'#94a3b8',study:'#3b82f6',tender:'#f59e0b',proposal:'#ec4899',negotiation:'#f97316',closed_won:'#10b981',launched:'#6366f1'};
+  var tbl='<table style="width:100%;border-collapse:collapse;font-size:11.5px;margin:8px 0;border-radius:8px;overflow:hidden">';
+  tbl+='<thead><tr>';
+  ['Opportunity','Amount','Stage','Prob.','Account'].forEach(function(h){tbl+='<th style="text-align:left;padding:6px 10px;background:#7c3aed10;color:#7c3aed;font-weight:600;border-bottom:1px solid #e8eaed;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px">'+h+'</th>';});
+  tbl+='</tr></thead><tbody>';
+  filtered.forEach(function(o,i){
+    var acct=accounts.find(function(a){return a.id===o.account}); var sc=stageColors[o.stage]||'#94a3b8';
+    tbl+='<tr style="'+(i%2===1?'background:#f8f9fb':'')+';cursor:pointer" onclick="navigate(\'record\',\'opportunities\',\''+o.id+'\')">';
+    tbl+='<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5;color:#7c3aed;font-weight:500">'+o.name+'</td>';
+    tbl+='<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5;font-weight:600;color:#1e293b">'+fmtAmount(o.amount)+'</td>';
+    tbl+='<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5"><span style="background:'+sc+'15;color:'+sc+';padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">'+o.stage+'</span></td>';
+    tbl+='<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5;color:#64748b">'+(o.prob||0)+'%</td>';
+    tbl+='<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5;color:#64748b">'+(acct?acct.name:'—')+'</td></tr>';
+  });
+  tbl+='</tbody></table><div style="font-size:10px;color:#94a3b8;margin-top:4px">Click a row to open the opportunity</div>';
+  return '✅ Action réalisée : '+filtered.length+' opportunité(s) ≥ '+fmtAmount(threshold)+'\n%%HTML%%'+tbl+'%%/HTML%%';
 }
 
 function acBuildPipelineResponse() {
-  var D = window.DATA || {};
-  var opps = D.opportunities || [];
-  var accounts = D.accounts || [];
-  var projects = D.projects || [];
-  var leads = D.leads || [];
-  var contacts = D.contacts || [];
+  var D=window.DATA||{}; var opps=D.opportunities||[]; var accounts=D.accounts||[];
+  var projects=D.projects||[]; var leads=D.leads||[]; var contacts=D.contacts||[];
+  var totalPipe=opps.reduce(function(s,o){return s+(o.amount||0)},0);
+  var wonOpps=opps.filter(function(o){return o.stage==='closed_won'});
+  var wonAmt=wonOpps.reduce(function(s,o){return s+(o.amount||0)},0);
+  var avgProb=Math.round(opps.reduce(function(s,o){return s+(o.prob||0)},0)/(opps.length||1));
+  var stages={}; opps.forEach(function(o){if(!stages[o.stage])stages[o.stage]={count:0,amount:0};stages[o.stage].count++;stages[o.stage].amount+=(o.amount||0);});
+  var stageColors={lead:'#94a3b8',study:'#3b82f6',tender:'#f59e0b',proposal:'#ec4899',negotiation:'#f97316',closed_won:'#10b981',launched:'#6366f1'};
 
-  var totalPipe = opps.reduce(function(s,o){return s+(o.amount||0)},0);
-  var wonOpps = opps.filter(function(o){return o.stage==='closed_won'});
-  var wonAmt = wonOpps.reduce(function(s,o){return s+(o.amount||0)},0);
-  var avgProb = Math.round(opps.reduce(function(s,o){return s+(o.prob||0)},0) / (opps.length||1));
-
-  /* Stage distribution */
-  var stages = {};
-  opps.forEach(function(o) {
-    if (!stages[o.stage]) stages[o.stage] = {count:0, amount:0};
-    stages[o.stage].count++;
-    stages[o.stage].amount += (o.amount||0);
+  var kpiHtml='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0">';
+  [{l:'Pipeline Total',v:fmtAmount(totalPipe),c:'#7c3aed'},{l:'Closed Won',v:fmtAmount(wonAmt),c:'#10b981'},{l:'Avg. Probability',v:avgProb+'%',c:'#2563eb'}].forEach(function(k){
+    kpiHtml+='<div style="background:'+k.c+'08;border:1px solid '+k.c+'20;border-radius:8px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:700;color:'+k.c+'">'+k.v+'</div><div style="font-size:10px;color:#64748b;margin-top:2px">'+k.l+'</div></div>';
   });
-  var stageLines = Object.keys(stages).map(function(s) {
-    return '  • ' + s.charAt(0).toUpperCase()+s.slice(1).replace('_',' ') + ' : ' + stages[s].count + ' opp(s), ' + fmtAmount(stages[s].amount);
-  }).join('\n');
+  kpiHtml+='</div>';
 
-  /* Top 3 opps */
-  var sorted = opps.slice().sort(function(a,b){return (b.amount||0)-(a.amount||0)});
-  var top3 = sorted.slice(0,3).map(function(o) {
-    var acct = accounts.find(function(a){return a.id===o.account});
-    return '  • ' + o.name + ' — ' + fmtAmount(o.amount) + ' (' + o.stage + ') — ' + (acct?acct.name:'');
-  }).join('\n');
+  var barHtml='<div style="margin:10px 0">';
+  Object.keys(stages).forEach(function(s){
+    var pct=Math.round(stages[s].amount/totalPipe*100); var color=stageColors[s]||'#94a3b8';
+    barHtml+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
+    barHtml+='<span style="width:80px;font-size:10.5px;color:#64748b;text-transform:capitalize">'+s.replace('_',' ')+'</span>';
+    barHtml+='<div style="flex:1;height:16px;background:#f0f2f5;border-radius:4px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+color+';border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:600">'+(pct>5?pct+'%':'')+'</div></div>';
+    barHtml+='<span style="width:55px;text-align:right;font-size:10.5px;font-weight:600;color:#1e293b">'+fmtAmount(stages[s].amount)+'</span></div>';
+  });
+  barHtml+='</div>';
 
-  return '✅ Action réalisée : Résumé du pipeline CRM\n\n' +
-    '📊 KPIs globaux :\n' +
-    '• Pipeline total : ' + fmtAmount(totalPipe) + ' (' + opps.length + ' opportunités)\n' +
-    '• Closed Won : ' + fmtAmount(wonAmt) + ' (' + wonOpps.length + ' deals)\n' +
-    '• Probabilité moyenne : ' + avgProb + '%\n' +
-    '• Comptes actifs : ' + accounts.filter(function(a){return a.status==='Active'}).length + '/' + accounts.length + '\n' +
-    '• Projets en cours : ' + projects.length + '\n' +
-    '• Leads ouverts : ' + leads.length + '\n' +
-    '• Contacts : ' + contacts.length + '\n\n' +
-    '📈 Répartition par stage :\n' + stageLines + '\n\n' +
-    '🏆 Top 3 opportunités :\n' + top3;
+  var statsHtml='<div style="display:flex;gap:14px;font-size:11px;color:#64748b;margin-top:6px;flex-wrap:wrap">';
+  statsHtml+=_acStatusDot('#10b981')+accounts.filter(function(a){return a.status==="Active"}).length+' accounts ';
+  statsHtml+=_acStatusDot('#3b82f6')+projects.length+' projects ';
+  statsHtml+=_acStatusDot('#f59e0b')+leads.length+' leads ';
+  statsHtml+=_acStatusDot('#7c3aed')+contacts.length+' contacts';
+  statsHtml+='</div>';
+
+  return '✅ Action réalisée : Pipeline CRM — Vue d\'ensemble\n%%HTML%%'+kpiHtml+barHtml+statsHtml+'%%/HTML%%';
 }
 
 function acBuildUsersResponse() {
-  var D = window.DATA || {};
-  var contacts = D.contacts || [];
-  var accounts = D.accounts || [];
-
-  /* Simulate users based on contacts (for demo) */
-  var users = [
-    {name:'Jean-Pierre Martin', profile:'Admin', status:'Active', lastLogin:'Aujourd\'hui, 09:12', sessions:127},
-    {name:'Sophie Durand', profile:'Sales Rep', status:'Active', lastLogin:'Aujourd\'hui, 08:45', sessions:98},
-    {name:'Marc Lefèvre', profile:'Sales Rep', status:'Active', lastLogin:'Hier, 17:30', sessions:84},
-    {name:'Isabelle Moreau', profile:'Sales Manager', status:'Active', lastLogin:'Aujourd\'hui, 10:05', sessions:72},
-    {name:'Thomas Girard', profile:'Sales Rep', status:'Active', lastLogin:'Hier, 14:22', sessions:56},
-    {name:'Claire Rousseau', profile:'Sales Rep', status:'Active', lastLogin:'12/03, 11:00', sessions:43},
-    {name:'Antoine Mercier', profile:'Field Rep', status:'Active', lastLogin:'10/03, 16:45', sessions:31},
-    {name:'Nathalie Petit', profile:'Sales Rep', status:'Inactive', lastLogin:'28/02, 09:10', sessions:12},
-    {name:'Christophe Martinez', profile:'Sales Manager', status:'Active', lastLogin:'Aujourd\'hui, 07:58', sessions:91},
-    {name:'Émilie Faure', profile:'Sales Rep', status:'Active', lastLogin:'Hier, 12:15', sessions:67}
+  var users=[
+    {name:'Jean-Pierre Martin',profile:'Admin',status:'Active',lastLogin:'Today, 09:12',sessions:127,cid:'c1'},
+    {name:'Sophie Durand',profile:'Sales Rep',status:'Active',lastLogin:'Today, 08:45',sessions:98,cid:'c2'},
+    {name:'Marc Lefèvre',profile:'Sales Rep',status:'Active',lastLogin:'Yesterday',sessions:84,cid:'c3'},
+    {name:'Isabelle Moreau',profile:'Sales Manager',status:'Active',lastLogin:'Today, 10:05',sessions:72,cid:'c4'},
+    {name:'Thomas Girard',profile:'Sales Rep',status:'Active',lastLogin:'Yesterday',sessions:56,cid:'c5'},
+    {name:'Claire Rousseau',profile:'Sales Rep',status:'Active',lastLogin:'Mar 12',sessions:43,cid:'c6'},
+    {name:'Antoine Mercier',profile:'Field Rep',status:'Active',lastLogin:'Mar 10',sessions:31,cid:'c7'},
+    {name:'Nathalie Petit',profile:'Sales Rep',status:'Inactive',lastLogin:'Feb 28',sessions:12,cid:'c8'},
+    {name:'Christophe Martinez',profile:'Sales Manager',status:'Active',lastLogin:'Today, 07:58',sessions:91,cid:'c9'},
+    {name:'Émilie Faure',profile:'Sales Rep',status:'Active',lastLogin:'Yesterday',sessions:67,cid:'c10'}
   ];
+  var active=users.filter(function(u){return u.status==='Active'}).length;
 
-  var active = users.filter(function(u){return u.status==='Active'}).length;
-  var inactive = users.filter(function(u){return u.status==='Inactive'}).length;
-
-  var profileCount = {};
-  users.forEach(function(u) {
-    if (!profileCount[u.profile]) profileCount[u.profile] = 0;
-    profileCount[u.profile]++;
+  var tbl='<table style="width:100%;border-collapse:collapse;font-size:11.5px;margin:8px 0;border-radius:8px;overflow:hidden">';
+  tbl+='<thead><tr>';
+  ['','Name','Profile','Last Login','Sessions'].forEach(function(h){tbl+='<th style="text-align:left;padding:6px '+(h?'10':'4')+'px;background:#7c3aed10;color:#7c3aed;font-weight:600;border-bottom:1px solid #e8eaed;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px">'+h+'</th>';});
+  tbl+='</tr></thead><tbody>';
+  users.forEach(function(u,i){
+    var dc=u.status==='Active'?'#10b981':'#ef4444'; var pc=u.profile==='Admin'?'#7c3aed':u.profile==='Sales Manager'?'#2563eb':u.profile==='Field Rep'?'#f59e0b':'#64748b';
+    tbl+='<tr style="'+(i%2===1?'background:#f8f9fb':'')+';cursor:pointer" onclick="navigate(\'record\',\'contacts\',\''+u.cid+'\')">';
+    tbl+='<td style="padding:5px 4px;border-bottom:1px solid #f0f2f5;text-align:center">'+_acStatusDot(dc)+'</td>';
+    tbl+='<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5;color:#7c3aed;font-weight:500">'+u.name+'</td>';
+    tbl+='<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5"><span style="background:'+pc+'12;color:'+pc+';padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">'+u.profile+'</span></td>';
+    tbl+='<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5;color:#64748b;font-size:11px">'+u.lastLogin+'</td>';
+    tbl+='<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5;color:#1e293b;font-weight:500">'+u.sessions+'</td></tr>';
   });
-  var profileLines = Object.keys(profileCount).map(function(p){
-    return '  • ' + p + ' : ' + profileCount[p];
-  }).join('\n');
-
-  var userList = users.map(function(u) {
-    var statusIcon = u.status === 'Active' ? '🟢' : '🔴';
-    return '• ' + statusIcon + ' ' + u.name + ' — ' + u.profile + '\n  Dernière connexion : ' + u.lastLogin + ' (' + u.sessions + ' sessions)';
-  }).join('\n');
-
-  return '✅ Action réalisée : Liste des utilisateurs CRM\n\n' +
-    '📋 Résumé : ' + users.length + ' utilisateurs (' + active + ' actifs, ' + inactive + ' inactif)\n\n' +
-    'Par profil :\n' + profileLines + '\n\n' +
-    'Détail :\n' + userList;
+  tbl+='</tbody></table>';
+  var sum='<div style="display:flex;gap:12px;margin-top:6px;font-size:11px">';
+  sum+='<span style="background:#10b98112;color:#10b981;padding:3px 10px;border-radius:8px;font-weight:600">'+active+' Active</span>';
+  sum+='<span style="background:#ef444412;color:#ef4444;padding:3px 10px;border-radius:8px;font-weight:600">'+(users.length-active)+' Inactive</span></div>';
+  return '✅ Action réalisée : '+users.length+' utilisateurs CRM\n%%HTML%%'+tbl+sum+'%%/HTML%%';
 }
 
 /* ── Main send function (scripted) ─────────────────────────── */
@@ -705,39 +752,61 @@ function acMatchScenario(msg) {
     return 'Je comprends votre demande, mais je n\'ai pas pu identifier une action précise dans mon catalogue.\n\nJe peux vous aider avec :\n• Qualité des données (doublons, champs vides, formats)\n• Gestion utilisateurs (mot de passe, permissions, comptes)\n• Administration CRM (dashboards, rapports, champs custom)\n• Recherche de données (comptes, contacts, opportunités)\n• Sécurité (audit connexions, RGPD, tokens API)\n\nPouvez-vous reformuler votre demande ?';
   }
 
-  /* Find the action's current delegation level */
   var action = AC_ACTIONS.find(function(a){ return a.id === bestMatch.actionId; });
   var level = action ? action.level : 'delegated';
+  var _vb = function(label,page,obj,id){
+    var oc = obj&&id ? "navigate('record','"+obj+"','"+id+"')" : "navigate('"+page+"')";
+    return '<div style="margin-top:10px"><button onclick="'+oc+'" style="background:#7c3aed12;color:#7c3aed;border:1px solid #7c3aed30;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">→ '+label+'</button></div>';
+  };
 
-  /* Dynamic responses for data retrieval */
-  if (bestMatch.actionId === 'dr1' && (level === 'delegated' || level === 'supervised')) {
-    var contactResp = acBuildContactResponse(msg);
-    if (level === 'supervised') {
-      return '🔄 Action préparée — soumise à validation admin :\n\nRecherche de contacts effectuée. Résultats en attente de validation pour affichage.';
+  /* ── MUTATIONS (delegated only) ── */
+  if (level === 'delegated') {
+    if (bestMatch.actionId === 'dq1') {
+      var r=acMutateMergeDuplicates(); acShowToast('Duplicates Merged',r.removed+' accounts merged','#10b981');
+      return bestMatch.responses.delegated+'\n%%HTML%%'+_vb('Verify in Accounts','accounts')+'%%/HTML%%';
     }
-    return contactResp;
+    if (bestMatch.actionId === 'dq3') {
+      var r=acMutateStandardizePhones(); acShowToast('Phones Standardized',r.count+' contacts updated','#10b981');
+      return bestMatch.responses.delegated+'\n%%HTML%%'+_vb('Verify in Contacts','contacts')+'%%/HTML%%';
+    }
+    if (bestMatch.actionId === 'um1') {
+      var uname=acMutateResetPassword(msg); acShowToast('Password Reset','Email sent to '+uname,'#10b981');
+      return '✅ Action réalisée : Mot de passe de '+uname+' réinitialisé.\n\nUn email de réinitialisation a été envoyé (valable 24h).\nActivité créée dans l\'historique.\n%%HTML%%'+_vb('View in Activities','activities')+'%%/HTML%%';
+    }
+    if (bestMatch.actionId === 'um4') {
+      var nu=acMutateCreateUser(); acShowToast('User Created',nu.name+' added to CRM','#10b981');
+      var btns='<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">';
+      btns+='<button onclick="navigate(\'record\',\'contacts\',\''+nu.id+'\')" style="background:#7c3aed12;color:#7c3aed;border:1px solid #7c3aed30;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">→ Open '+nu.name+'</button>';
+      btns+='<button onclick="navigate(\'contacts\')" style="background:#f0f2f5;color:#64748b;border:1px solid #e8eaed;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit">View Contacts</button></div>';
+      return '✅ Action réalisée : Nouveau compte créé.\n\n• Nom : '+nu.name+'\n• Email : '+nu.email+'\n• Profil : Sales Representative\n• Rattaché à : Bouygues Construction\n\nEmail d\'activation envoyé. Activité d\'onboarding créée.\n%%HTML%%'+btns+'%%/HTML%%';
+    }
+    if (bestMatch.actionId === 'um5') {
+      var du=acMutateDeactivateUser(msg);
+      if(du){ acShowToast('User Deactivated',du.name+' — account disabled','#ef4444');
+        return '✅ Action réalisée : Compte de '+du.name+' désactivé.\n\nL\'utilisateur ne peut plus se connecter. Données conservées.\nActivité de désactivation créée.\n%%HTML%%'+_vb('View Record','contacts',du.id?'contacts':null,du.id)+'%%/HTML%%';
+      }
+      return '⚠️ Utilisateur non trouvé. Précisez le nom complet.';
+    }
   }
-  if (bestMatch.actionId === 'dr2' && (level === 'delegated' || level === 'supervised')) {
-    var oppResp = acBuildOppResponse(msg);
-    if (level === 'supervised') {
-      return '🔄 Action préparée — soumise à validation admin :\n\nRecherche d\'opportunités effectuée. Résultats en attente de validation.';
-    }
-    return oppResp;
+
+  /* ── Rich dynamic responses ── */
+  if (bestMatch.actionId==='dr1'&&(level==='delegated'||level==='supervised')) {
+    if(level==='supervised') return '🔄 Action préparée — soumise à validation admin :\n\nRecherche de contacts effectuée. Résultats en attente de validation.';
+    return acBuildContactResponse(msg);
   }
-  if (bestMatch.actionId === 'dr3' && (level === 'delegated' || level === 'supervised')) {
-    if (level === 'supervised') {
-      return '🔄 Action préparée — soumise à validation admin :\n\nRésumé pipeline et KPIs générés. En attente de validation pour affichage.';
-    }
+  if (bestMatch.actionId==='dr2'&&(level==='delegated'||level==='supervised')) {
+    if(level==='supervised') return '🔄 Action préparée — soumise à validation admin :\n\nRecherche d\'opportunités effectuée. Résultats en attente de validation.';
+    return acBuildOppResponse(msg);
+  }
+  if (bestMatch.actionId==='dr3'&&(level==='delegated'||level==='supervised')) {
+    if(level==='supervised') return '🔄 Action préparée — soumise à validation admin :\n\nRésumé pipeline et KPIs générés. En attente de validation.';
     return acBuildPipelineResponse();
   }
-  if (bestMatch.actionId === 'um3' && (level === 'delegated' || level === 'supervised')) {
-    if (level === 'supervised') {
-      return '🔄 Action préparée — soumise à validation admin :\n\nListe des utilisateurs et profils générée. En attente de validation pour affichage.';
-    }
+  if (bestMatch.actionId==='um3'&&(level==='delegated'||level==='supervised')) {
+    if(level==='supervised') return '🔄 Action préparée — soumise à validation admin :\n\nListe des utilisateurs générée. En attente de validation.';
     return acBuildUsersResponse();
   }
 
-  /* Return the scripted response for the current delegation level */
   return bestMatch.responses[level] || 'Je traite votre demande...';
 }
 
