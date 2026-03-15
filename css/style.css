@@ -176,6 +176,31 @@ body {
   background: var(--accent);
 }
 
+/* Agent Console — purple accent in sidebar */
+.sb-separator {
+  height: 1px;
+  background: rgba(255,255,255,.07);
+  margin: 6px 10px;
+}
+
+.sb-item.sb-agent {
+  color: rgba(139,92,246,.6);
+}
+
+.sb-item.sb-agent:hover {
+  color: rgba(139,92,246,.9);
+  background: rgba(139,92,246,.08);
+}
+
+.sb-item.sb-agent.active {
+  color: #a78bfa;
+  background: rgba(139,92,246,.12);
+}
+
+.sb-item.sb-agent.active::before {
+  background: #7c3aed;
+}
+
 .sb-item-label {
   /* hidden when collapsed via JS */
 }

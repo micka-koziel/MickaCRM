@@ -32,6 +32,7 @@ const NAV_ICONS = {
   trash: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16',
   save: 'M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2zM17 21v-8H7v8M7 3v5h8',
   x: 'M18 6L6 18M6 6l12 12',
+  agentConsole: 'M13 10V3L4 14h7v7l9-11h-7z',
 };
 
 function svgIcon(name, size, color) {
@@ -51,6 +52,7 @@ var NAV_ITEMS = [
   { key: 'projects', label: 'Projects', icon: 'projects' },
   { key: 'claims', label: 'Claims', icon: 'claims' },
   { key: 'activities', label: 'Activities', icon: 'activities' },
+  { key: 'agentConsole', label: 'Agent Console', icon: 'agentConsole' },
 ];
 
 var sidebarCollapsed = false;
@@ -63,7 +65,9 @@ function renderSidebar() {
   sb.className = sidebarCollapsed ? 'collapsed' : '';
   var items = NAV_ITEMS.map(function(item) {
     var isActive = (currentPage === item.key) || (currentPage === 'record' && currentRecordObj === item.key);
-    return '<button class="sb-item '+(isActive ? 'active' : '')+'" data-page="'+item.key+'" title="'+(sidebarCollapsed ? item.label : '')+'">' +
+    var extraClass = item.key === 'agentConsole' ? ' sb-agent' : '';
+    var separator = item.key === 'agentConsole' ? '<div class="sb-separator"></div>' : '';
+    return separator + '<button class="sb-item '+(isActive ? 'active' : '')+extraClass+'" data-page="'+item.key+'" title="'+(sidebarCollapsed ? item.label : '')+'">' +
       svgIcon(item.icon) + '<span>'+item.label+'</span></button>';
   }).join('');
 
@@ -152,6 +156,10 @@ function renderCurrentPage() {
     case 'record':
       header.style.display = '';
       renderRecordPage(currentRecordObj, currentRecordId, header, content);
+      break;
+    case 'agentConsole':
+      header.style.display = 'none';
+      renderAgentConsole(content);
       break;
     case 'opportunities':
     case 'leads':
