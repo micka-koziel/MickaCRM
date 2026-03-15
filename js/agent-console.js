@@ -159,6 +159,7 @@ function renderAgentConsole(container) {
   var p = _acPending();
   var tabs = [
     {key:'dashboard',label:'Monitoring',icon:'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'},
+    {key:'users',label:'Users',icon:'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'},
     {key:'config',label:'Policy Config',icon:'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z'}
   ];
 
@@ -186,6 +187,7 @@ function renderAgentConsole(container) {
   var content = document.getElementById('ac-content');
   switch (AC_TAB) {
     case 'dashboard': acRenderDashboard(content); break;
+    case 'users': umRenderTab(content); break;
     case 'config': acRenderConfig(content); break;
   }
 }
@@ -390,6 +392,13 @@ var AC_SCENARIOS = [
       delegated:'✅ Action réalisée : Le compte utilisateur a été désactivé. L\'utilisateur ne pourra plus se connecter. Ses données et son historique sont conservés.',
       supervised:'🔄 Action préparée — soumise à validation admin :\n\nDemande de désactivation préparée. Le compte sera désactivé après confirmation admin. Les données seront conservées.',
       escalated:'⚠️ [ESCALADE] Désactivation de compte utilisateur\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : La désactivation d\'un compte utilisateur a un impact sur les accès et les données associées. Un administrateur doit valider cette action.'}
+  },
+  { keywords:['réactiv','reactiv','activer','activate','rétablir','restore','enable','activer le compte'],
+    actionId:'um2',
+    responses:{
+      delegated:'✅ Action réalisée : Le compte utilisateur a été réactivé. L\'utilisateur peut à nouveau se connecter.',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\nDemande de réactivation préparée. Le compte sera réactivé après confirmation admin.',
+      escalated:'⚠️ [ESCALADE] Réactivation de compte utilisateur\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : La réactivation d\'un compte doit être validée par un administrateur.'}
   },
   { keywords:['permission','admin','administrateur','grant','accorder','élever','elevat'],
     actionId:'um6',
@@ -708,7 +717,7 @@ function acBuildUsersResponse() {
   return '✅ Action réalisée : '+users.length+' utilisateurs CRM\n%%HTML%%'+tbl+sum+'%%/HTML%%';
 }
 
-/* ── Main send function (scripted) ─────────────────────────── */
+/* ── Main send function (scripted, supports async) ─────────────────────────── */
 function acSendMessage() {
   var input = document.getElementById('ac-chat-input');
   var msg = input.value.trim();
@@ -721,23 +730,37 @@ function acSendMessage() {
   /* Simulate thinking delay */
   var delay = 800 + Math.random() * 1200;
   setTimeout(function() {
-    var response = acMatchScenario(msg);
-    AC_CHAT_MESSAGES.push({ role:'assistant', content:response });
+    var result = acMatchScenario(msg);
 
-    /* Detect escalation */
-    if (response.indexOf('[ESCALADE]') >= 0) {
-      var match = response.match(/\[ESCALADE\]\s*(.+?)(?:\n|$)/);
-      var escText = match ? match[1].trim() : msg.slice(0,60);
-      AC_NOTIFICATIONS.unshift({ id:'n'+Date.now(), text:escText, time:'Just now', status:'pending', resolution:'' });
-      acShowToast('New Escalation', escText, '#ef4444');
-      acRenderBanner();
-      /* Re-render monitoring if visible */
-      var acContent = document.getElementById('ac-content');
-      if (acContent && AC_TAB === 'dashboard') acRenderDashboard(acContent);
+    /* Handle both sync strings and Promises */
+    if (result && typeof result.then === 'function') {
+      result.then(function(response) {
+        acFinishMessage(response, msg);
+      }).catch(function(err) {
+        console.error('[Agent] Async error:', err);
+        acFinishMessage('⚠️ Une erreur est survenue. Veuillez réessayer.', msg);
+      });
+    } else {
+      acFinishMessage(result, msg);
     }
-    AC_CHAT_LOADING = false;
-    acRenderChat(document.getElementById('ac-float-body'));
   }, delay);
+}
+
+function acFinishMessage(response, msg) {
+  AC_CHAT_MESSAGES.push({ role:'assistant', content:response });
+
+  /* Detect escalation */
+  if (response.indexOf('[ESCALADE]') >= 0) {
+    var match = response.match(/\[ESCALADE\]\s*(.+?)(?:\n|$)/);
+    var escText = match ? match[1].trim() : msg.slice(0,60);
+    AC_NOTIFICATIONS.unshift({ id:'n'+Date.now(), text:escText, time:'Just now', status:'pending', resolution:'' });
+    acShowToast('New Escalation', escText, '#ef4444');
+    acRenderBanner();
+    var acContent = document.getElementById('ac-content');
+    if (acContent && AC_TAB === 'dashboard') acRenderDashboard(acContent);
+  }
+  AC_CHAT_LOADING = false;
+  acRenderChat(document.getElementById('ac-float-body'));
 }
 
 function acMatchScenario(msg) {
@@ -775,10 +798,14 @@ function acMatchScenario(msg) {
       return bestMatch.responses.delegated+'\n%%HTML%%'+_vb('Verify in Contacts','contacts')+'%%/HTML%%';
     }
     if (bestMatch.actionId === 'um1') {
+      /* Real Firestore: password reset */
+      if (typeof umChatResetPwd === 'function' && UM_LOADED) return umChatResetPwd(msg);
       var uname=acMutateResetPassword(msg); acShowToast('Password Reset','Email sent to '+uname,'#10b981');
       return '✅ Action réalisée : Mot de passe de '+uname+' réinitialisé.\n\nUn email de réinitialisation a été envoyé (valable 24h).\nActivité créée dans l\'historique.\n%%HTML%%'+_vb('View in Activities','activities')+'%%/HTML%%';
     }
     if (bestMatch.actionId === 'um4') {
+      /* Real Firestore: create user */
+      if (typeof umChatCreateUser === 'function' && UM_LOADED) return umChatCreateUser(msg);
       var nu=acMutateCreateUser(); acShowToast('User Created',nu.name+' added to CRM','#10b981');
       var btns='<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">';
       btns+='<button onclick="navigate(\'record\',\'contacts\',\''+nu.id+'\')" style="background:#7c3aed12;color:#7c3aed;border:1px solid #7c3aed30;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">→ Open '+nu.name+'</button>';
@@ -786,11 +813,18 @@ function acMatchScenario(msg) {
       return '✅ Action réalisée : Nouveau compte créé.\n\n• Nom : '+nu.name+'\n• Email : '+nu.email+'\n• Profil : Sales Representative\n• Rattaché à : Bouygues Construction\n\nEmail d\'activation envoyé. Activité d\'onboarding créée.\n%%HTML%%'+btns+'%%/HTML%%';
     }
     if (bestMatch.actionId === 'um5') {
+      /* Real Firestore: deactivate user */
+      if (typeof umChatDeactivate === 'function' && UM_LOADED) return umChatDeactivate(msg);
       var du=acMutateDeactivateUser(msg);
       if(du){ acShowToast('User Deactivated',du.name+' — account disabled','#ef4444');
         return '✅ Action réalisée : Compte de '+du.name+' désactivé.\n\nL\'utilisateur ne peut plus se connecter. Données conservées.\nActivité de désactivation créée.\n%%HTML%%'+_vb('View Record','contacts',du.id?'contacts':null,du.id)+'%%/HTML%%';
       }
       return '⚠️ Utilisateur non trouvé. Précisez le nom complet.';
+    }
+    if (bestMatch.actionId === 'um2') {
+      /* Real Firestore: activate user */
+      if (typeof umChatActivate === 'function' && UM_LOADED) return umChatActivate(msg);
+      return '✅ Compte réactivé.';
     }
   }
 
@@ -809,6 +843,8 @@ function acMatchScenario(msg) {
   }
   if (bestMatch.actionId==='um3'&&(level==='delegated'||level==='supervised')) {
     if(level==='supervised') return '🔄 Action préparée — soumise à validation admin :\n\nListe des utilisateurs générée. En attente de validation.';
+    /* Use real Firestore data if loaded */
+    if (typeof umBuildUsersResponseReal === 'function' && UM_LOADED) return umBuildUsersResponseReal();
     return acBuildUsersResponse();
   }
 

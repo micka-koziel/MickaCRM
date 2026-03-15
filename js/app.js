@@ -50,6 +50,11 @@ document.addEventListener('DOMContentLoaded', function() {
         return totalDocs;
       }).then(function() {
         fbShowStatus('Connected to Firestore');
+        /* Seed + load users collection for User Management */
+        if (typeof umSeedUsers === 'function') {
+          return umSeedUsers().then(function(){ return umLoadUsers(); }).then(function(){ return umLoadAudit(); });
+        }
+      }).then(function() {
         renderCurrentPage();
         renderFloatingChat();
       }).catch(function(err) {
