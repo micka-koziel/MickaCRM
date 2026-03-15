@@ -273,6 +273,8 @@ function renderProject360(container, rec) {
     h += '<div><div class="p3-pn">'+p.name+'</div><div class="p3-pr">'+p.role+'</div></div></div>';
   });
   h += '</div></div>';
+  /* Details */
+  if (typeof crmDetailsSection === 'function') h += crmDetailsSection('p3', 'projects', rec);
   h += '</div>'; /* end left */
 
   /* ── RIGHT ── */
@@ -438,6 +440,7 @@ function renderProject360(container, rec) {
     });
   });
   if (typeof bindCrmActionButtons === 'function') bindCrmActionButtons(container);
+  if (typeof bindDetailsLinks === 'function') bindDetailsLinks(container);
 }
 
 

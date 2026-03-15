@@ -194,6 +194,9 @@ function renderAccount360(container, rec) {
   });
   h += '</div>';
 
+  // Details
+  h += crmDetailsSection('a360', 'accounts', rec);
+
   h += '</div><div class="a360-col">';
 
   // Contacts
@@ -309,6 +312,7 @@ function renderAccount360(container, rec) {
     el.addEventListener('click', function(){ navigate(el.getAttribute('data-nav')); });
   });
   bindCrmActionButtons(container);
+  bindDetailsLinks(container);
 }
 
 // ─── Account 360 Helpers ───
@@ -478,6 +482,9 @@ function renderContact360(container, rec) {
   h += '</span></div>';
   h += '</div></div></div>';
 
+  // Details
+  h += crmDetailsSection('c360', 'contacts', rec);
+
   h += '</div>';
 
   // RIGHT COLUMN
@@ -616,6 +623,7 @@ function renderContact360(container, rec) {
     el.addEventListener('click', function(){ navigate(el.getAttribute('data-nav')); });
   });
   bindCrmActionButtons(container);
+  bindDetailsLinks(container);
 }
 
 // ─── Contact 360 Helpers ───
@@ -849,6 +857,9 @@ function renderLead360(container, rec) {
   });
   h += '</div>';
 
+  /* Details */
+  h += crmDetailsSection('l360', 'leads', rec);
+
   h += '</div>'; /* l360-col left */
 
   /* RIGHT COLUMN */
@@ -999,6 +1010,7 @@ function renderLead360(container, rec) {
     el.addEventListener('click', function(){ navigate(el.getAttribute('data-nav')); });
   });
   bindCrmActionButtons(container);
+  bindDetailsLinks(container);
 }
 
 /* ─── Lead 360 Helpers ─── */
@@ -1228,6 +1240,9 @@ function renderOpp360(container, rec) {
   });
   h += '</div>';
 
+  /* Details */
+  h += crmDetailsSection('o360', 'opportunities', rec);
+
   h += '</div>'; /* end left col */
 
   /* RIGHT — Sales Action */
@@ -1363,6 +1378,7 @@ function renderOpp360(container, rec) {
     el.addEventListener('click', function(){ navigate(el.getAttribute('data-nav')); });
   });
   bindCrmActionButtons(container);
+  bindDetailsLinks(container);
 }
 
 /* ─── Opp 360 Helpers ─── */
@@ -1609,10 +1625,12 @@ function renderGenericRecord(objKey, rec, headerEl, contentEl) {
 var EDIT_FIELDS = {
   accounts: [
     {key:'name',      label:'Account Name',  type:'text'},
-    {key:'industry',  label:'Industry',      type:'text'},
+    {key:'industry',  label:'Industry',      type:'select', options:['General Contractor','Real Estate Developer','Civil Engineering','Road & Rail','Foundations & Piling','Building Materials','Infrastructure','Energy','Other']},
     {key:'city',      label:'City',          type:'text'},
     {key:'phone',     label:'Phone',         type:'text'},
     {key:'website',   label:'Website',       type:'text'},
+    {key:'pipeline',  label:'Pipeline Value', type:'number'},
+    {key:'opps',      label:'Open Opps',     type:'number'},
     {key:'status',    label:'Status',        type:'select', options:['Active','Prospect','Inactive']}
   ],
   contacts: [
@@ -1620,10 +1638,13 @@ var EDIT_FIELDS = {
     {key:'role',      label:'Role / Title',  type:'text'},
     {key:'email',     label:'Email',         type:'text'},
     {key:'phone',     label:'Phone',         type:'text'},
-    {key:'city',      label:'City',          type:'text'}
+    {key:'city',      label:'City',          type:'text'},
+    {key:'account',   label:'Account',       type:'text', ref:'accounts'},
+    {key:'influence', label:'Influence',     type:'select', options:['Decision Maker','Influencer','Champion','Technical','Other']}
   ],
   leads: [
     {key:'name',          label:'Lead Name',       type:'text'},
+    {key:'account',       label:'Account',         type:'text', ref:'accounts'},
     {key:'source',        label:'Source',           type:'select', options:['Website','Trade Show','Referral','Cold Call','Inbound','Partner']},
     {key:'priority',      label:'Priority',         type:'select', options:['High','Medium','Low']},
     {key:'stage',         label:'Stage',            type:'select', options:['new','contacted','qualified','proposal','converted']},
@@ -1631,52 +1652,81 @@ var EDIT_FIELDS = {
   ],
   opportunities: [
     {key:'name',    label:'Opportunity Name', type:'text'},
+    {key:'account', label:'Account',          type:'text', ref:'accounts'},
     {key:'amount',  label:'Amount',           type:'number'},
     {key:'prob',    label:'Probability (%)',   type:'number'},
     {key:'stage',   label:'Stage',            type:'select', options:['lead','study','tender','proposal','negotiation','closed_won','launched']},
     {key:'close',   label:'Close Date',       type:'date'},
-    {key:'owner',   label:'Owner',            type:'text'}
+    {key:'owner',   label:'Owner',            type:'text'},
+    {key:'projectId',label:'Project ID',      type:'text'}
   ],
   projects: [
-    {key:'name',              label:'Project Name',     type:'text'},
-    {key:'phase',             label:'Phase',            type:'select', options:['prestudy','tender','contracting','construction','delivered']},
-    {key:'location',          label:'Location',         type:'text'},
-    {key:'budget',            label:'Budget',           type:'number'},
-    {key:'owner',             label:'Owner',            type:'text'},
-    {key:'startDate',         label:'Start Date',       type:'date'},
-    {key:'expectedDelivery',  label:'Expected Delivery',type:'date'},
-    {key:'health',            label:'Health',           type:'select', options:['Healthy','Attention','At Risk']},
-    {key:'description',       label:'Description',      type:'textarea'}
+    {key:'name',              label:'Project Name',       type:'text'},
+    {key:'account',           label:'Account',            type:'text', ref:'accounts'},
+    {key:'phase',             label:'Phase',              type:'select', options:['prestudy','tender','contracting','construction','delivered']},
+    {key:'location',          label:'Location',           type:'text'},
+    {key:'budget',            label:'Budget',             type:'number'},
+    {key:'value',             label:'Project Value',      type:'number'},
+    {key:'owner',             label:'Owner',              type:'text'},
+    {key:'commercialLead',    label:'Commercial Lead',    type:'text'},
+    {key:'technicalLead',     label:'Technical Lead',     type:'text'},
+    {key:'source',            label:'Source',             type:'select', options:['Tender','Referral','Website','Cold Call','Partner']},
+    {key:'startDate',         label:'Start Date',         type:'date'},
+    {key:'expectedDelivery',  label:'Expected Delivery',  type:'date'},
+    {key:'health',            label:'Health',             type:'select', options:['Healthy','Attention','At Risk']},
+    {key:'description',       label:'Description',        type:'textarea'}
   ],
   claims: [
-    {key:'title',         label:'Claim Title',    type:'text'},
-    {key:'name',          label:'Name',           type:'text'},
-    {key:'status',        label:'Status',         type:'select', options:['Open','In Progress','Investigation','Negotiation','Resolved','Closed']},
-    {key:'priority',      label:'Priority',       type:'select', options:['Critical','High','Medium','Low']},
-    {key:'category',      label:'Category',       type:'text'},
-    {key:'impactValue',   label:'Impact Value',   type:'number'},
-    {key:'owner',         label:'Owner',          type:'text'},
-    {key:'riskLevel',     label:'Risk Level',     type:'select', options:['High','Medium','Low']},
-    {key:'description',   label:'Description',    type:'textarea'}
+    {key:'title',           label:'Claim Title',      type:'text'},
+    {key:'status',          label:'Status',           type:'select', options:['Open','In Progress','Investigation','Negotiation','Resolved','Closed']},
+    {key:'priority',        label:'Priority',         type:'select', options:['Critical','High','Medium','Low']},
+    {key:'risk',            label:'Risk Level',       type:'select', options:['High','Medium','Low']},
+    {key:'impact',          label:'Impact Value',     type:'number'},
+    {key:'category',        label:'Category',         type:'text'},
+    {key:'projectId',       label:'Project',          type:'text', ref:'projects'},
+    {key:'accountId',       label:'Account',          type:'text', ref:'accounts'},
+    {key:'owner',           label:'Owner',            type:'text'},
+    {key:'reportedDate',    label:'Reported Date',    type:'date'},
+    {key:'resolvedDate',    label:'Resolved Date',    type:'date'},
+    {key:'rootCause',       label:'Root Cause',       type:'textarea'},
+    {key:'rootCauseCategory',label:'Root Cause Category',type:'text'},
+    {key:'description',     label:'Description',      type:'textarea'}
   ],
   activities: [
-    {key:'subject',   label:'Subject',    type:'text'},
-    {key:'type',      label:'Type',       type:'select', options:['Call','Meeting','Email','Site Visit']},
-    {key:'status',    label:'Status',     type:'select', options:['Planned','In Progress','Completed']},
-    {key:'date',      label:'Date',       type:'date'},
-    {key:'time',      label:'Time',       type:'text'},
-    {key:'duration',  label:'Duration (min)', type:'number'},
-    {key:'location',  label:'Location',   type:'text'},
-    {key:'owner',     label:'Owner',      type:'text'},
-    {key:'purpose',   label:'Purpose / Notes', type:'textarea'}
+    {key:'subject',         label:'Subject',            type:'text'},
+    {key:'type',            label:'Type',               type:'select', options:['Call','Meeting','Email','Site Visit']},
+    {key:'status',          label:'Status',             type:'select', options:['Planned','In Progress','Completed']},
+    {key:'date',            label:'Date',               type:'date'},
+    {key:'time',            label:'Time',               type:'text'},
+    {key:'duration',        label:'Duration (min)',     type:'number'},
+    {key:'location',        label:'Location',           type:'text'},
+    {key:'owner',           label:'Owner',              type:'text'},
+    {key:'accountId',       label:'Account',            type:'text', ref:'accounts'},
+    {key:'contactId',       label:'Contact',            type:'text', ref:'contacts'},
+    {key:'opportunityId',   label:'Opportunity',        type:'text', ref:'opportunities'},
+    {key:'projectId',       label:'Project',            type:'text', ref:'projects'},
+    {key:'purpose',         label:'Purpose / Notes',    type:'textarea'},
+    {key:'outcome',         label:'Outcome',            type:'textarea'}
   ],
   quotes: [
-    {key:'name',      label:'Quote Name',   type:'text'},
-    {key:'amount',    label:'Amount',        type:'number'},
-    {key:'status',    label:'Status',        type:'select', options:['Draft','Sent','Accepted','Rejected','Expired']},
-    {key:'date',      label:'Date',          type:'date'},
-    {key:'validUntil',label:'Valid Until',   type:'date'},
-    {key:'discount',  label:'Discount (%)',  type:'number'}
+    {key:'name',            label:'Quote Name',         type:'text'},
+    {key:'stage',           label:'Stage',              type:'select', options:['Draft','Sent','Negotiation','Won','Lost','Expired']},
+    {key:'value',           label:'Value',              type:'number'},
+    {key:'netValue',        label:'Net Value',          type:'number'},
+    {key:'discount',        label:'Discount (%)',       type:'number'},
+    {key:'margin',          label:'Margin (%)',         type:'number'},
+    {key:'revision',        label:'Revision',           type:'number'},
+    {key:'validUntil',      label:'Valid Until',        type:'date'},
+    {key:'createdDate',     label:'Created Date',       type:'date'},
+    {key:'createdBy',       label:'Created By',         type:'text'},
+    {key:'paymentTerms',    label:'Payment Terms',      type:'text'},
+    {key:'deliveryTerms',   label:'Delivery Terms',     type:'text'},
+    {key:'contact',         label:'Contact',            type:'text'},
+    {key:'opportunityId',   label:'Opportunity',        type:'text', ref:'opportunities'},
+    {key:'accountId',       label:'Account',            type:'text', ref:'accounts'},
+    {key:'winProb',         label:'Win Probability',    type:'text'},
+    {key:'competitors',     label:'Competitors',        type:'text'},
+    {key:'negoNote',        label:'Negotiation Note',   type:'textarea'}
   ],
   users: [
     {key:'name',       label:'Full Name',    type:'text'},
@@ -1689,6 +1739,165 @@ var EDIT_FIELDS = {
     {key:'status',     label:'Status',       type:'select', options:['active','inactive']}
   ]
 };
+
+
+/* ═══════════════════════════════════════════════════
+   DETAILS SECTION — Reusable across all 360 pages
+   Renders a structured card showing ALL record fields
+   ═══════════════════════════════════════════════════ */
+
+/* Hidden keys — never shown in Details panel */
+var DETAILS_HIDDEN_KEYS = ['id','photoURL','photo','keyRelationship','lineItems','revisions','activities','documents','siteVisits','claims','participants','notes','tasks','clientStakeholders'];
+
+function crmDetailsSection(prefix, objKey, rec) {
+  injectDetailsStyles();
+  var fields = EDIT_FIELDS[objKey] || [];
+
+  /* Also discover fields from rec that aren't in EDIT_FIELDS */
+  var knownKeys = {};
+  fields.forEach(function(f){ knownKeys[f.key] = true; });
+  var extraFields = [];
+  Object.keys(rec).forEach(function(k) {
+    if (knownKeys[k] || DETAILS_HIDDEN_KEYS.indexOf(k) !== -1) return;
+    if (typeof rec[k] === 'object' && rec[k] !== null && !Array.isArray(rec[k])) return; /* skip nested objects */
+    if (Array.isArray(rec[k])) return; /* skip arrays */
+    extraFields.push({key: k, label: _detailsLabel(k), type: 'text'});
+  });
+
+  var allFields = fields.concat(extraFields);
+
+  var h = '<div class="crm-details-section ' + prefix + '-section">';
+  h += '<div class="crm-details-head ' + prefix + '-section-head">';
+  h += '<span class="crm-details-title ' + prefix + '-section-title">' + svgIcon('list', 14, 'var(--text-light)') + ' Record Details</span>';
+  h += '<button class="crm-details-edit-btn crm-edit-btn" data-obj="' + objKey + '" data-rec="' + rec.id + '">' + svgIcon('edit', 12, 'var(--accent)') + ' Edit</button>';
+  h += '</div>';
+  h += '<div class="crm-details-body">';
+
+  allFields.forEach(function(f) {
+    var v = rec[f.key];
+    if (v === undefined || v === null || v === '') v = '';
+    var display = _detailsFormat(f, v, objKey, rec);
+    h += '<div class="crm-details-row">';
+    h += '<div class="crm-details-label">' + f.label + '</div>';
+    h += '<div class="crm-details-value">' + display + '</div>';
+    h += '</div>';
+  });
+
+  h += '</div></div>';
+  return h;
+}
+
+/* Format a field value for display */
+function _detailsFormat(f, v, objKey, rec) {
+  if (v === '' || v === undefined || v === null) return '<span style="color:var(--text-light)">\u2014</span>';
+
+  /* Account reference — resolve name */
+  if (f.ref === 'accounts') {
+    var acc = (window.DATA.accounts||[]).find(function(a){ return a.id === v; });
+    if (acc) return '<span class="crm-details-link" data-nav-obj="accounts" data-nav-id="'+v+'">' + acc.name + '</span>';
+    return String(v);
+  }
+  if (f.ref === 'contacts') {
+    var ct = (window.DATA.contacts||[]).find(function(c){ return c.id === v; });
+    if (ct) return '<span class="crm-details-link" data-nav-obj="contacts" data-nav-id="'+v+'">' + ct.name + '</span>';
+    return String(v);
+  }
+  if (f.ref === 'opportunities') {
+    var op = (window.DATA.opportunities||[]).find(function(o){ return o.id === v; });
+    if (op) return '<span class="crm-details-link" data-nav-obj="opportunities" data-nav-id="'+v+'">' + op.name + '</span>';
+    return String(v);
+  }
+  if (f.ref === 'projects') {
+    var pj = (window.DATA.projects||[]).find(function(p){ return p.id === v; });
+    if (pj) return '<span class="crm-details-link" data-nav-obj="projects" data-nav-id="'+v+'">' + pj.name + '</span>';
+    return String(v);
+  }
+
+  /* Amount fields */
+  if (f.type === 'number' && (f.key.match(/amount|value|budget|pipeline|impact|netValue/) || f.key === 'estimatedValue')) {
+    return typeof fmtAmount === 'function' ? fmtAmount(Number(v)) : String(v);
+  }
+
+  /* Date fields */
+  if (f.type === 'date' || f.key.match(/date|Date|close|start|end|validUntil|createdDate/i)) {
+    return typeof fmtDate === 'function' ? fmtDate(v) : String(v);
+  }
+
+  /* Stage/phase fields */
+  if (f.key === 'stage' || f.key === 'phase') {
+    var stArr = STAGES[objKey] || STAGES.projects || [];
+    var st = stArr.find(function(s){ return s.key === v; });
+    if (st) return '<span class="stage-badge" style="color:'+st.color+'"><span class="dot" style="background:'+st.color+'"></span>'+st.label+'</span>';
+    return String(v).replace(/_/g,' ').replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+  }
+
+  /* Status fields */
+  if (f.key === 'status') {
+    var col = v==='Active'||v==='active'||v==='Completed'||v==='Resolved'?'var(--success)':v==='Inactive'||v==='inactive'||v==='Closed'?'var(--text-light)':v==='In Progress'||v==='Investigation'||v==='Negotiation'?'var(--warning)':v==='Open'?'var(--danger)':'var(--text-muted)';
+    return '<span class="stage-badge" style="color:'+col+'"><span class="dot" style="background:'+col+'"></span>'+v+'</span>';
+  }
+
+  /* Priority / risk */
+  if (f.key === 'priority' || f.key === 'risk' || f.key === 'riskLevel') {
+    var pc = {High:'var(--danger)',Critical:'var(--danger)',Medium:'var(--warning)',Low:'var(--text-light)'};
+    var c = pc[v] || 'var(--text-muted)';
+    return '<span class="stage-badge" style="color:'+c+'"><span class="dot" style="background:'+c+'"></span>'+v+'</span>';
+  }
+
+  /* Health */
+  if (f.key === 'health') {
+    var hc = v==='Healthy'?'var(--success)':v==='Attention'?'var(--warning)':'var(--danger)';
+    return '<span class="stage-badge" style="color:'+hc+'"><span class="dot" style="background:'+hc+'"></span>'+v+'</span>';
+  }
+
+  /* Probability */
+  if (f.key === 'prob') return v + '%';
+  if (f.key === 'discount' || f.key === 'margin') return v + '%';
+  if (f.key === 'duration') return v + ' min';
+
+  return String(v);
+}
+
+/* Label formatter for auto-detected fields */
+function _detailsLabel(k) {
+  return k.replace(/([A-Z])/g, ' $1').replace(/^./, function(c){ return c.toUpperCase(); }).replace(/Id$/, '').replace(/  +/g, ' ').trim();
+}
+
+/* Bind clickable links in Details section */
+function bindDetailsLinks(container) {
+  container.querySelectorAll('.crm-details-link[data-nav-id]').forEach(function(el) {
+    el.addEventListener('click', function(e) {
+      e.stopPropagation();
+      navigate('record', el.getAttribute('data-nav-obj'), el.getAttribute('data-nav-id'));
+    });
+  });
+}
+
+/* ── Inject Details styles (once) ── */
+function injectDetailsStyles() {
+  if (document.getElementById('crm-details-css')) return;
+  var s = document.createElement('style'); s.id = 'crm-details-css';
+  s.textContent = '\
+.crm-details-section{background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid var(--border);overflow:hidden}\
+.crm-details-head{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px}\
+.crm-details-title{font-size:11.5px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:6px}\
+.crm-details-edit-btn{margin-left:auto;display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:11px;font-weight:600;font-family:inherit;color:var(--accent);transition:all .12s}\
+.crm-details-edit-btn:hover{background:var(--accent-light);border-color:var(--accent)}\
+.crm-details-body{padding:4px 0}\
+.crm-details-row{display:flex;align-items:flex-start;padding:9px 16px;border-bottom:1px solid #f3f4f6}\
+.crm-details-row:last-child{border-bottom:none}\
+.crm-details-label{width:140px;flex-shrink:0;font-size:11px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.3px;padding-top:1px}\
+.crm-details-value{flex:1;font-size:12.5px;font-weight:500;color:var(--text);line-height:1.4;word-break:break-word}\
+.crm-details-link{color:var(--accent);cursor:pointer;font-weight:600;transition:opacity .12s}\
+.crm-details-link:hover{opacity:.7;text-decoration:underline}\
+\
+@media(max-width:640px){\
+  .crm-details-row{flex-direction:column;gap:2px}\
+  .crm-details-label{width:auto}\
+}\
+';
+  document.head.appendChild(s);
+}
 
 /* ── Inject modal styles (once) ── */
 function injectEditModalStyles() {

@@ -347,6 +347,9 @@ function renderActivity360(container, rec) {
   }
   h += '</div>';
 
+  /* Details */
+  if (typeof crmDetailsSection === 'function') h += crmDetailsSection('at3', 'activities', rec);
+
   h += '</div>'; /* end left col */
 
   /* ═══ RIGHT COLUMN — History ═══ */
@@ -450,6 +453,7 @@ function renderActivity360(container, rec) {
     });
   });
   if (typeof bindCrmActionButtons === 'function') bindCrmActionButtons(container);
+  if (typeof bindDetailsLinks === 'function') bindDetailsLinks(container);
 }
 
 

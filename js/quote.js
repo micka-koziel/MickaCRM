@@ -503,6 +503,9 @@ function renderQuote360(rec) {
     html += '</div>'; // card
   }
 
+  // ──── Details ────
+  if (typeof crmDetailsSection === 'function') html += crmDetailsSection('q360', 'quotes', rec);
+
   html += '</div>'; // left col
 
   // ──── RIGHT COLUMN ────
@@ -623,6 +626,7 @@ function bindQuote360Events(container) {
   });
 
   if (typeof bindCrmActionButtons === 'function') bindCrmActionButtons(container);
+  if (typeof bindDetailsLinks === 'function') bindDetailsLinks(container);
 }
 
 

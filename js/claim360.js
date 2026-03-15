@@ -294,6 +294,9 @@ function renderClaim360(container, rec) {
   }
   h += '</div></div>';
 
+  /* Details */
+  if (typeof crmDetailsSection === 'function') h += crmDetailsSection('cl36', 'claims', rec);
+
   h += '</div>'; /* end left col */
 
   /* ── RIGHT COLUMN (Action) ── */
@@ -431,6 +434,7 @@ function renderClaim360(container, rec) {
     el.addEventListener('click', function(){ navigate(el.getAttribute('data-nav')); });
   });
   if (typeof bindCrmActionButtons === 'function') bindCrmActionButtons(container);
+  if (typeof bindDetailsLinks === 'function') bindDetailsLinks(container);
 }
 
 /* ── Section card helper ── */
