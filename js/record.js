@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════════════ */
 
 function renderRecordPage(objKey, recId, headerEl, contentEl) {
-  var data = window.DATA[objKey];
+  var data = objKey === 'users' ? (typeof UM_USERS !== 'undefined' ? UM_USERS : []) : window.DATA[objKey];
   if (!data) { contentEl.innerHTML = '<div class="placeholder-view">Object not found</div>'; return; }
   var rec = data.find(function(r) { return r.id === recId; });
   if (!rec) { contentEl.innerHTML = '<div class="placeholder-view">Record not found</div>'; return; }
@@ -67,6 +67,16 @@ function renderRecordPage(objKey, recId, headerEl, contentEl) {
       renderActivity360(contentEl, rec);
     } else {
       contentEl.innerHTML = '<div class="placeholder-view">Activity 360 module not loaded. Check script order in index.html.</div>';
+    }
+    return;
+  }
+
+  if (objKey === 'users') {
+    headerEl.style.display = 'none';
+    if (typeof renderUser360 === 'function') {
+      renderUser360(contentEl, rec);
+    } else {
+      contentEl.innerHTML = '<div class="placeholder-view">User 360 module not loaded. Check script order in index.html.</div>';
     }
     return;
   }
@@ -1664,6 +1674,16 @@ var EDIT_FIELDS = {
     {key:'date',      label:'Date',          type:'date'},
     {key:'validUntil',label:'Valid Until',   type:'date'},
     {key:'discount',  label:'Discount (%)',  type:'number'}
+  ],
+  users: [
+    {key:'name',       label:'Full Name',    type:'text'},
+    {key:'email',      label:'Email',        type:'text'},
+    {key:'phone',      label:'Phone',        type:'text'},
+    {key:'title',      label:'Job Title',    type:'text'},
+    {key:'department', label:'Department',   type:'select', options:['IT Direction','Sales','Sales Management','Operations','Field Ops','Marketing','Finance','HR']},
+    {key:'location',   label:'Location',     type:'text'},
+    {key:'role',       label:'Role',         type:'select', options:['admin','user']},
+    {key:'status',     label:'Status',       type:'select', options:['active','inactive']}
   ]
 };
 
@@ -1720,7 +1740,7 @@ select.crm-field-input{appearance:auto;cursor:pointer}\
    ─────────────────────────────────────────────────── */
 function openEditModal(objKey, recId) {
   injectModalStyles();
-  var records = window.DATA[objKey] || [];
+  var records = objKey === 'users' ? (typeof UM_USERS !== 'undefined' ? UM_USERS : []) : (window.DATA[objKey] || []);
   var rec = records.find(function(r) { return r.id === recId; });
   if (!rec) { console.error('[Edit] Record not found:', objKey, recId); return; }
 
@@ -1807,15 +1827,22 @@ function openEditModal(objKey, recId) {
       updates[fieldKey] = newVal;
     });
 
-    /* Update window.DATA */
+    /* Update in-memory */
     Object.keys(updates).forEach(function(k) { rec[k] = updates[k]; });
 
     /* Update Firestore */
-    if (typeof fbUpdate === 'function') {
-      fbUpdate(objKey, recId, updates).then(function() {
+    var savePromise;
+    if (objKey === 'users' && typeof umUpdateUser === 'function') {
+      savePromise = umUpdateUser(recId, updates);
+    } else if (typeof fbUpdate === 'function') {
+      savePromise = fbUpdate(objKey, recId, updates);
+    } else {
+      savePromise = Promise.resolve();
+    }
+
+    savePromise.then(function() {
         if (typeof fbShowStatus === 'function') fbShowStatus('Record updated');
         closeEdit();
-        /* Re-render current page */
         renderCurrentPage();
       }).catch(function(err) {
         console.error('[Edit] Save error:', err);
@@ -1823,10 +1850,6 @@ function openEditModal(objKey, recId) {
         closeEdit();
         renderCurrentPage();
       });
-    } else {
-      closeEdit();
-      renderCurrentPage();
-    }
   });
 }
 
@@ -1837,7 +1860,7 @@ function openEditModal(objKey, recId) {
    ─────────────────────────────────────────────────── */
 function openDeleteModal(objKey, recId) {
   injectModalStyles();
-  var records = window.DATA[objKey] || [];
+  var records = objKey === 'users' ? (typeof UM_USERS !== 'undefined' ? UM_USERS : []) : (window.DATA[objKey] || []);
   var rec = records.find(function(r) { return r.id === recId; });
   if (!rec) { console.error('[Delete] Record not found:', objKey, recId); return; }
 
@@ -1880,26 +1903,33 @@ function openDeleteModal(objKey, recId) {
     delBtn.disabled = true;
     delBtn.innerHTML = '<div style="width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite"></div> Deleting...';
 
-    /* Remove from window.DATA */
+    /* Remove from in-memory array */
     var idx = records.findIndex(function(r) { return r.id === recId; });
     if (idx !== -1) records.splice(idx, 1);
 
     /* Remove from Firestore */
-    if (typeof fbDelete === 'function') {
-      fbDelete(objKey, recId).then(function() {
-        if (typeof fbShowStatus === 'function') fbShowStatus('Record deleted');
-        closeDel();
-        navigate(objKey);
-      }).catch(function(err) {
-        console.error('[Delete] Error:', err);
-        if (typeof fbShowStatus === 'function') fbShowStatus('Delete failed', true);
-        closeDel();
-        navigate(objKey);
-      });
+    var delPromise;
+    if (objKey === 'users') {
+      delPromise = fbDB.collection('users').doc(recId).delete();
+    } else if (typeof fbDelete === 'function') {
+      delPromise = fbDelete(objKey, recId);
     } else {
-      closeDel();
-      navigate(objKey);
+      delPromise = Promise.resolve();
     }
+
+    var navTarget = objKey === 'users' ? 'agentConsole' : objKey;
+    if (objKey === 'users') AC_TAB = 'users';
+
+    delPromise.then(function() {
+      if (typeof fbShowStatus === 'function') fbShowStatus('Record deleted');
+      closeDel();
+      navigate(navTarget);
+    }).catch(function(err) {
+      console.error('[Delete] Error:', err);
+      if (typeof fbShowStatus === 'function') fbShowStatus('Delete failed', true);
+      closeDel();
+      navigate(navTarget);
+    });
   });
 }
 

@@ -227,8 +227,8 @@ function umRenderContent(container) {
     var lastLogin = u.lastLogin ? _umFormatDate(u.lastLogin) : 'Never';
 
     tableHtml += '<tr>' +
-      '<td><div class="um-avatar" style="background:'+roleColor+'15;color:'+roleColor+'">'+initials+'</div></td>' +
-      '<td><div class="um-user-name">'+u.name+'</div><div class="um-user-email">'+u.email+'</div></td>' +
+      '<td style="cursor:pointer" onclick="navigate(\'record\',\'users\',\''+u.id+'\')"><div class="um-avatar" style="background:'+roleColor+'15;color:'+roleColor+'">'+initials+'</div></td>' +
+      '<td style="cursor:pointer" onclick="navigate(\'record\',\'users\',\''+u.id+'\')"><div class="um-user-name" style="color:var(--accent)">'+u.name+'</div><div class="um-user-email">'+u.email+'</div></td>' +
       '<td><span class="um-role-badge" style="background:'+roleColor+'12;color:'+roleColor+'">'+u.role.toUpperCase()+'</span></td>' +
       '<td class="um-dept">'+(u.department||'—')+'</td>' +
       '<td><span class="um-status-badge" style="background:'+statusColor+'12;color:'+statusColor+'"><span class="um-status-dot" style="background:'+statusColor+'"></span>'+u.status+'</span></td>' +

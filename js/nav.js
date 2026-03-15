@@ -78,7 +78,7 @@ function renderSidebar() {
     var initials = typeof authUserInitials === 'function' ? authUserInitials() : '?';
     var displayName = typeof authUserDisplayName === 'function' ? authUserDisplayName() : 'User';
     userBadgeHtml =
-      '<div class="sb-user-badge">' +
+      '<div class="sb-user-badge" id="sb-user-badge" style="cursor:pointer" title="View your profile">' +
         '<div class="sb-user-avatar">' + initials + '</div>' +
         '<span class="sb-user-name">' + displayName + '</span>' +
       '</div>' +
@@ -111,6 +111,22 @@ function renderSidebar() {
   if (logoutBtn) {
     logoutBtn.addEventListener('click', function() {
       if (typeof authLogout === 'function') authLogout();
+    });
+  }
+
+  /* User badge — click to open User 360 */
+  var userBadge = document.getElementById('sb-user-badge');
+  if (userBadge) {
+    userBadge.addEventListener('click', function() {
+      var myUser = _findCurrentUserRecord();
+      if (myUser) {
+        navigate('record', 'users', myUser.id);
+      } else {
+        /* Fallback: go to Agent Console Users tab */
+        AC_TAB = 'users';
+        navigate('agentConsole');
+      }
+      closeMobileSidebar();
     });
   }
 
@@ -206,4 +222,17 @@ function renderCurrentPage() {
         '<div style="font-size:12px;color:var(--text-light);margin-top:4px">Module under construction</div></div></div>';
       break;
   }
+}
+
+/* ── Find current logged-in user in UM_USERS ── */
+function _findCurrentUserRecord() {
+  if (typeof UM_USERS === 'undefined' || !UM_USERS.length) return null;
+  if (typeof AUTH_USER === 'undefined' || !AUTH_USER) return null;
+  var email = AUTH_USER.email;
+  /* Match by email first */
+  var match = UM_USERS.find(function(u) { return u.email === email; });
+  if (match) return match;
+  /* Match by uid prefix */
+  var uidPrefix = 'u_' + AUTH_USER.uid.substring(0,8);
+  return UM_USERS.find(function(u) { return u.id === uidPrefix; }) || null;
 }
