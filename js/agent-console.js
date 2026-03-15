@@ -255,35 +255,8 @@ function acFilterConfig(q) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   TAB 2: L1 SUPPORT CHAT (Claude API)
+   TAB 2: L1 SUPPORT CHAT (Scripted Scenario Engine)
    ═══════════════════════════════════════════════════════════════ */
-function acBuildSystemPrompt() {
-  var delegated = AC_ACTIONS.filter(function(a){return a.level==='delegated'}).map(function(a){return '- '+a.label+' ['+a.cat+']'}).join('\n');
-  var supervised = AC_ACTIONS.filter(function(a){return a.level==='supervised'}).map(function(a){return '- '+a.label+' ['+a.cat+']'}).join('\n');
-  var escalated = AC_ACTIONS.filter(function(a){return a.level==='escalated'}).map(function(a){return '- '+a.label+' ['+a.cat+']'}).join('\n');
-
-  var D = window.DATA || {};
-  var accts = (D.accounts||[]).map(function(a){return a.name+' ('+a.city+', '+(a.industry||'')+', pipeline: '+fmtAmount(a.pipeline)+')'}).join(', ');
-  var contacts = (D.contacts||[]).map(function(c){return c.name+' ('+c.role+')'}).join(', ');
-  var opps = (D.opportunities||[]).map(function(o){return o.name+' ('+fmtAmount(o.amount)+', '+o.stage+')'}).join(', ');
-
-  return 'Tu es l\'Agent de Support CRM pour MickaCRM, une plateforme CRM dédiée au secteur BTP/construction. Tu es un assistant d\'administration et de support de la solution.\n\n' +
-    'TON RÔLE : aider les utilisateurs ET les admins avec :\n' +
-    '- Data Quality : détecter les doublons, champs vides, formats incorrects\n' +
-    '- User Management : reset password, gestion profils, permissions\n' +
-    '- CRM Administration : créer dashboards, rapports, configurer des champs, expliquer des fonctionnalités\n' +
-    '- Data Retrieval : rechercher des comptes, contacts, opportunités, résumer le pipeline\n' +
-    '- Security & Compliance : audit logins, détection anomalies, conformité RGPD\n\n' +
-    'DONNÉES CRM DISPONIBLES :\nComptes : ' + accts + '\nContacts : ' + contacts + '\nOpportunités : ' + opps + '\n\n' +
-    'POLITIQUE DE DÉLÉGATION :\n\nDÉLÉGUÉES (exécute directement) :\n' + delegated + '\n\n' +
-    'SUPERVISÉES (exécute + indique validation admin requise) :\n' + supervised + '\n\n' +
-    'ESCALADÉES (NE PAS exécuter → ticket escalade) :\n' + escalated + '\n\n' +
-    'FORMAT DE RÉPONSE :\n' +
-    '1. DÉLÉGUÉE → exécute et confirme : "✅ Action réalisée : [description détaillée avec données concrètes du CRM]"\n' +
-    '2. SUPERVISÉE → prépare : "🔄 Action préparée — soumise à validation admin : [description]"\n' +
-    '3. ESCALADÉE → "⚠️ [ESCALADE] [titre court]\\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\\nRaison : [explication]"\n\n' +
-    'RÈGLES :\n- Réponds en français, concis et professionnel\n- Donne des résultats précis avec les vrais noms/chiffres du CRM\n- Ne fais JAMAIS d\'actions commerciales (remises, pricing, négociation) — tu es support admin';
-}
 
 function acRenderChat(el) {
   var suggestions = [
@@ -354,6 +327,211 @@ function acFormatMsg(text, isUser) {
   }).join('<br>');
 }
 
+/* ── Scripted Scenario Engine ──────────────────────────────── */
+var AC_SCENARIOS = [
+  /* ── Data Quality ── */
+  { keywords:['doublon','duplicate','doublons','duplicates','merge'],
+    actionId:'dq1',
+    responses:{
+      delegated:'✅ Action réalisée : Analyse des doublons terminée.\n\n3 doublons détectés et fusionnés :\n• "Bouygues Construction" et "Bouygues Constr." → fusionnés (compte principal : a1)\n• "Vinci Immobilier" et "VINCI Immo" → fusionnés (compte principal : a2)\n• "Eiffage GC" et "Eiffage Génie Civil" → fusionnés (compte principal : a3)\n\n7 contacts et 4 opportunités ont été rattachés automatiquement aux comptes principaux.',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\n3 doublons identifiés pour fusion :\n• "Bouygues Construction" / "Bouygues Constr." → fusion proposée vers a1\n• "Vinci Immobilier" / "VINCI Immo" → fusion proposée vers a2\n• "Eiffage GC" / "Eiffage Génie Civil" → fusion proposée vers a3\n\nLa fusion sera exécutée après validation d\'un administrateur.',
+      escalated:'⚠️ [ESCALADE] Fusion de doublons comptes\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : La fusion de comptes peut impacter les relations, opportunités et historique. Un administrateur doit valider les correspondances proposées.'}
+  },
+  { keywords:['champ','vide','vides','missing','incomplet','incomplete','manquant'],
+    actionId:'dq2',
+    responses:{
+      delegated:'✅ Action réalisée : Audit des champs obligatoires terminé.\n\n12 enregistrements avec des champs manquants détectés :\n\nContacts (6) :\n• Claire Rousseau — email manquant\n• Antoine Mercier — téléphone manquant\n• Nathalie Petit — email et téléphone manquants\n• 3 autres contacts — champ "role" vide\n\nComptes (4) :\n• NGE Fondations — secteur d\'activité manquant\n• Razel-Bec — adresse incomplète\n• 2 autres — champ "pipeline" à 0 sans opportunités\n\nOpportunités (2) :\n• Flaubert Bridge Phase 2 — date de clôture dépassée\n• Port de Nice Quai Sud — probabilité non renseignée',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\n12 enregistrements avec champs manquants identifiés (6 contacts, 4 comptes, 2 opportunités). Un rapport détaillé a été généré. L\'envoi des notifications aux propriétaires de fiches sera effectué après validation.',
+      escalated:'⚠️ [ESCALADE] Audit champs manquants\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : L\'audit des champs obligatoires peut révéler des problèmes structurels nécessitant une revue admin.'}
+  },
+  { keywords:['format','adresse','address','telephone','phone','standardis'],
+    actionId:'dq3',
+    responses:{
+      delegated:'✅ Action réalisée : Standardisation des formats terminée.\n\n48 numéros de téléphone reformatés au format international (+33 X XX XX XX XX)\n12 adresses normalisées (capitalisation, code postal vérifié)\n3 emails corrigés (espaces supprimés, domaine vérifié)',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\n48 numéros, 12 adresses et 3 emails identifiés pour standardisation. Aperçu des modifications disponible. Exécution après validation.',
+      escalated:'⚠️ [ESCALADE] Standardisation des formats\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : Les modifications en masse de données de contact nécessitent une approbation.'}
+  },
+  { keywords:['enrichi','enrich','données publiques','public sources'],
+    actionId:'dq5',
+    responses:{
+      delegated:'✅ Action réalisée : Enrichissement de données effectué.\n\nComptes enrichis depuis les sources publiques :\n• NGE Fondations — CA ajouté (420M€), effectif (2,800), SIRET vérifié\n• Razel-Bec — adresse siège mise à jour, secteur NAF corrigé\n• Implenia TP — lien LinkedIn corporate ajouté, dirigeant mis à jour',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\n3 comptes identifiés pour enrichissement (NGE Fondations, Razel-Bec, Implenia TP). Données collectées depuis les registres publics. Application après validation admin.',
+      escalated:'⚠️ [ESCALADE] Enrichissement de données depuis sources publiques\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : L\'ajout de données externes nécessite une validation de conformité.'}
+  },
+  { keywords:['supprimer','archiver','delete','archive','obsolete','anciens','ancien','2019','nettoyer','nettoyage'],
+    actionId:'dq7',
+    responses:{
+      delegated:'✅ Action réalisée : 214 enregistrements archivés datant d\'avant 2020.\n\nDétail : 156 activités, 38 opportunités fermées, 20 leads convertis. Les données restent accessibles dans l\'archive.',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\n214 enregistrements identifiés pour archivage (antérieurs à 2020). Liste exportée pour revue. Archivage après validation.',
+      escalated:'⚠️ [ESCALADE] Suppression/archivage d\'enregistrements obsolètes\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : La suppression de données est irréversible et nécessite une validation par un administrateur autorisé.'}
+  },
+  /* ── User Management ── */
+  { keywords:['mot de passe','password','reset','mdp','réinitialiser'],
+    actionId:'um1',
+    responses:{
+      delegated:'✅ Action réalisée : Mot de passe réinitialisé.\n\nUn email de réinitialisation a été envoyé à l\'utilisateur. Le lien est valable 24h.\nSi vous connaissez l\'utilisateur concerné, précisez-moi son nom pour que je confirme l\'envoi.',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\nDemande de réinitialisation de mot de passe enregistrée. L\'email sera envoyé après confirmation d\'un admin.',
+      escalated:'⚠️ [ESCALADE] Réinitialisation de mot de passe\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : La politique de sécurité requiert une validation admin pour les resets de mot de passe.'}
+  },
+  { keywords:['désactiv','deactivat','supprimer compte','supprimer utilisateur','remove user'],
+    actionId:'um5',
+    responses:{
+      delegated:'✅ Action réalisée : Le compte utilisateur a été désactivé. L\'utilisateur ne pourra plus se connecter. Ses données et son historique sont conservés.',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\nDemande de désactivation préparée. Le compte sera désactivé après confirmation admin. Les données seront conservées.',
+      escalated:'⚠️ [ESCALADE] Désactivation de compte utilisateur\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : La désactivation d\'un compte utilisateur a un impact sur les accès et les données associées. Un administrateur doit valider cette action.'}
+  },
+  { keywords:['permission','admin','administrateur','grant','accorder','élever','elevat'],
+    actionId:'um6',
+    responses:{
+      delegated:'✅ Action réalisée : Permissions admin accordées. L\'utilisateur dispose maintenant des droits d\'administration complets.',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\nDemande d\'élévation de permissions préparée. Les droits admin seront accordés après validation d\'un super-admin.',
+      escalated:'⚠️ [ESCALADE] Attribution de permissions admin\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : L\'attribution de droits d\'administration est une opération sensible qui requiert l\'approbation d\'un super-administrateur.'}
+  },
+  { keywords:['onboard','nouveau','nouvel utilisateur','new user','créer compte','créer un compte'],
+    actionId:'um4',
+    responses:{
+      delegated:'✅ Action réalisée : Nouveau compte utilisateur créé.\n\nProfil : Sales Rep\nAccès : Comptes, Contacts, Opportunités, Projets (lecture/écriture)\nUn email d\'activation a été envoyé.',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\nNouveau compte préparé avec profil Sales Rep standard. Activation après validation admin.',
+      escalated:'⚠️ [ESCALADE] Création de compte utilisateur\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : La création de comptes nécessite une validation des droits d\'accès.'}
+  },
+  /* ── CRM Administration ── */
+  { keywords:['dashboard','tableau de bord','rapport','report'],
+    actionId:'ca1',
+    responses:{
+      delegated:'✅ Action réalisée : Dashboard "Pipeline par Stage" généré.\n\nVoici la structure créée :\n• KPI 1 : Pipeline total — 249.5M€ (10 opportunités)\n• KPI 2 : Taux de conversion — 20% (2 Closed Won)\n• KPI 3 : Valeur moyenne — 24.9M€ par opportunité\n• Graphique : Répartition par stage\n  - Lead : 1 (22M€)\n  - Study : 1 (8.5M€)\n  - Tender : 2 (50M€)\n  - Proposal : 2 (26M€)\n  - Negotiation : 2 (101M€)\n  - Closed Won : 2 (42M€)\n\nLe dashboard est accessible depuis la section Home.',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\nDashboard "Pipeline par Stage" conçu avec 3 KPIs et un graphique de répartition. Sera publié après validation admin.',
+      escalated:'⚠️ [ESCALADE] Génération de dashboard\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : La création de dashboards visibles par tous les utilisateurs requiert une approbation.'}
+  },
+  { keywords:['expliqu','explain','comment','fonctionn','c\'est quoi','qu\'est-ce'],
+    actionId:'ca3',
+    responses:{
+      delegated:'Bien sûr ! Je suis là pour vous aider à comprendre le CRM.\n\nMickaCRM est organisé autour de ces objets principaux :\n\n• Comptes — les entreprises clientes ou prospects (ex: Bouygues Construction)\n• Contacts — les personnes rattachées à un compte (ex: Jean-Pierre Martin, Dir. Travaux)\n• Opportunités — les affaires commerciales avec montant et probabilité\n• Projets — les chantiers en cours, liés aux opportunités gagnées\n• Leads — les pistes commerciales pas encore qualifiées\n• Claims — les réclamations liées aux projets\n• Activities — les actions planifiées (appels, visites, réunions)\n\nQuel objet ou fonctionnalité souhaitez-vous que je détaille ?',
+      supervised:'Bien sûr, je peux vous expliquer le fonctionnement du CRM. MickaCRM est structuré autour de Comptes, Contacts, Opportunités, Projets, Leads, Claims et Activities. Quelle partie souhaitez-vous que je détaille ?',
+      escalated:'⚠️ [ESCALADE] Explication CRM\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : Les explications sur la configuration du CRM sont réservées aux administrateurs.'}
+  },
+  { keywords:['audit','champ','inutilisé','unused','cleanup','orphelin'],
+    actionId:'ca4',
+    responses:{
+      delegated:'✅ Action réalisée : Audit des champs inutilisés terminé.\n\n14 champs identifiés sans aucune donnée :\n\n• Account : "Fax" (0% rempli), "SIC Code" (0%), "Subsidiary_of" (2%)\n• Contact : "Assistant_Name" (0%), "Birthdate" (5%), "Mailing_Country" (8%)\n• Opportunity : "Campaign_Source" (0%), "Lead_Source_Detail" (3%)\n• 6 champs custom legacy préfixés "OLD_" sur Project\n\nRecommandation : archiver les 8 champs à 0% et réviser les 6 champs "OLD_" avec l\'équipe métier.',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\n14 champs inutilisés identifiés sur 4 objets. Rapport détaillé généré avec recommandations de nettoyage. Suppression après validation.',
+      escalated:'⚠️ [ESCALADE] Audit des champs inutilisés\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : La suppression de champs impacte la structure de données et requiert une approbation.'}
+  },
+  { keywords:['champ custom','custom field','ajouter champ','add field','modifier champ','nouveau champ'],
+    actionId:'ca5',
+    responses:{
+      delegated:'✅ Action réalisée : Champ custom ajouté.\n\nObjet : Project\nNom : "Site Access Code"\nType : Texte (50 car.)\nVisibilité : Tous les profils\nLe champ est maintenant disponible sur les fiches Projet.',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\nCréation du champ custom "Site Access Code" (texte, 50 car.) sur l\'objet Project. Le champ sera créé après validation admin.',
+      escalated:'⚠️ [ESCALADE] Création de champ custom\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : La modification du schéma de données nécessite une approbation pour assurer la cohérence du modèle.'}
+  },
+  { keywords:['page layout','layout','mise en page','record type','type enregistrement'],
+    actionId:'ca7',
+    responses:{
+      delegated:'✅ Action réalisée : Page layout modifié avec succès.',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\nModification de page layout préparée. Sera appliquée après validation.',
+      escalated:'⚠️ [ESCALADE] Modification de page layout\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : Les modifications de page layout impactent l\'expérience de tous les utilisateurs et nécessitent une validation.'}
+  },
+  /* ── Data Retrieval ── */
+  { keywords:['contact','contacts','chez','qui sont'],
+    actionId:'dr1',
+    responses:{
+      delegated:null, /* dynamic — built at runtime */
+      supervised:null,
+      escalated:'⚠️ [ESCALADE] Recherche de données\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : L\'accès aux données de contact est restreint.'}
+  },
+  { keywords:['opportunit','>','supérieur','plus de','pipeline','opp'],
+    actionId:'dr2',
+    responses:{
+      delegated:null,
+      supervised:null,
+      escalated:'⚠️ [ESCALADE] Recherche d\'opportunités\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : L\'accès aux données commerciales est restreint.'}
+  },
+  { keywords:['export','csv','télécharger','download','extraire'],
+    actionId:'dr5',
+    responses:{
+      delegated:'✅ Action réalisée : Export CSV généré.\n\nFichier : "Opportunities_Q4_2025.csv"\nContenu : 10 opportunités avec colonnes Nom, Compte, Montant, Stage, Probabilité, Date de clôture\nTaille : 2.4 KB\n\nLe fichier est prêt au téléchargement.',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\nExport CSV préparé (10 opportunités, 6 colonnes). Le téléchargement sera autorisé après validation admin.',
+      escalated:'⚠️ [ESCALADE] Export de données CSV\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : Les exports de données sont soumis à validation pour des raisons de sécurité.'}
+  },
+  /* ── Security & Compliance ── */
+  { keywords:['login','connexion','anomalie','audit login','suspect','suspicious'],
+    actionId:'se1',
+    responses:{
+      delegated:'✅ Action réalisée : Audit des connexions terminé (7 derniers jours).\n\n• 847 connexions au total, 10 utilisateurs actifs\n• 0 tentative échouée suspecte\n• Connexion la plus fréquente : Jean-Pierre Martin (127 sessions)\n• 1 alerte mineure : Christophe Martinez s\'est connecté depuis une IP inhabituelle le 12/03 à 23h41 — probablement en déplacement\n\nAucune anomalie critique détectée.',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\nRapport d\'audit des connexions généré. 1 alerte mineure détectée (IP inhabituelle). Rapport en attente de revue admin.',
+      escalated:'⚠️ [ESCALADE] Audit des connexions\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : L\'audit de sécurité des connexions requiert une approbation.'}
+  },
+  { keywords:['rgpd','gdpr','suppression','données personnelles','droit à l\'oubli','data deletion'],
+    actionId:'se4',
+    responses:{
+      delegated:'✅ Action réalisée : Demande RGPD traitée. Les données personnelles ont été supprimées conformément au règlement.',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\nDemande de suppression RGPD identifiée. Les données concernées ont été listées. Suppression effective après validation DPO/admin.',
+      escalated:'⚠️ [ESCALADE] Demande de suppression RGPD\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : Les demandes RGPD de suppression de données personnelles doivent être traitées par un administrateur autorisé en coordination avec le DPO.'}
+  },
+  { keywords:['token','api','révoquer','revoke','bulk export','téléchargement massif'],
+    actionId:'se5',
+    responses:{
+      delegated:'✅ Action réalisée : Token API révoqué. Toutes les sessions associées ont été invalidées.',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\nToken API identifié pour révocation. Invalidation après confirmation admin.',
+      escalated:'⚠️ [ESCALADE] Révocation de token API\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : La révocation de tokens API peut interrompre des intégrations critiques. Un administrateur doit valider l\'action.'}
+  }
+];
+
+/* ── Dynamic response builders for data retrieval ──────────── */
+function acBuildContactResponse(msg) {
+  var D = window.DATA || {};
+  var accounts = D.accounts || [];
+  var contacts = D.contacts || [];
+  var matchedAcct = null;
+
+  accounts.forEach(function(a) {
+    if (msg.toLowerCase().indexOf(a.name.toLowerCase().split(' ')[0].toLowerCase()) >= 0) {
+      matchedAcct = a;
+    }
+  });
+
+  if (matchedAcct) {
+    var acctContacts = contacts.filter(function(c){ return c.account === matchedAcct.id; });
+    if (acctContacts.length > 0) {
+      var list = acctContacts.map(function(c){
+        return '• ' + c.name + ' — ' + (c.role||'N/A') + '\n  Email : ' + (c.email||'—') + ' | Tél : ' + (c.phone||'—');
+      }).join('\n');
+      return '✅ Action réalisée : ' + acctContacts.length + ' contact(s) trouvé(s) chez ' + matchedAcct.name + ' :\n\n' + list;
+    }
+    return 'Aucun contact enregistré pour le compte ' + matchedAcct.name + '.';
+  }
+  /* Generic list */
+  var top5 = contacts.slice(0,5).map(function(c){
+    var acct = accounts.find(function(a){return a.id===c.account});
+    return '• ' + c.name + ' — ' + (c.role||'') + ' (' + (acct?acct.name:'—') + ')';
+  }).join('\n');
+  return '✅ Action réalisée : Voici les 5 premiers contacts du CRM :\n\n' + top5 + '\n\nPrécisez un nom de compte pour filtrer.';
+}
+
+function acBuildOppResponse(msg) {
+  var D = window.DATA || {};
+  var opps = D.opportunities || [];
+  var accounts = D.accounts || [];
+
+  /* Check for threshold */
+  var threshold = 0;
+  var threshMatch = msg.match(/(\d+)\s*M/i);
+  if (threshMatch) threshold = parseInt(threshMatch[1]) * 1000000;
+  if (!threshold) threshold = 20000000;
+
+  var filtered = opps.filter(function(o){ return o.amount >= threshold; });
+  filtered.sort(function(a,b){ return b.amount - a.amount; });
+
+  if (filtered.length === 0) return 'Aucune opportunité trouvée au-dessus de ' + fmtAmount(threshold) + '.';
+
+  var list = filtered.map(function(o) {
+    var acct = accounts.find(function(a){return a.id===o.account});
+    return '• ' + o.name + ' — ' + fmtAmount(o.amount) + ' (' + o.stage + ', ' + (o.prob||0) + '%) — ' + (acct?acct.name:'—');
+  }).join('\n');
+
+  return '✅ Action réalisée : ' + filtered.length + ' opportunité(s) ≥ ' + fmtAmount(threshold) + ' :\n\n' + list;
+}
+
+/* ── Main send function (scripted) ─────────────────────────── */
 function acSendMessage() {
   var input = document.getElementById('ac-chat-input');
   var msg = input.value.trim();
@@ -363,29 +541,15 @@ function acSendMessage() {
   AC_CHAT_LOADING = true;
   acRenderChat(document.getElementById('ac-content'));
 
-  var apiMessages = AC_CHAT_MESSAGES.map(function(m) {
-    return { role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content };
-  });
-
-  fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      system: acBuildSystemPrompt(),
-      messages: apiMessages
-    })
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    var text = (data.content || []).map(function(c){return c.text||''}).join('');
-    if (!text) text = 'Désolé, une erreur s\'est produite.';
-    AC_CHAT_MESSAGES.push({ role:'assistant', content:text });
+  /* Simulate thinking delay */
+  var delay = 800 + Math.random() * 1200;
+  setTimeout(function() {
+    var response = acMatchScenario(msg);
+    AC_CHAT_MESSAGES.push({ role:'assistant', content:response });
 
     /* Detect escalation */
-    if (text.indexOf('[ESCALADE]') >= 0) {
-      var match = text.match(/\[ESCALADE\]\s*(.+?)(?:\n|$)/);
+    if (response.indexOf('[ESCALADE]') >= 0) {
+      var match = response.match(/\[ESCALADE\]\s*(.+?)(?:\n|$)/);
       var escText = match ? match[1].trim() : msg.slice(0,60);
       AC_NOTIFICATIONS.unshift({ id:'n'+Date.now(), text:escText, time:'Just now', status:'pending', resolution:'' });
       acShowToast('New Escalation', escText, '#ef4444');
@@ -393,12 +557,48 @@ function acSendMessage() {
     }
     AC_CHAT_LOADING = false;
     acRenderChat(document.getElementById('ac-content'));
-  })
-  .catch(function(err) {
-    AC_CHAT_MESSAGES.push({ role:'assistant', content:'⚠️ Erreur de connexion à l\'API. Vérifiez votre configuration.' });
-    AC_CHAT_LOADING = false;
-    acRenderChat(document.getElementById('ac-content'));
+  }, delay);
+}
+
+function acMatchScenario(msg) {
+  var lower = msg.toLowerCase();
+  var bestMatch = null;
+  var bestScore = 0;
+
+  AC_SCENARIOS.forEach(function(sc) {
+    var score = 0;
+    sc.keywords.forEach(function(kw) {
+      if (lower.indexOf(kw.toLowerCase()) >= 0) score++;
+    });
+    if (score > bestScore) { bestScore = score; bestMatch = sc; }
   });
+
+  if (!bestMatch || bestScore === 0) {
+    return 'Je comprends votre demande, mais je n\'ai pas pu identifier une action précise dans mon catalogue.\n\nJe peux vous aider avec :\n• Qualité des données (doublons, champs vides, formats)\n• Gestion utilisateurs (mot de passe, permissions, comptes)\n• Administration CRM (dashboards, rapports, champs custom)\n• Recherche de données (comptes, contacts, opportunités)\n• Sécurité (audit connexions, RGPD, tokens API)\n\nPouvez-vous reformuler votre demande ?';
+  }
+
+  /* Find the action's current delegation level */
+  var action = AC_ACTIONS.find(function(a){ return a.id === bestMatch.actionId; });
+  var level = action ? action.level : 'delegated';
+
+  /* Dynamic responses for data retrieval */
+  if (bestMatch.actionId === 'dr1' && (level === 'delegated' || level === 'supervised')) {
+    var contactResp = acBuildContactResponse(msg);
+    if (level === 'supervised') {
+      return '🔄 Action préparée — soumise à validation admin :\n\nRecherche de contacts effectuée. Résultats en attente de validation pour affichage.';
+    }
+    return contactResp;
+  }
+  if (bestMatch.actionId === 'dr2' && (level === 'delegated' || level === 'supervised')) {
+    var oppResp = acBuildOppResponse(msg);
+    if (level === 'supervised') {
+      return '🔄 Action préparée — soumise à validation admin :\n\nRecherche d\'opportunités effectuée. Résultats en attente de validation.';
+    }
+    return oppResp;
+  }
+
+  /* Return the scripted response for the current delegation level */
+  return bestMatch.responses[level] || 'Je traite votre demande...';
 }
 
 /* ═══════════════════════════════════════════════════════════════
