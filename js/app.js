@@ -31,10 +31,12 @@ document.addEventListener('DOMContentLoaded', function() {
     /* 3. Render the app */
     fbShowStatus('Connected to Firestore');
     renderCurrentPage();
+    renderFloatingChat();
   }).catch(function(err) {
     /* 4. Fallback: use mock data if Firestore fails */
     console.error('[App] Firestore error, using mock data:', err);
     fbShowStatus('Offline — using local data', true);
     renderCurrentPage();
+    renderFloatingChat();
   });
 });

@@ -1,11 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════
-   agent-console.js — Agentic Operations Center
-   3 sub-pages: Policy Config · L1 Support Chat · Monitoring
+   agent-console.js — Agentic Operations Center V2
+   2 tabs: Monitoring (default) · Policy Config
+   + Floating L1 Support Chat Bubble (available on all pages)
    Vanilla JS — MickaCRM v4 design system — Accent #7c3aed
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── State ─────────────────────────────────────────────────── */
-var AC_TAB = 'config';
+var AC_TAB = 'dashboard';
 var AC_ACTIONS = [];
 var AC_NOTIFICATIONS = [
   { id:'n1', text:'GDPR deletion request — Razel-Bec', time:'2 min ago', status:'pending', resolution:'' },
@@ -128,7 +129,7 @@ function acRenderBanner() {
   var existing = document.getElementById('ac-banner');
   if (existing) existing.remove();
   var p = _acPending();
-  if (p === 0 || AC_TAB !== 'config' && AC_TAB !== 'chat') return;
+  if (p === 0 || (currentPage === 'agentConsole' && AC_TAB === 'dashboard')) return;
   var banner = document.createElement('div');
   banner.id = 'ac-banner';
   banner.className = 'ac-banner';
@@ -157,9 +158,8 @@ function renderAgentConsole(container) {
 
   var p = _acPending();
   var tabs = [
-    {key:'config',label:'Policy Config',icon:'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z'},
-    {key:'chat',label:'L1 Support',icon:'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'},
-    {key:'dashboard',label:'Monitoring',icon:'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'}
+    {key:'dashboard',label:'Monitoring',icon:'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'},
+    {key:'config',label:'Policy Config',icon:'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z'}
   ];
 
   var tabsHtml = tabs.map(function(t) {
@@ -185,9 +185,8 @@ function renderAgentConsole(container) {
 
   var content = document.getElementById('ac-content');
   switch (AC_TAB) {
-    case 'config': acRenderConfig(content); break;
-    case 'chat': acRenderChat(content); break;
     case 'dashboard': acRenderDashboard(content); break;
+    case 'config': acRenderConfig(content); break;
   }
 }
 
@@ -259,6 +258,9 @@ function acFilterConfig(q) {
    ═══════════════════════════════════════════════════════════════ */
 
 function acRenderChat(el) {
+  if (!el) el = document.getElementById('ac-float-body');
+  if (!el) return;
+
   var suggestions = [
     'Qui sont les contacts chez Bouygues ?',
     'Résume-moi le pipeline et les KPIs',
@@ -290,33 +292,33 @@ function acRenderChat(el) {
       '<div class="ac-typing"><span></span><span></span><span></span></div></div>';
   }
 
-  var suggestHtml = '<div class="ac-suggestions">' + suggestions.map(function(s) {
-    return '<button class="ac-suggest-btn" onclick="document.getElementById(\'ac-chat-input\').value=this.textContent;document.getElementById(\'ac-chat-input\').focus()">'+s+'</button>';
+  var suggestHtml = '<div class="ac-suggestions" style="padding:6px 12px;margin-bottom:0">' + suggestions.slice(0,4).map(function(s) {
+    return '<button class="ac-suggest-btn" style="font-size:11px;padding:5px 10px" onclick="document.getElementById(\'ac-chat-input\').value=this.textContent;document.getElementById(\'ac-chat-input\').focus()">'+s+'</button>';
   }).join('') + '</div>';
 
   el.innerHTML =
-    '<div class="ac-chat-wrap">' +
-      '<div class="ac-chat-messages" id="ac-chat-scroll">' + msgsHtml + '<div id="ac-chat-bottom"></div></div>' +
-      suggestHtml +
-      '<div class="ac-chat-input-wrap">' +
-        '<textarea id="ac-chat-input" class="ac-chat-input" placeholder="Décrivez votre demande…" rows="1"></textarea>' +
-        '<button class="ac-send-btn" id="ac-send-btn" onclick="acSendMessage()">' +
-          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>' +
-        '</button>' +
-      '</div>' +
+    '<div class="ac-float-messages" id="ac-chat-scroll">' + msgsHtml + '<div id="ac-chat-bottom"></div></div>' +
+    suggestHtml +
+    '<div class="ac-chat-input-wrap" style="margin:0 10px 10px;border-radius:12px">' +
+      '<textarea id="ac-chat-input" class="ac-chat-input" placeholder="Décrivez votre demande…" rows="1"></textarea>' +
+      '<button class="ac-send-btn" id="ac-send-btn" onclick="acSendMessage()">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>' +
+      '</button>' +
     '</div>';
 
   var input = document.getElementById('ac-chat-input');
-  input.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); acSendMessage(); }
-  });
-  input.addEventListener('input', function() {
-    var btn = document.getElementById('ac-send-btn');
-    btn.classList.toggle('active', input.value.trim().length > 0);
-  });
+  if (input) {
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); acSendMessage(); }
+    });
+    input.addEventListener('input', function() {
+      var btn = document.getElementById('ac-send-btn');
+      btn.classList.toggle('active', input.value.trim().length > 0);
+    });
+  }
 
   var scroll = document.getElementById('ac-chat-scroll');
-  scroll.scrollTop = scroll.scrollHeight;
+  if (scroll) scroll.scrollTop = scroll.scrollHeight;
 }
 
 function acFormatMsg(text, isUser) {
@@ -714,7 +716,7 @@ function acSendMessage() {
 
   AC_CHAT_MESSAGES.push({ role:'user', content:msg });
   AC_CHAT_LOADING = true;
-  acRenderChat(document.getElementById('ac-content'));
+  acRenderChat(document.getElementById('ac-float-body'));
 
   /* Simulate thinking delay */
   var delay = 800 + Math.random() * 1200;
@@ -729,9 +731,12 @@ function acSendMessage() {
       AC_NOTIFICATIONS.unshift({ id:'n'+Date.now(), text:escText, time:'Just now', status:'pending', resolution:'' });
       acShowToast('New Escalation', escText, '#ef4444');
       acRenderBanner();
+      /* Re-render monitoring if visible */
+      var acContent = document.getElementById('ac-content');
+      if (acContent && AC_TAB === 'dashboard') acRenderDashboard(acContent);
     }
     AC_CHAT_LOADING = false;
-    acRenderChat(document.getElementById('ac-content'));
+    acRenderChat(document.getElementById('ac-float-body'));
   }, delay);
 }
 
@@ -1124,6 +1129,95 @@ function injectACStyles() {
   .ac-chat-wrap { height:calc(100vh - 260px) }\
   .ac-esc-actions { flex-wrap:wrap }\
   .ac-esc-btn { min-width:calc(50% - 3px) }\
+}\
+';
+  document.head.appendChild(s);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FLOATING CHAT BUBBLE — L1 Support (available on all pages)
+   ═══════════════════════════════════════════════════════════════ */
+var AC_FLOAT_OPEN = false;
+
+function renderFloatingChat() {
+  injectACStyles();
+  injectFloatStyles();
+  /* Remove previous if any */
+  var old = document.getElementById('ac-float-root');
+  if (old) old.remove();
+
+  var root = document.createElement('div');
+  root.id = 'ac-float-root';
+
+  root.innerHTML =
+    '<button class="ac-float-btn" id="ac-float-toggle" title="L1 Support Agent">' +
+      _acSvg('M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z', 22, '#fff', 1.8) +
+    '</button>' +
+    '<div class="ac-float-badge" id="ac-float-badge">1</div>' +
+    '<div class="ac-float-window' + (AC_FLOAT_OPEN ? ' open' : '') + '" id="ac-float-window">' +
+      '<div class="ac-float-header">' +
+        '<div class="ac-float-header-icon">' + _acSvg('M13 10V3L4 14h7v7l9-11h-7z', 16, '#fff', 2) + '</div>' +
+        '<div class="ac-float-header-info"><div class="ac-float-header-title">L1 Support Agent</div>' +
+        '<div class="ac-float-header-status"><span class="ac-float-status-dot"></span>Online — Policy-aware</div></div>' +
+        '<button class="ac-float-minimize" id="ac-float-close">' + _acSvg('M5 12h14', 14, '#fff', 2) + '</button>' +
+      '</div>' +
+      '<div class="ac-float-body" id="ac-float-body"></div>' +
+    '</div>';
+
+  document.body.appendChild(root);
+
+  document.getElementById('ac-float-toggle').addEventListener('click', function() {
+    AC_FLOAT_OPEN = !AC_FLOAT_OPEN;
+    var win = document.getElementById('ac-float-window');
+    var badge = document.getElementById('ac-float-badge');
+    if (AC_FLOAT_OPEN) {
+      win.classList.add('open');
+      if (badge) badge.style.display = 'none';
+      acRenderChat(document.getElementById('ac-float-body'));
+    } else {
+      win.classList.remove('open');
+    }
+  });
+  document.getElementById('ac-float-close').addEventListener('click', function() {
+    AC_FLOAT_OPEN = false;
+    document.getElementById('ac-float-window').classList.remove('open');
+  });
+
+  if (AC_FLOAT_OPEN) {
+    document.getElementById('ac-float-badge').style.display = 'none';
+    acRenderChat(document.getElementById('ac-float-body'));
+  }
+}
+
+function injectFloatStyles() {
+  if (document.getElementById('ac-float-styles')) return;
+  var s = document.createElement('style');
+  s.id = 'ac-float-styles';
+  s.textContent = '\
+#ac-float-root { position:fixed; bottom:20px; right:20px; z-index:9990 }\
+.ac-float-btn { width:54px; height:54px; border-radius:50%; border:none; background:linear-gradient(135deg,#7c3aed,#6d28d9); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 20px rgba(124,58,237,0.4),0 2px 8px rgba(0,0,0,0.15); transition:all .3s cubic-bezier(.34,1.56,.64,1); position:relative; z-index:2 }\
+.ac-float-btn:hover { transform:scale(1.08); box-shadow:0 6px 28px rgba(124,58,237,0.5),0 3px 10px rgba(0,0,0,0.18) }\
+.ac-float-badge { position:absolute; bottom:44px; right:-2px; z-index:3; width:18px; height:18px; border-radius:50%; background:#ef4444; color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(239,68,68,0.4); animation:acPulseBadge 2s infinite }\
+@keyframes acPulseBadge { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }\
+.ac-float-window { position:absolute; bottom:66px; right:0; width:400px; height:540px; border-radius:16px; background:var(--card,#fff); box-shadow:0 20px 60px rgba(0,0,0,0.15),0 4px 20px rgba(124,58,237,0.1); display:flex; flex-direction:column; overflow:hidden; opacity:0; transform:translateY(20px) scale(.95); pointer-events:none; transition:all .3s cubic-bezier(.34,1.56,.64,1); border:1px solid rgba(124,58,237,0.1) }\
+.ac-float-window.open { opacity:1; transform:translateY(0) scale(1); pointer-events:auto }\
+.ac-float-header { background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%); padding:12px 14px; color:#fff; display:flex; align-items:center; gap:10px; flex-shrink:0 }\
+.ac-float-header-icon { width:32px; height:32px; border-radius:9px; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; flex-shrink:0 }\
+.ac-float-header-info { flex:1 }\
+.ac-float-header-title { font-weight:700; font-size:13.5px; letter-spacing:-0.2px }\
+.ac-float-header-status { font-size:10.5px; opacity:0.8; display:flex; align-items:center; gap:4px }\
+.ac-float-status-dot { width:6px; height:6px; border-radius:50%; background:#4ade80; display:inline-block }\
+.ac-float-minimize { background:rgba(255,255,255,0.15); border:none; color:#fff; cursor:pointer; border-radius:7px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; transition:background .15s }\
+.ac-float-minimize:hover { background:rgba(255,255,255,0.25) }\
+.ac-float-body { flex:1; display:flex; flex-direction:column; overflow:hidden; background:var(--bg,#f0f2f5) }\
+.ac-float-messages { flex:1; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:8px }\
+.ac-float-body .ac-bubble { max-width:85%; font-size:12.5px; padding:9px 13px }\
+.ac-float-body .ac-suggestions { padding:6px 12px; gap:6px; margin-bottom:0; border-top:1px solid var(--border,#e8eaed); background:var(--bg,#f0f2f5) }\
+.ac-float-body .ac-suggest-btn { font-size:11px; padding:5px 10px }\
+.ac-float-body .ac-chat-input-wrap { margin:0 10px 10px; border-radius:12px }\
+@media(max-width:640px) {\
+  #ac-float-root { bottom:12px; right:12px }\
+  .ac-float-window { width:calc(100vw - 24px); height:calc(100vh - 120px); right:-4px; bottom:62px; border-radius:14px }\
 }\
 ';
   document.head.appendChild(s);
