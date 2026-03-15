@@ -1691,9 +1691,10 @@ var EDIT_FIELDS = {
 };
 
 /* ── Inject modal styles (once) ── */
-function injectModalStyles() {
-  if (document.getElementById('crm-modal-css')) return;
-  var s = document.createElement('style'); s.id = 'crm-modal-css';
+function injectEditModalStyles() {
+  /* Record edit/delete modal CSS (crm-modal-backdrop) */
+  if (document.getElementById('crm-edit-modal-css')) return;
+  var s = document.createElement('style'); s.id = 'crm-edit-modal-css';
   s.textContent = '\
 .crm-modal-backdrop{position:fixed;inset:0;z-index:10000;background:rgba(15,23,42,.45);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s ease}\
 .crm-modal-backdrop.crm-modal-show{opacity:1}\
@@ -1742,7 +1743,7 @@ select.crm-field-input{appearance:auto;cursor:pointer}\
    saves via fbUpdate + updates DATA + re-renders page
    ─────────────────────────────────────────────────── */
 function openEditModal(objKey, recId) {
-  injectModalStyles();
+  injectEditModalStyles();
   var records = objKey === 'users' ? (typeof UM_USERS !== 'undefined' ? UM_USERS : []) : (window.DATA[objKey] || []);
   var rec = records.find(function(r) { return r.id === recId; });
   if (!rec) { console.error('[Edit] Record not found:', objKey, recId); return; }
@@ -1864,7 +1865,7 @@ function openEditModal(objKey, recId) {
    Confirms, then removes from Firestore + DATA + navigates to list
    ─────────────────────────────────────────────────── */
 function openDeleteModal(objKey, recId) {
-  injectModalStyles();
+  injectEditModalStyles();
   var records = objKey === 'users' ? (typeof UM_USERS !== 'undefined' ? UM_USERS : []) : (window.DATA[objKey] || []);
   var rec = records.find(function(r) { return r.id === recId; });
   if (!rec) { console.error('[Delete] Record not found:', objKey, recId); return; }
