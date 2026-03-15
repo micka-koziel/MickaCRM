@@ -261,11 +261,13 @@ function acFilterConfig(q) {
 function acRenderChat(el) {
   var suggestions = [
     'Qui sont les contacts chez Bouygues ?',
-    'Montre-moi les opportunités > 20M€',
+    'Résume-moi le pipeline et les KPIs',
     'Mon mot de passe ne fonctionne plus',
     'Analyse la qualité des données : champs vides ?',
     'Crée un dashboard du pipeline par stage',
-    'Désactive le compte d\'Antoine Mercier'
+    'Liste-moi les utilisateurs actifs',
+    'Désactive le compte d\'Antoine Mercier',
+    'Crée un nouvel utilisateur'
   ];
 
   var msgsHtml = AC_CHAT_MESSAGES.map(function(m) {
@@ -288,9 +290,9 @@ function acRenderChat(el) {
       '<div class="ac-typing"><span></span><span></span><span></span></div></div>';
   }
 
-  var suggestHtml = AC_CHAT_MESSAGES.length <= 1 ? '<div class="ac-suggestions">' + suggestions.map(function(s) {
+  var suggestHtml = '<div class="ac-suggestions">' + suggestions.map(function(s) {
     return '<button class="ac-suggest-btn" onclick="document.getElementById(\'ac-chat-input\').value=this.textContent;document.getElementById(\'ac-chat-input\').focus()">'+s+'</button>';
-  }).join('') + '</div>' : '';
+  }).join('') + '</div>';
 
   el.innerHTML =
     '<div class="ac-chat-wrap">' +
@@ -473,6 +475,46 @@ var AC_SCENARIOS = [
       delegated:'✅ Action réalisée : Token API révoqué. Toutes les sessions associées ont été invalidées.',
       supervised:'🔄 Action préparée — soumise à validation admin :\n\nToken API identifié pour révocation. Invalidation après confirmation admin.',
       escalated:'⚠️ [ESCALADE] Révocation de token API\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : La révocation de tokens API peut interrompre des intégrations critiques. Un administrateur doit valider l\'action.'}
+  },
+  /* ── Data Retrieval — Pipeline / KPIs ── */
+  { keywords:['pipeline','résumé','summary','kpi','kpis','chiffres','combien','stats','statistiques','vue d\'ensemble','overview'],
+    actionId:'dr3',
+    responses:{
+      delegated:null, /* dynamic — built at runtime */
+      supervised:null,
+      escalated:'⚠️ [ESCALADE] Résumé pipeline / KPIs\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : L\'accès aux KPIs consolidés est restreint aux administrateurs.'}
+  },
+  /* ── User Management — List users ── */
+  { keywords:['utilisateur','utilisateurs','users','user','profil','profils','actif','actifs','liste des','qui utilise','combien d\'utilisateurs'],
+    actionId:'um3',
+    responses:{
+      delegated:null, /* dynamic — built at runtime */
+      supervised:null,
+      escalated:'⚠️ [ESCALADE] Liste des utilisateurs\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : L\'accès à la liste des utilisateurs et profils est réservé aux administrateurs.'}
+  },
+  /* ── User Management — Create user (explicit) ── */
+  { keywords:['créer un utilisateur','créer utilisateur','créer un user','ajouter un utilisateur','ajouter utilisateur','add user','create user','nouveau compte utilisateur'],
+    actionId:'um4',
+    responses:{
+      delegated:'✅ Action réalisée : Nouveau compte utilisateur créé.\n\nDétails du compte :\n• Profil : Sales Rep (standard)\n• Accès : Comptes, Contacts, Opportunités, Projets, Leads, Activities (lecture/écriture)\n• Restrictions : Pas d\'accès aux paramètres d\'administration, pas d\'export en masse\n• Tableau de bord : Dashboard commercial par défaut assigné\n\nUn email d\'activation a été envoyé. L\'utilisateur devra définir son mot de passe à la première connexion.\n\nSouhaitez-vous modifier le profil ou les permissions ?',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\nNouveau compte utilisateur préparé :\n• Profil proposé : Sales Rep (standard)\n• Accès : Comptes, Contacts, Opportunités, Projets (lecture/écriture)\n\nLe compte sera activé après validation d\'un administrateur. L\'email d\'activation sera envoyé à ce moment-là.',
+      escalated:'⚠️ [ESCALADE] Création de compte utilisateur\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : La création de comptes utilisateur nécessite la validation d\'un administrateur pour définir les droits d\'accès appropriés.'}
+  },
+  /* ── CRM Administration — Add field (explicit phrasing) ── */
+  { keywords:['ajouter un champ','ajouter champ','créer un champ','créer champ','add a field','new field','rajouter'],
+    actionId:'ca5',
+    responses:{
+      delegated:'✅ Action réalisée : Nouveau champ ajouté avec succès.\n\nDétails :\n• Objet cible : détecté automatiquement selon votre contexte\n• Type : Texte (modifiable)\n• Visibilité : Tous les profils\n• Position : Ajouté en fin de section "Informations complémentaires"\n\nLe champ est immédiatement disponible sur les fiches. Précisez-moi le nom de l\'objet et du champ si vous souhaitez que j\'ajuste.',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\nDemande de création de champ enregistrée. Merci de préciser :\n• Sur quel objet ? (Account, Contact, Opportunity, Project…)\n• Nom du champ ?\n• Type ? (Texte, Nombre, Date, Liste de choix…)\n\nLe champ sera créé après validation admin.',
+      escalated:'⚠️ [ESCALADE] Ajout de champ sur un objet\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : La modification du schéma de données (ajout de champ) impacte tous les utilisateurs et nécessite une validation pour assurer la cohérence du modèle de données.'}
+  },
+  /* ── CRM Administration — Workflow / automation ── */
+  { keywords:['workflow','automation','automatisation','règle','rule','notification auto','alerte auto','trigger','déclencheur'],
+    actionId:'ca6',
+    responses:{
+      delegated:'✅ Action réalisée : Règle d\'automatisation configurée.\n\nDétails :\n• Déclencheur : Mise à jour d\'un enregistrement\n• Condition : Changement de stage sur Opportunity\n• Action : Notification email au propriétaire du compte + mise à jour du champ "Last Stage Change" avec la date du jour\n\nLa règle est active immédiatement. Souhaitez-vous ajouter d\'autres conditions ou actions ?',
+      supervised:'🔄 Action préparée — soumise à validation admin :\n\nRègle d\'automatisation préparée. Détails techniques à valider :\n• Déclencheur, conditions et actions définis\n• Impact estimé : s\'appliquera à toutes les opportunités futures\n\nActivation après validation admin.',
+      escalated:'⚠️ [ESCALADE] Configuration de workflow / automation\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : Les règles d\'automatisation peuvent impacter tous les utilisateurs et les processus existants. Validation admin requise.'}
   }
 ];
 
@@ -529,6 +571,92 @@ function acBuildOppResponse(msg) {
   }).join('\n');
 
   return '✅ Action réalisée : ' + filtered.length + ' opportunité(s) ≥ ' + fmtAmount(threshold) + ' :\n\n' + list;
+}
+
+function acBuildPipelineResponse() {
+  var D = window.DATA || {};
+  var opps = D.opportunities || [];
+  var accounts = D.accounts || [];
+  var projects = D.projects || [];
+  var leads = D.leads || [];
+  var contacts = D.contacts || [];
+
+  var totalPipe = opps.reduce(function(s,o){return s+(o.amount||0)},0);
+  var wonOpps = opps.filter(function(o){return o.stage==='closed_won'});
+  var wonAmt = wonOpps.reduce(function(s,o){return s+(o.amount||0)},0);
+  var avgProb = Math.round(opps.reduce(function(s,o){return s+(o.prob||0)},0) / (opps.length||1));
+
+  /* Stage distribution */
+  var stages = {};
+  opps.forEach(function(o) {
+    if (!stages[o.stage]) stages[o.stage] = {count:0, amount:0};
+    stages[o.stage].count++;
+    stages[o.stage].amount += (o.amount||0);
+  });
+  var stageLines = Object.keys(stages).map(function(s) {
+    return '  • ' + s.charAt(0).toUpperCase()+s.slice(1).replace('_',' ') + ' : ' + stages[s].count + ' opp(s), ' + fmtAmount(stages[s].amount);
+  }).join('\n');
+
+  /* Top 3 opps */
+  var sorted = opps.slice().sort(function(a,b){return (b.amount||0)-(a.amount||0)});
+  var top3 = sorted.slice(0,3).map(function(o) {
+    var acct = accounts.find(function(a){return a.id===o.account});
+    return '  • ' + o.name + ' — ' + fmtAmount(o.amount) + ' (' + o.stage + ') — ' + (acct?acct.name:'');
+  }).join('\n');
+
+  return '✅ Action réalisée : Résumé du pipeline CRM\n\n' +
+    '📊 KPIs globaux :\n' +
+    '• Pipeline total : ' + fmtAmount(totalPipe) + ' (' + opps.length + ' opportunités)\n' +
+    '• Closed Won : ' + fmtAmount(wonAmt) + ' (' + wonOpps.length + ' deals)\n' +
+    '• Probabilité moyenne : ' + avgProb + '%\n' +
+    '• Comptes actifs : ' + accounts.filter(function(a){return a.status==='Active'}).length + '/' + accounts.length + '\n' +
+    '• Projets en cours : ' + projects.length + '\n' +
+    '• Leads ouverts : ' + leads.length + '\n' +
+    '• Contacts : ' + contacts.length + '\n\n' +
+    '📈 Répartition par stage :\n' + stageLines + '\n\n' +
+    '🏆 Top 3 opportunités :\n' + top3;
+}
+
+function acBuildUsersResponse() {
+  var D = window.DATA || {};
+  var contacts = D.contacts || [];
+  var accounts = D.accounts || [];
+
+  /* Simulate users based on contacts (for demo) */
+  var users = [
+    {name:'Jean-Pierre Martin', profile:'Admin', status:'Active', lastLogin:'Aujourd\'hui, 09:12', sessions:127},
+    {name:'Sophie Durand', profile:'Sales Rep', status:'Active', lastLogin:'Aujourd\'hui, 08:45', sessions:98},
+    {name:'Marc Lefèvre', profile:'Sales Rep', status:'Active', lastLogin:'Hier, 17:30', sessions:84},
+    {name:'Isabelle Moreau', profile:'Sales Manager', status:'Active', lastLogin:'Aujourd\'hui, 10:05', sessions:72},
+    {name:'Thomas Girard', profile:'Sales Rep', status:'Active', lastLogin:'Hier, 14:22', sessions:56},
+    {name:'Claire Rousseau', profile:'Sales Rep', status:'Active', lastLogin:'12/03, 11:00', sessions:43},
+    {name:'Antoine Mercier', profile:'Field Rep', status:'Active', lastLogin:'10/03, 16:45', sessions:31},
+    {name:'Nathalie Petit', profile:'Sales Rep', status:'Inactive', lastLogin:'28/02, 09:10', sessions:12},
+    {name:'Christophe Martinez', profile:'Sales Manager', status:'Active', lastLogin:'Aujourd\'hui, 07:58', sessions:91},
+    {name:'Émilie Faure', profile:'Sales Rep', status:'Active', lastLogin:'Hier, 12:15', sessions:67}
+  ];
+
+  var active = users.filter(function(u){return u.status==='Active'}).length;
+  var inactive = users.filter(function(u){return u.status==='Inactive'}).length;
+
+  var profileCount = {};
+  users.forEach(function(u) {
+    if (!profileCount[u.profile]) profileCount[u.profile] = 0;
+    profileCount[u.profile]++;
+  });
+  var profileLines = Object.keys(profileCount).map(function(p){
+    return '  • ' + p + ' : ' + profileCount[p];
+  }).join('\n');
+
+  var userList = users.map(function(u) {
+    var statusIcon = u.status === 'Active' ? '🟢' : '🔴';
+    return '• ' + statusIcon + ' ' + u.name + ' — ' + u.profile + '\n  Dernière connexion : ' + u.lastLogin + ' (' + u.sessions + ' sessions)';
+  }).join('\n');
+
+  return '✅ Action réalisée : Liste des utilisateurs CRM\n\n' +
+    '📋 Résumé : ' + users.length + ' utilisateurs (' + active + ' actifs, ' + inactive + ' inactif)\n\n' +
+    'Par profil :\n' + profileLines + '\n\n' +
+    'Détail :\n' + userList;
 }
 
 /* ── Main send function (scripted) ─────────────────────────── */
@@ -595,6 +723,18 @@ function acMatchScenario(msg) {
       return '🔄 Action préparée — soumise à validation admin :\n\nRecherche d\'opportunités effectuée. Résultats en attente de validation.';
     }
     return oppResp;
+  }
+  if (bestMatch.actionId === 'dr3' && (level === 'delegated' || level === 'supervised')) {
+    if (level === 'supervised') {
+      return '🔄 Action préparée — soumise à validation admin :\n\nRésumé pipeline et KPIs générés. En attente de validation pour affichage.';
+    }
+    return acBuildPipelineResponse();
+  }
+  if (bestMatch.actionId === 'um3' && (level === 'delegated' || level === 'supervised')) {
+    if (level === 'supervised') {
+      return '🔄 Action préparée — soumise à validation admin :\n\nListe des utilisateurs et profils générée. En attente de validation pour affichage.';
+    }
+    return acBuildUsersResponse();
   }
 
   /* Return the scripted response for the current delegation level */
