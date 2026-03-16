@@ -455,7 +455,7 @@ function atFormatMsg(text, isUser) {
 
 function atGetSuggestions(agentId) {
   var map = {
-    nora: ['Fusionner les doublons comptes', 'Comptes sans contact ?', 'Audit champs vides', 'Opps périmées à relancer'],
+    nora: ['Fusionner les doublons comptes', 'Comptes sans contact ?'],
     hugo: ['How do I use the CRM?', 'Explain opportunities', 'Navigate to calendar', 'Create a custom field'],
     karim: ['Audit login history', 'RGPD deletion request', 'Check user permissions', 'Revoke API token'],
     camille: ['Top opportunities by amount', 'Pipeline by stage', 'Contacts at Bouygues', 'Lead conversion rate'],
