@@ -9,10 +9,10 @@
 var AT_AGENTS = [
   {
     id:'nora', name:'Nora Leclerc', role:'Data Analyst', title:'Chief Data Officer',
-    specialty:'Data & Analytics', color:'#0ea5e9', accent:'#0284c7',
-    greeting:'Bonjour ! Je suis Nora, votre experte Data. Quel indicateur souhaitez-vous analyser ?',
-    skills:['Pipeline Analytics','KPI Monitoring','Data Quality','Predictive Insights'],
-    keywords:['data','donnée','kpi','pipeline','chiffre','stats','statistiques','analyse','dashboard','rapport','report','résumé','summary','overview','combien','doublon','duplicate','merge','champ','vide','missing','incomplet','format','adresse','phone','standardis','enrichi','enrich','supprimer','archiver','delete','obsolete','export','csv','nettoyage'],
+    specialty:'Data Quality', color:'#0ea5e9', accent:'#0284c7',
+    greeting:'Bonjour Mickaël ! Je suis Nora, votre experte Data Quality. Je veille à ce que votre CRM reste propre, complet et fiable. Dites-moi ce dont vous avez besoin !',
+    skills:['Duplicate Detection','Missing Fields Audit','Data Cleansing','Integrity Checks'],
+    keywords:['data','donnée','kpi','qualité','quality','chiffre','doublon','duplicate','merge','fusionner','champ','vide','missing','incomplet','format','adresse','phone','standardis','enrichi','enrich','supprimer','archiver','delete','obsolete','export','csv','nettoyage','orphelin','périmé','expired','audit','manquant','correction','nettoyer'],
     stats:{resolved:847,rating:4.9,avgTime:'2m 14s'}
   },
   {
@@ -408,7 +408,7 @@ function atRenderChat(el) {
   var suggestions = atGetSuggestions(a.id);
   html += '<div class="at-suggestions">';
   suggestions.forEach(function(s) {
-    html += '<button class="at-suggest" onclick="document.getElementById(\'at-chat-input\').value=this.textContent;document.getElementById(\'at-chat-input\').focus()">'+s+'</button>';
+    html += '<button class="at-suggest" onclick="atAutoSend(this.textContent)">'+s+'</button>';
   });
   html += '</div>';
 
@@ -450,7 +450,7 @@ function atFormatMsg(text, isUser) {
 
 function atGetSuggestions(agentId) {
   var map = {
-    nora: ['Pipeline KPIs overview', 'Detect duplicate accounts', 'Missing fields audit', 'Export data to CSV'],
+    nora: ['Fusionner les doublons comptes', 'Comptes sans contact ?', 'Audit champs vides', 'Opps périmées à relancer'],
     hugo: ['How do I use the CRM?', 'Explain opportunities', 'Navigate to calendar', 'Create a custom field'],
     karim: ['Audit login history', 'RGPD deletion request', 'Check user permissions', 'Revoke API token'],
     camille: ['Top opportunities by amount', 'Pipeline by stage', 'Contacts at Bouygues', 'Lead conversion rate'],
@@ -504,6 +504,14 @@ function atFinishMessage(response, agentId) {
 
   AT_LOADING = false;
   atRenderChat(document.getElementById('at-window-content'));
+}
+
+/* ── Auto-send: suggestion click sends immediately ────── */
+function atAutoSend(text) {
+  if (!text || AT_LOADING || !AT_ACTIVE_AGENT) return;
+  var input = document.getElementById('at-chat-input');
+  if (input) input.value = text;
+  atSendMessage();
 }
 
 /* Fallback local response if agent-console not loaded */

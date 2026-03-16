@@ -469,7 +469,7 @@ function acRenderChat(el) {
   }
 
   var suggestHtml = '<div class="ac-suggestions" style="padding:6px 12px;margin-bottom:0">' + suggestions.slice(0,4).map(function(s) {
-    return '<button class="ac-suggest-btn" style="font-size:11px;padding:5px 10px" onclick="document.getElementById(\'ac-chat-input\').value=this.textContent;document.getElementById(\'ac-chat-input\').focus()">'+s+'</button>';
+    return '<button class="ac-suggest-btn" style="font-size:11px;padding:5px 10px" onclick="document.getElementById(\'ac-chat-input\').value=this.textContent;acSendMessage()">'+s+'</button>';
   }).join('') + '</div>';
 
   el.innerHTML =
@@ -540,7 +540,12 @@ var AC_SCENARIOS = [
   {keywords:['utilisateur','utilisateurs','users','user','profil','profils','actif','actifs','liste des','qui utilise','combien d\'utilisateurs'],actionId:'um3',responses:{delegated:null,supervised:null,escalated:'⚠️ [ESCALADE] Liste des utilisateurs\nCette action nécessite une intervention admin.'}},
   {keywords:['créer un utilisateur','créer utilisateur','créer un user','ajouter un utilisateur','ajouter utilisateur','add user','create user','nouveau compte utilisateur'],actionId:'um4',responses:{delegated:'✅ Action réalisée : Nouveau compte utilisateur créé.',supervised:'🔄 Action préparée — soumise à validation admin.',escalated:'⚠️ [ESCALADE] Création de compte utilisateur\nCette action nécessite une intervention admin.'}},
   {keywords:['ajouter un champ','ajouter champ','créer un champ','créer champ','add a field','new field','rajouter'],actionId:'ca5',responses:{delegated:'✅ Action réalisée : Nouveau champ ajouté avec succès.',supervised:'🔄 Action préparée — soumise à validation admin.',escalated:'⚠️ [ESCALADE] Ajout de champ sur un objet\nCette action nécessite une intervention admin.'}},
-  {keywords:['workflow','automation','automatisation','règle','rule','notification auto','alerte auto','trigger','déclencheur'],actionId:'ca6',responses:{delegated:'✅ Action réalisée : Règle d\'automatisation configurée.',supervised:'🔄 Action préparée — soumise à validation admin.',escalated:'⚠️ [ESCALADE] Configuration de workflow / automation\nCette action nécessite une intervention admin.'}}
+  {keywords:['workflow','automation','automatisation','règle','rule','notification auto','alerte auto','trigger','déclencheur'],actionId:'ca6',responses:{delegated:'✅ Action réalisée : Règle d\'automatisation configurée.',supervised:'🔄 Action préparée — soumise à validation admin.',escalated:'⚠️ [ESCALADE] Configuration de workflow / automation\nCette action nécessite une intervention admin.'}},
+  /* ── NORA: 4 Data Quality scenarios (end-to-end mutations) ── */
+  {keywords:['doublon','duplicate','doublons','duplicates','merge','fusionner','fusion','même compte','meme compte'],actionId:'nora_merge_dupes',responses:{delegated:null,supervised:null,escalated:null}},
+  {keywords:['orphelin','orphan','0 contact','aucun contact','sans contact','pas de contact','no contact','comptes seuls','comptes isolés'],actionId:'nora_orphan_accounts',responses:{delegated:null,supervised:null,escalated:null}},
+  {keywords:['audit','champ','vide','vides','manquant','missing','incomplet','incomplete','obligatoire','required','complétude','completude','remplissage'],actionId:'nora_audit_fields',responses:{delegated:null,supervised:null,escalated:null}},
+  {keywords:['périmé','perime','expired','overdue','retard','passée','passee','close date','date dépassée','relance','stale','opp périmée','opps périmées'],actionId:'nora_expired_opps',responses:{delegated:null,supervised:null,escalated:null}}
 ];
 
 /* ── Dynamic response builders (UNCHANGED from V2) ─────── */
@@ -698,6 +703,422 @@ function acMutateResetPassword(msg) {
   return userName;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   NORA — Data Quality Agent: 4 End-to-End Scenarios
+   Tone: warm, professional, calls user "Mickaël"
+   Each scenario: real data mutations + Firestore persist + rich HTML
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── SCENARIO 1: Detect & Merge Duplicate Accounts ─────── */
+function noraMergeDuplicates() {
+  var D = window.DATA || {};
+  var accounts = D.accounts || [];
+  var contacts = D.contacts || [];
+  var opps = D.opportunities || [];
+  if (accounts.length < 2) return 'Mickaël, je n\'ai pas assez de comptes en base pour lancer une détection de doublons.';
+
+  /* Inject fake duplicates if not already present */
+  if (!accounts.find(function(a){ return a.id === 'a1_dup'; })) {
+    var dup1 = {id:'a1_dup',name:'Bouygues Constr.',industry:'General Contractor',city:'Paris',pipeline:0,opps:0,status:'Active'};
+    var dup2 = {id:'a2_dup',name:'VINCI Immo',industry:'Real Estate Developer',city:'Nanterre',pipeline:0,opps:0,status:'Active'};
+    var dup3 = {id:'a3_dup',name:'Eiffage GC',industry:'Civil Engineering',city:'Vélizy',pipeline:0,opps:0,status:'Active'};
+    accounts.push(dup1, dup2, dup3);
+  }
+
+  /* Define merge pairs */
+  var pairs = [
+    {dup:'a1_dup', master:'a1', dupName:'Bouygues Constr.', masterName:'Bouygues Construction'},
+    {dup:'a2_dup', master:'a2', dupName:'VINCI Immo', masterName:'Vinci Immobilier'},
+    {dup:'a3_dup', master:'a3', dupName:'Eiffage GC', masterName:'Eiffage Génie Civil'}
+  ];
+
+  var merged = [];
+  pairs.forEach(function(p) {
+    var dupAcct = accounts.find(function(a){ return a.id === p.dup; });
+    if (!dupAcct) return;
+
+    /* Migrate contacts from dup → master */
+    var migratedContacts = 0;
+    contacts.forEach(function(c) {
+      if (c.account === p.dup) { c.account = p.master; migratedContacts++; }
+    });
+
+    /* Migrate opportunities from dup → master */
+    var migratedOpps = 0;
+    opps.forEach(function(o) {
+      if (o.account === p.dup) { o.account = p.master; migratedOpps++; }
+    });
+
+    merged.push({dupName:p.dupName, masterName:p.masterName, contacts:migratedContacts, opps:migratedOpps});
+
+    /* Remove duplicate from array */
+    var idx = accounts.indexOf(dupAcct);
+    if (idx >= 0) accounts.splice(idx, 1);
+
+    /* Delete from Firestore */
+    if (typeof fbDelete === 'function') {
+      try { fbDelete('accounts', p.dup); } catch(e) {}
+    }
+  });
+
+  if (merged.length === 0) {
+    return 'Mickaël, bonne nouvelle ! J\'ai scanné l\'ensemble des comptes et je n\'ai détecté aucun doublon. Votre base est propre.';
+  }
+
+  /* Log activity */
+  var actId = 'act_nora_merge_' + Date.now();
+  var logAct = {
+    id: actId, type:'Task', subject:'Data Quality — ' + merged.length + ' duplicate accounts merged',
+    date: new Date().toISOString().split('T')[0], time: new Date().toTimeString().slice(0,5),
+    status:'Completed', owner:'Nora Leclerc — Agent Data Quality',
+    purpose: 'Automated duplicate detection and merge. ' + merged.length + ' duplicates removed.'
+  };
+  if (D.activities) D.activities.push(logAct);
+  if (typeof fbCreate === 'function') { try { fbCreate('activities', logAct); } catch(e) {} }
+
+  /* Build result table */
+  var tbl = '<table style="width:100%;border-collapse:collapse;font-size:11.5px;margin:10px 0;border-radius:10px;overflow:hidden"><thead><tr>';
+  ['Doublon supprimé','Fusionné vers','Contacts migrés','Opps migrées'].forEach(function(h) {
+    tbl += '<th style="text-align:left;padding:7px 10px;background:#0ea5e910;color:#0ea5e9;font-weight:600;border-bottom:1px solid #e8eaed;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px">'+h+'</th>';
+  });
+  tbl += '</tr></thead><tbody>';
+  merged.forEach(function(m,i) {
+    tbl += '<tr style="'+(i%2===1?'background:#f8f9fb':'')+'">' +
+      '<td style="padding:6px 10px;border-bottom:1px solid #f0f2f5;color:#ef4444;font-weight:500;text-decoration:line-through">'+m.dupName+'</td>' +
+      '<td style="padding:6px 10px;border-bottom:1px solid #f0f2f5;color:#10b981;font-weight:600">'+m.masterName+'</td>' +
+      '<td style="padding:6px 10px;border-bottom:1px solid #f0f2f5;color:#1e293b;text-align:center">'+m.contacts+'</td>' +
+      '<td style="padding:6px 10px;border-bottom:1px solid #f0f2f5;color:#1e293b;text-align:center">'+m.opps+'</td>' +
+    '</tr>';
+  });
+  tbl += '</tbody></table>';
+
+  var summary = '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">' +
+    '<span style="background:#ef444412;color:#ef4444;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">' + merged.length + ' doublons supprimés</span>' +
+    '<span style="background:#10b98112;color:#10b981;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">Données migrées automatiquement</span>' +
+    '<span style="background:#0ea5e912;color:#0ea5e9;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">Firestore nettoyé</span>' +
+  '</div>';
+
+  var viewBtn = '<div style="margin-top:10px;display:flex;gap:8px">' +
+    '<button onclick="navigate(\'accounts\')" style="background:#0ea5e912;color:#0ea5e9;border:1px solid #0ea5e930;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Vérifier les Comptes</button>' +
+    '<button onclick="navigate(\'activities\')" style="background:#10b98112;color:#10b981;border:1px solid #10b98130;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Voir l\'audit trail</button>' +
+  '</div>';
+
+  return 'Mickaël, j\'ai scanné vos ' + (accounts.length + merged.length) + ' comptes et détecté ' + merged.length + ' doublons.\n\nJ\'ai procédé à la fusion : les contacts et opportunités ont été rattachés aux comptes principaux, et les doublons ont été supprimés de Firestore. Tout est propre !\n%%HTML%%' + tbl + summary + viewBtn + '%%/HTML%%';
+}
+
+/* ── SCENARIO 2: Orphan Accounts (0 contacts) ─────────── */
+function noraOrphanAccounts() {
+  var D = window.DATA || {};
+  var accounts = D.accounts || [];
+  var contacts = D.contacts || [];
+  if (!accounts.length) return 'Mickaël, aucun compte trouvé dans le CRM.';
+
+  /* Find accounts with zero contacts */
+  var contactsByAccount = {};
+  contacts.forEach(function(c) { contactsByAccount[c.account] = (contactsByAccount[c.account] || 0) + 1; });
+  var orphans = accounts.filter(function(a) { return !contactsByAccount[a.id]; });
+
+  if (orphans.length === 0) {
+    return 'Mickaël, excellente nouvelle ! Tous vos comptes ont au moins un contact associé. Votre base relationnelle est complète.';
+  }
+
+  /* Create a placeholder contact + follow-up activity for each orphan */
+  var today = new Date().toISOString().split('T')[0];
+  var nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+  var created = [];
+
+  orphans.forEach(function(a) {
+    /* Create placeholder contact */
+    var cId = 'c_nora_' + a.id + '_' + Date.now();
+    var newContact = {
+      id: cId,
+      name: 'Contact à identifier — ' + a.name,
+      account: a.id,
+      role: 'À compléter',
+      email: '',
+      phone: ''
+    };
+    contacts.push(newContact);
+    if (typeof fbCreate === 'function') {
+      try { fbCreate('contacts', newContact); } catch(e) {}
+    }
+
+    /* Create follow-up activity */
+    var actId = 'act_nora_orphan_' + a.id + '_' + Date.now();
+    var newAct = {
+      id: actId,
+      type: 'Task',
+      subject: 'Identifier le contact principal — ' + a.name,
+      date: nextWeek,
+      time: '09:00',
+      status: 'Planned',
+      owner: 'Nora Leclerc — Agent Data Quality',
+      purpose: 'Compte sans contact détecté. Contact placeholder créé. Action de complétion requise.',
+      account: a.id
+    };
+    if (D.activities) D.activities.push(newAct);
+    if (typeof fbCreate === 'function') {
+      try { fbCreate('activities', newAct); } catch(e) {}
+    }
+
+    created.push({account: a, contactId: cId, activityId: actId});
+  });
+
+  /* Build result table */
+  var tbl = '<table style="width:100%;border-collapse:collapse;font-size:11.5px;margin:10px 0;border-radius:10px;overflow:hidden"><thead><tr>';
+  ['Compte orphelin','Secteur','Ville','Actions créées'].forEach(function(h) {
+    tbl += '<th style="text-align:left;padding:7px 10px;background:#0ea5e910;color:#0ea5e9;font-weight:600;border-bottom:1px solid #e8eaed;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px">'+h+'</th>';
+  });
+  tbl += '</tr></thead><tbody>';
+  created.forEach(function(c,i) {
+    tbl += '<tr style="'+(i%2===1?'background:#f8f9fb':'')+';cursor:pointer" onclick="navigate(\'record\',\'accounts\',\''+c.account.id+'\')">' +
+      '<td style="padding:6px 10px;border-bottom:1px solid #f0f2f5;color:#0ea5e9;font-weight:500">'+c.account.name+'</td>' +
+      '<td style="padding:6px 10px;border-bottom:1px solid #f0f2f5;color:#1e293b;font-size:11px">'+(c.account.industry||'—')+'</td>' +
+      '<td style="padding:6px 10px;border-bottom:1px solid #f0f2f5;color:#64748b;font-size:11px">'+(c.account.city||'—')+'</td>' +
+      '<td style="padding:6px 10px;border-bottom:1px solid #f0f2f5"><span style="background:#8b5cf612;color:#8b5cf6;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">Contact + Task</span></td>' +
+    '</tr>';
+  });
+  tbl += '</tbody></table>';
+
+  var summary = '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">' +
+    '<span style="background:#ef444412;color:#ef4444;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">' + orphans.length + ' comptes sans contact</span>' +
+    '<span style="background:#8b5cf612;color:#8b5cf6;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">' + created.length + ' contacts placeholder créés</span>' +
+    '<span style="background:#10b98112;color:#10b981;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">' + created.length + ' tasks planifiées</span>' +
+  '</div>';
+
+  var viewBtn = '<div style="margin-top:10px;display:flex;gap:8px">' +
+    '<button onclick="navigate(\'accounts\')" style="background:#0ea5e912;color:#0ea5e9;border:1px solid #0ea5e930;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Voir les Comptes</button>' +
+    '<button onclick="navigate(\'contacts\')" style="background:#8b5cf612;color:#8b5cf6;border:1px solid #8b5cf630;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Voir les Contacts</button>' +
+    '<button onclick="navigate(\'activities\')" style="background:#10b98112;color:#10b981;border:1px solid #10b98130;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Voir les Tasks</button>' +
+  '</div>';
+
+  return 'Mickaël, j\'ai identifié ' + orphans.length + ' comptes qui n\'ont aucun contact rattaché. C\'est un vrai trou dans votre couverture relationnelle.\n\nVoilà ce que j\'ai fait pour chacun :\n— Créé un contact placeholder « À compléter » pour ne plus avoir de compte vide\n— Planifié une task de suivi pour la semaine prochaine\n\nVous pouvez cliquer sur chaque compte pour compléter les informations.\n%%HTML%%' + tbl + summary + viewBtn + '%%/HTML%%';
+}
+
+/* ── SCENARIO 3: Audit Missing Required Fields ─────────── */
+function noraAuditFields() {
+  var D = window.DATA || {};
+  var contacts = D.contacts || [];
+  var accounts = D.accounts || [];
+  var opps = D.opportunities || [];
+
+  var issues = [];
+  var today = new Date().toISOString().split('T')[0];
+
+  /* Scan contacts */
+  contacts.forEach(function(c) {
+    var missing = [];
+    if (!c.email || c.email.trim() === '') missing.push('email');
+    if (!c.phone || c.phone.trim() === '') missing.push('phone');
+    if (!c.role || c.role.trim() === '' || c.role === 'À compléter') missing.push('role');
+    if (missing.length > 0) {
+      issues.push({obj:'Contact', id:c.id, objKey:'contacts', name:c.name, fields:missing});
+    }
+  });
+
+  /* Scan accounts */
+  accounts.forEach(function(a) {
+    var missing = [];
+    if (!a.industry || a.industry.trim() === '') missing.push('industry');
+    if (!a.city || a.city.trim() === '') missing.push('city');
+    if (missing.length > 0) {
+      issues.push({obj:'Account', id:a.id, objKey:'accounts', name:a.name, fields:missing});
+    }
+  });
+
+  /* Scan opportunities */
+  opps.forEach(function(o) {
+    var missing = [];
+    if (!o.prob && o.prob !== 0) missing.push('probability');
+    if (!o.close || o.close.trim() === '') missing.push('close date');
+    if (!o.account || o.account.trim() === '') missing.push('account');
+    if (missing.length > 0) {
+      issues.push({obj:'Opportunity', id:o.id, objKey:'opportunities', name:o.name, fields:missing});
+    }
+  });
+
+  if (issues.length === 0) {
+    return 'Mickaël, j\'ai passé au crible tous vos contacts, comptes et opportunités : aucun champ obligatoire n\'est vide. Votre base est exemplaire !';
+  }
+
+  /* Create a task for each issue */
+  issues.forEach(function(iss) {
+    var actId = 'act_nora_audit_' + iss.id + '_' + Date.now();
+    var act = {
+      id: actId, type:'Task',
+      subject: 'Compléter champs — ' + iss.name + ' (' + iss.fields.join(', ') + ')',
+      date: today, time: '09:00', status:'Planned',
+      owner: 'Nora Leclerc — Agent Data Quality',
+      purpose: 'Audit automatique : champs manquants détectés sur ' + iss.obj + ' "' + iss.name + '".'
+    };
+    if (D.activities) D.activities.push(act);
+    if (typeof fbCreate === 'function') { try { fbCreate('activities', act); } catch(e) {} }
+  });
+
+  /* Group by object type */
+  var byObj = {};
+  issues.forEach(function(iss) {
+    if (!byObj[iss.obj]) byObj[iss.obj] = [];
+    byObj[iss.obj].push(iss);
+  });
+
+  /* KPIs */
+  var kpiHtml = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0">';
+  var objColors = {Contact:'#8b5cf6', Account:'#0ea5e9', Opportunity:'#f59e0b'};
+  ['Contact','Account','Opportunity'].forEach(function(obj) {
+    var count = (byObj[obj] || []).length;
+    var total = obj === 'Contact' ? contacts.length : obj === 'Account' ? accounts.length : opps.length;
+    var pct = total > 0 ? Math.round((total - count) / total * 100) : 100;
+    var c = objColors[obj];
+    kpiHtml += '<div style="background:'+c+'08;border:1px solid '+c+'20;border-radius:10px;padding:10px;text-align:center">' +
+      '<div style="font-size:20px;font-weight:700;color:'+c+'">'+pct+'%</div>' +
+      '<div style="font-size:10px;color:#64748b;margin-top:2px">'+obj+'s complets</div>' +
+      '<div style="font-size:10px;color:#94a3b8">'+count+' incomplet'+(count>1?'s':'')+'</div></div>';
+  });
+  kpiHtml += '</div>';
+
+  /* Detail table */
+  var tbl = '<table style="width:100%;border-collapse:collapse;font-size:11.5px;margin:8px 0;border-radius:10px;overflow:hidden"><thead><tr>';
+  ['Type','Nom','Champs manquants','Action'].forEach(function(h) {
+    tbl += '<th style="text-align:left;padding:7px 10px;background:#0ea5e910;color:#0ea5e9;font-weight:600;border-bottom:1px solid #e8eaed;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px">'+h+'</th>';
+  });
+  tbl += '</tr></thead><tbody>';
+  issues.slice(0, 15).forEach(function(iss,i) {
+    var c = objColors[iss.obj] || '#64748b';
+    tbl += '<tr style="'+(i%2===1?'background:#f8f9fb':'')+';cursor:pointer" onclick="navigate(\'record\',\''+iss.objKey+'\',\''+iss.id+'\')">' +
+      '<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5"><span style="background:'+c+'12;color:'+c+';padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">'+iss.obj+'</span></td>' +
+      '<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5;color:#0ea5e9;font-weight:500">'+iss.name+'</td>' +
+      '<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5;color:#ef4444;font-size:11px;font-weight:500">'+iss.fields.join(', ')+'</td>' +
+      '<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5"><span style="background:#10b98112;color:#10b981;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">Task créée</span></td>' +
+    '</tr>';
+  });
+  if (issues.length > 15) {
+    tbl += '<tr><td colspan="4" style="padding:8px 10px;color:#94a3b8;font-size:11px;text-align:center">... et ' + (issues.length - 15) + ' autres</td></tr>';
+  }
+  tbl += '</tbody></table>';
+
+  var summary = '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">' +
+    '<span style="background:#ef444412;color:#ef4444;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">' + issues.length + ' records incomplets</span>' +
+    '<span style="background:#10b98112;color:#10b981;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">' + issues.length + ' tasks de correction créées</span>' +
+  '</div>';
+
+  var viewBtn = '<div style="margin-top:10px;display:flex;gap:8px">' +
+    '<button onclick="navigate(\'activities\')" style="background:#10b98112;color:#10b981;border:1px solid #10b98130;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Voir les Tasks créées</button>' +
+    '<button onclick="navigate(\'contacts\')" style="background:#8b5cf612;color:#8b5cf6;border:1px solid #8b5cf630;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Voir les Contacts</button>' +
+  '</div>';
+
+  return 'Mickaël, j\'ai audité l\'intégralité de votre base : ' + contacts.length + ' contacts, ' + accounts.length + ' comptes et ' + opps.length + ' opportunités.\n\nRésultat : ' + issues.length + ' enregistrements ont des champs obligatoires vides. J\'ai créé une task de correction pour chacun, vous les retrouverez dans vos Activities.\n%%HTML%%' + kpiHtml + tbl + summary + viewBtn + '%%/HTML%%';
+}
+
+/* ── SCENARIO 4: Expired Opportunities → Relaunch ──────── */
+function noraExpiredOpps() {
+  var D = window.DATA || {};
+  var opps = D.opportunities || [];
+  var accounts = D.accounts || [];
+  if (!opps.length) return 'Mickaël, aucune opportunité en base pour le moment.';
+
+  var today = new Date();
+  var todayStr = today.toISOString().split('T')[0];
+  var nextMonth = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+
+  /* Find expired opps (close date passed, not closed_won/launched) */
+  var expired = opps.filter(function(o) {
+    if (!o.close) return false;
+    if (o.stage === 'closed_won' || o.stage === 'launched') return false;
+    return o.close < todayStr;
+  });
+
+  if (expired.length === 0) {
+    return 'Mickaël, j\'ai vérifié toutes vos opportunités : aucune n\'a de date de clôture dépassée. Votre pipeline est bien tenu !';
+  }
+
+  /* Mutate: reset stage to "lead", extend close date, create relaunch activity */
+  var corrections = [];
+  expired.forEach(function(o) {
+    var acct = accounts.find(function(a){ return a.id === o.account; });
+    var oldStage = o.stage;
+    var oldClose = o.close;
+
+    /* Update opportunity */
+    o.stage = 'lead';
+    o.close = nextMonth;
+
+    /* Persist to Firestore */
+    if (typeof fbUpdate === 'function') {
+      try { fbUpdate('opportunities', o.id, {stage:'lead', close:nextMonth}); } catch(e) {}
+    }
+
+    /* Create relaunch activity */
+    var actId = 'act_nora_relaunch_' + o.id + '_' + Date.now();
+    var act = {
+      id: actId, type:'Call',
+      subject: 'Relance — ' + o.name,
+      date: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
+      time: '10:00', status:'Planned',
+      owner: 'Nora Leclerc — Agent Data Quality',
+      purpose: 'Opportunité périmée détectée (close date: ' + oldClose + ', stage: ' + oldStage + '). Remise en stage Lead. Action de relance planifiée.',
+      account: o.account
+    };
+    if (D.activities) D.activities.push(act);
+    if (typeof fbCreate === 'function') { try { fbCreate('activities', act); } catch(e) {} }
+
+    corrections.push({
+      opp: o, acctName: acct ? acct.name : '—',
+      oldStage: oldStage, oldClose: oldClose
+    });
+  });
+
+  /* Log summary activity */
+  var summaryAct = {
+    id: 'act_nora_expired_summary_' + Date.now(), type:'Task',
+    subject: 'Data Quality — ' + corrections.length + ' expired opps relaunched',
+    date: todayStr, time: new Date().toTimeString().slice(0,5),
+    status:'Completed', owner:'Nora Leclerc — Agent Data Quality',
+    purpose: corrections.length + ' opportunities with overdue close dates reset to Lead stage.'
+  };
+  if (D.activities) D.activities.push(summaryAct);
+  if (typeof fbCreate === 'function') { try { fbCreate('activities', summaryAct); } catch(e) {} }
+
+  var stageColors = {lead:'#94a3b8',study:'#3b82f6',tender:'#f59e0b',proposal:'#ec4899',negotiation:'#f97316',closed_won:'#10b981',launched:'#6366f1'};
+
+  /* Build result table */
+  var tbl = '<table style="width:100%;border-collapse:collapse;font-size:11.5px;margin:10px 0;border-radius:10px;overflow:hidden"><thead><tr>';
+  ['Opportunité','Compte','Ancien stage','Ancienne date','Nouveau stage','Relance'].forEach(function(h) {
+    tbl += '<th style="text-align:left;padding:7px 10px;background:#0ea5e910;color:#0ea5e9;font-weight:600;border-bottom:1px solid #e8eaed;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px">'+h+'</th>';
+  });
+  tbl += '</tr></thead><tbody>';
+  corrections.forEach(function(c,i) {
+    var oldColor = stageColors[c.oldStage] || '#94a3b8';
+    tbl += '<tr style="'+(i%2===1?'background:#f8f9fb':'')+';cursor:pointer" onclick="navigate(\'record\',\'opportunities\',\''+c.opp.id+'\')">' +
+      '<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5;color:#0ea5e9;font-weight:500;font-size:11px">'+c.opp.name+'</td>' +
+      '<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5;color:#64748b;font-size:11px">'+c.acctName+'</td>' +
+      '<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5"><span style="background:'+oldColor+'12;color:'+oldColor+';padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;text-decoration:line-through">'+c.oldStage+'</span></td>' +
+      '<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5;color:#ef4444;font-size:11px;text-decoration:line-through">'+c.oldClose+'</td>' +
+      '<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5"><span style="background:#94a3b815;color:#94a3b8;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">Lead</span></td>' +
+      '<td style="padding:5px 10px;border-bottom:1px solid #f0f2f5"><span style="background:#10b98112;color:#10b981;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">Call J+3</span></td>' +
+    '</tr>';
+  });
+  tbl += '</tbody></table>';
+
+  var summary = '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">' +
+    '<span style="background:#f59e0b12;color:#f59e0b;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">' + corrections.length + ' opps périmées détectées</span>' +
+    '<span style="background:#0ea5e912;color:#0ea5e9;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">Remises en stage Lead</span>' +
+    '<span style="background:#10b98112;color:#10b981;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">' + corrections.length + ' relances planifiées</span>' +
+  '</div>';
+
+  var totalAmt = corrections.reduce(function(s,c){ return s + (c.opp.amount || 0); }, 0);
+  var amtBadge = '<div style="margin-top:8px;padding:8px 12px;background:#f59e0b08;border:1px solid #f59e0b20;border-radius:10px;display:flex;align-items:center;gap:8px">' +
+    '<span style="font-size:11px;color:#64748b">Valeur pipeline récupérable :</span>' +
+    '<span style="font-size:16px;font-weight:700;color:#f59e0b">' + fmtAmount(totalAmt) + '</span></div>';
+
+  var viewBtn = '<div style="margin-top:10px;display:flex;gap:8px">' +
+    '<button onclick="navigate(\'opportunities\')" style="background:#0ea5e912;color:#0ea5e9;border:1px solid #0ea5e930;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Voir le Pipeline</button>' +
+    '<button onclick="navigate(\'activities\')" style="background:#10b98112;color:#10b981;border:1px solid #10b98130;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Voir les Relances</button>' +
+  '</div>';
+
+  return 'Mickaël, attention — j\'ai détecté ' + corrections.length + ' opportunités dont la date de clôture est dépassée. Elles stagnaient dans le pipeline sans action.\n\nVoilà ce que j\'ai fait :\n— Remise de chaque opp en stage « Lead » pour repartir proprement\n— Nouvelle date de clôture à J+30\n— Call de relance planifié à J+3 pour chacune\n\nCes deals représentent ' + fmtAmount(totalAmt) + ' de pipeline récupérable !\n%%HTML%%' + tbl + amtBadge + summary + viewBtn + '%%/HTML%%';
+}
+
 /* ── Main send function ── */
 function acSendMessage() {
   var input = document.getElementById('ac-chat-input');
@@ -759,6 +1180,11 @@ function acMatchScenario(msg) {
   if (bestMatch.actionId==='dr2'&&(level==='delegated'||level==='supervised')) { if(level==='supervised') return '🔄 Action préparée — soumise à validation admin.'; return acBuildOppResponse(msg); }
   if (bestMatch.actionId==='dr3'&&(level==='delegated'||level==='supervised')) { if(level==='supervised') return '🔄 Action préparée — soumise à validation admin.'; return acBuildPipelineResponse(); }
   if (bestMatch.actionId==='um3'&&(level==='delegated'||level==='supervised')) { if(level==='supervised') return '🔄 Action préparée — soumise à validation admin.'; if (typeof umBuildUsersResponseReal === 'function' && UM_LOADED) return umBuildUsersResponseReal(); return acBuildUsersResponse(); }
+  /* ── NORA: Data Quality scenarios ── */
+  if (bestMatch.actionId==='nora_merge_dupes') { acShowToast('Nora — Fusion doublons','Scan en cours...','#0ea5e9'); return noraMergeDuplicates(); }
+  if (bestMatch.actionId==='nora_orphan_accounts') { acShowToast('Nora — Comptes orphelins','Détection...','#0ea5e9'); return noraOrphanAccounts(); }
+  if (bestMatch.actionId==='nora_audit_fields') { acShowToast('Nora — Audit champs','Analyse...','#0ea5e9'); return noraAuditFields(); }
+  if (bestMatch.actionId==='nora_expired_opps') { acShowToast('Nora — Opps périmées','Vérification...','#0ea5e9'); return noraExpiredOpps(); }
   return bestMatch.responses[level] || 'Je traite votre demande...';
 }
 
