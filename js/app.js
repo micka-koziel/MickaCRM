@@ -47,7 +47,10 @@ document.addEventListener('DOMContentLoaded', function() {
             return fbLoadAll();
           });
         }
-        return totalDocs;
+        /* Always check for missing docs (new objects added in code updates) */
+        return fbSeedIfEmpty().then(function() {
+          return fbLoadAll();
+        });
       }).then(function() {
         fbShowStatus('Connected to Firestore');
         /* Seed + load users collection for User Management */
