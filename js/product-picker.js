@@ -399,8 +399,8 @@ function injectProductPickerStyles() {
 \
 .pp-card-check{position:absolute;top:12px;right:12px;z-index:2;width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:0 2px 6px rgba(0,0,0,.1)}\
 \
-.pp-card-img{height:160px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid #f1f5f9;overflow:hidden;position:relative}\
-.pp-card-img img{max-height:100%;max-width:100%;object-fit:contain;padding:12px}\
+.pp-card-img{height:240px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid #f1f5f9;overflow:hidden;position:relative}\
+.pp-card-img img{max-height:100%;max-width:100%;object-fit:contain;padding:16px 24px}\
 .pp-card-cat{position:absolute;bottom:8px;left:8px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.3px}\
 .pp-card-stock{position:absolute;top:10px;left:10px;width:8px;height:8px;border-radius:50%}\
 \
@@ -419,7 +419,7 @@ function injectProductPickerStyles() {
 \
 /* ═══ Gallery View ══════════════════════════ */\
 .pp-gallery{max-width:1280px;margin:0 auto;padding:8px 28px 40px}\
-.pp-gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}\
+.pp-gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px}\
 \
 /* ═══ Field Button (inside modals) ══════════ */\
 .pp-field-btn{width:100%;padding:14px;border-radius:10px;border:1.5px dashed #d1d5db;background:#fafbfc;cursor:pointer;font-family:inherit;text-align:left;transition:all .15s;box-sizing:border-box}\
@@ -436,7 +436,7 @@ function injectProductPickerStyles() {
   .pp-modal{width:100%;max-height:95vh;border-radius:14px}\
   .pp-modal-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;padding:14px}\
   .pp-modal-header,.pp-modal-filters,.pp-modal-footer{padding-left:16px;padding-right:16px}\
-  .pp-card-img{height:120px}\
+  .pp-card-img{height:180px}\
   .pp-card-body{padding:10px 12px 14px}\
   .pp-gallery-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}\
   .pp-gallery{padding:8px 14px 32px}\
