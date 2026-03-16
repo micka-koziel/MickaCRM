@@ -242,7 +242,7 @@ function renderAgentTeamFloat() {
     '</button>' +
     (AT_UNREAD > 0 ? '<div class="at-fab-badge" id="at-fab-badge">'+AT_UNREAD+'</div>' : '') +
     '<div class="at-window'+(AT_OPEN?' open':'')+'" id="at-window">' +
-      '<div id="at-window-content"></div>' +
+      '<div id="at-window-content" style="flex:1;display:flex;flex-direction:column;overflow:hidden"></div>' +
     '</div>';
 
   document.body.appendChild(root);
@@ -373,8 +373,11 @@ function atRenderChat(el) {
   if (!a) return;
   var msgs = AT_MESSAGES[a.id] || [];
 
+  /* Flex wrapper so at-messages gets proper flex:1 height */
+  var html = '<div style="display:flex;flex-direction:column;height:100%;overflow:hidden">';
+
   /* Header */
-  var html =
+  html +=
     '<div class="at-chat-header" style="background:linear-gradient(135deg,'+a.color+','+a.accent+')">' +
       '<button class="at-back-btn" onclick="AT_VIEW=\'team\';AT_ACTIVE_AGENT=null;atRenderContent()">' +
         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M19 12H5m7-7l-7 7 7 7"/></svg>' +
@@ -419,6 +422,8 @@ function atRenderChat(el) {
       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>' +
     '</button>' +
   '</div>';
+
+  html += '</div>'; /* close flex wrapper */
 
   el.innerHTML = html;
 
@@ -590,13 +595,13 @@ function injectATStyles() {
 .at-chat-hname{color:#fff;font-weight:700;font-size:14px}\
 .at-chat-hrole{color:rgba(255,255,255,.7);font-size:11px}\
 \
-.at-messages{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:#f8fafc}\
-.at-msg{display:flex;gap:8px;align-items:flex-end}\
+.at-messages{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:#f8fafc}\
+.at-msg{display:flex;gap:8px;align-items:flex-start}\
 .at-msg-user{justify-content:flex-end}\
-.at-msg-agent{justify-content:flex-start}\
-.at-msg-avi{width:28px;height:28px;border-radius:50%;overflow:hidden;flex-shrink:0}\
-.at-bubble{max-width:82%;padding:10px 14px;font-size:12.5px;line-height:1.55;border-radius:16px;word-wrap:break-word}\
-.at-bubble-agent{background:#fff;color:#1e293b;border-radius:16px 16px 16px 4px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid #e8eaed}\
+.at-msg-agent{justify-content:flex-start;max-width:100%}\
+.at-msg-avi{width:28px;height:28px;border-radius:50%;overflow:hidden;flex-shrink:0;margin-top:4px}\
+.at-bubble{max-width:82%;padding:10px 14px;font-size:12.5px;line-height:1.55;border-radius:16px;word-wrap:break-word;overflow-wrap:break-word}\
+.at-bubble-agent{background:#fff;color:#1e293b;border-radius:16px 16px 16px 4px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid #e8eaed;max-width:92%}\
 .at-bubble-user{border-radius:16px 16px 4px 16px}\
 .at-typing{display:flex;gap:4px;padding:10px 14px;background:#fff;border-radius:16px;border:1px solid #e8eaed}\
 .at-typing span{width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:atBounce 1.2s infinite}\
@@ -604,11 +609,11 @@ function injectATStyles() {
 .at-typing span:nth-child(3){animation-delay:.4s}\
 @keyframes atBounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}\
 \
-.at-suggestions{display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px;border-top:1px solid #f0f2f5;background:#fff}\
+.at-suggestions{display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px;border-top:1px solid #f0f2f5;background:#fff;flex-shrink:0}\
 .at-suggest{background:#f0f2f5;border:1px solid #e8eaed;color:#475569;padding:5px 11px;border-radius:20px;font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}\
 .at-suggest:hover{background:#e2e8f0;border-color:#cbd5e1}\
 \
-.at-input-wrap{display:flex;gap:8px;padding:10px 14px;border-top:1px solid #e8eaed;background:#fff;align-items:flex-end}\
+.at-input-wrap{display:flex;gap:8px;padding:10px 14px;border-top:1px solid #e8eaed;background:#fff;align-items:flex-end;flex-shrink:0}\
 .at-input{flex:1;border:1px solid #e2e8f0;border-radius:14px;padding:9px 14px;font-size:12.5px;outline:none;font-family:inherit;resize:none;max-height:80px;line-height:1.4;transition:border-color .2s}\
 .at-input:focus{border-color:#2563eb}\
 .at-send{width:36px;height:36px;border-radius:10px;border:none;background:#0f172a;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}\
