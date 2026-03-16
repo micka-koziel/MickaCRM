@@ -29,6 +29,7 @@ var FB_COLLECTIONS = {
   activities:    'activities',
   products:      'products',
   products:      'products',
+  products:      'products',
   campaigns:     'campaigns',
   cases:         'cases'
 };
@@ -160,10 +161,20 @@ function fbDelete(collectionKey, docId) {
 function fbSeedIfEmpty() {
   var keys = Object.keys(FB_COLLECTIONS);
   var promises = keys.map(function(key) {
-    // Check if collection has docs
-    return fbCollection(key).limit(1).get().then(function(snapshot) {
-      if (snapshot.empty && window.DATA[key] && window.DATA[key].length > 0) {
+    var mockData = window.DATA[key];
+    if (!mockData || !mockData.length) return Promise.resolve(null);
+
+    return fbCollection(key).get().then(function(snapshot) {
+      if (snapshot.empty) {
+        /* Collection completely empty — full seed */
         return fbSeedCollection(key);
+      }
+      /* Collection exists but might be incomplete — seed missing docs */
+      var existingIds = {};
+      snapshot.forEach(function(doc) { existingIds[doc.id] = true; });
+      var missing = mockData.filter(function(r) { return r.id && !existingIds[r.id]; });
+      if (missing.length > 0) {
+        return fbSeedMissing(key, missing);
       }
       return null;
     });
@@ -171,8 +182,27 @@ function fbSeedIfEmpty() {
   return Promise.all(promises).then(function(results) {
     var seeded = results.filter(function(r) { return r !== null; });
     if (seeded.length > 0) {
-      console.log('[Firebase] Seeded ' + seeded.length + ' collections');
+      console.log('[Firebase] Seeded/completed ' + seeded.length + ' collections');
     }
+  });
+}
+
+/* Seed only missing docs (merge:true to never overwrite existing) */
+function fbSeedMissing(key, records) {
+  var batch = fbDB.batch();
+  var col = fbCollection(key);
+  records.forEach(function(record) {
+    var cleanRec = {};
+    Object.keys(record).forEach(function(k) {
+      if (record[k] !== undefined) cleanRec[k] = record[k];
+    });
+    var docRef = record.id ? col.doc(record.id) : col.doc();
+    if (!record.id) cleanRec.id = docRef.id;
+    batch.set(docRef, cleanRec, {merge: true});
+  });
+  return batch.commit().then(function() {
+    console.log('[Firebase] Completed ' + key + ': added ' + records.length + ' missing docs');
+    return key;
   });
 }
 

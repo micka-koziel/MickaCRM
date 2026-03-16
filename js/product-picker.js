@@ -404,13 +404,13 @@ function injectProductPickerStyles() {
 .pp-card-cat{position:absolute;bottom:8px;left:8px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.3px}\
 .pp-card-stock{position:absolute;top:10px;left:10px;width:8px;height:8px;border-radius:50%}\
 \
-.pp-card-body{padding:14px 16px 16px}\
-.pp-card-name{font-size:14px;font-weight:700;color:#1e293b;line-height:1.3;margin-bottom:4px}\
-.pp-card-meta{font-size:11.5px;color:#64748b;margin-bottom:8px}\
-.pp-card-desc{font-size:11.5px;color:#94a3b8;line-height:1.5;margin-bottom:12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}\
+.pp-card-body{padding:10px 12px 14px}\
+.pp-card-name{font-size:13px;font-weight:700;color:#1e293b;line-height:1.3;margin-bottom:3px}\
+.pp-card-meta{font-size:10.5px;color:#64748b;margin-bottom:6px}\
+.pp-card-desc{font-size:10.5px;color:#94a3b8;line-height:1.45;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}\
 \
 .pp-card-price-row{display:flex;align-items:baseline;justify-content:space-between}\
-.pp-card-price-val{font-size:20px;font-weight:800;letter-spacing:-.5px}\
+.pp-card-price-val{font-size:17px;font-weight:800;letter-spacing:-.5px}\
 .pp-card-price-unit{font-size:12px;color:#94a3b8;font-weight:500}\
 .pp-card-stock-text{font-size:10px;color:#94a3b8;font-weight:500}\
 \
@@ -419,7 +419,7 @@ function injectProductPickerStyles() {
 \
 /* ═══ Gallery View ══════════════════════════ */\
 .pp-gallery{max-width:1280px;margin:0 auto;padding:8px 28px 40px}\
-.pp-gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px}\
+.pp-gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}\
 \
 /* ═══ Field Button (inside modals) ══════════ */\
 .pp-field-btn{width:100%;padding:14px;border-radius:10px;border:1.5px dashed #d1d5db;background:#fafbfc;cursor:pointer;font-family:inherit;text-align:left;transition:all .15s;box-sizing:border-box}\
@@ -438,7 +438,7 @@ function injectProductPickerStyles() {
   .pp-modal-header,.pp-modal-filters,.pp-modal-footer{padding-left:16px;padding-right:16px}\
   .pp-card-img{height:180px}\
   .pp-card-body{padding:10px 12px 14px}\
-  .pp-gallery-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}\
+  .pp-gallery-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}\
   .pp-gallery{padding:8px 14px 32px}\
 }\
 @media(max-width:480px){\
