@@ -28,8 +28,6 @@ var FB_COLLECTIONS = {
   claims:        'claims',
   activities:    'activities',
   products:      'products',
-  products:      'products',
-  products:      'products',
   campaigns:     'campaigns',
   cases:         'cases'
 };
@@ -164,17 +162,32 @@ function fbSeedIfEmpty() {
     var mockData = window.DATA[key];
     if (!mockData || !mockData.length) return Promise.resolve(null);
 
+    /* Load ALL doc IDs from Firestore for this collection */
     return fbCollection(key).get().then(function(snapshot) {
       if (snapshot.empty) {
-        /* Collection completely empty — full seed */
+        /* Empty collection — full seed */
+        console.log('[Firebase] Collection ' + key + ' is empty — seeding ' + mockData.length + ' docs');
         return fbSeedCollection(key);
       }
-      /* Collection exists but might be incomplete — seed missing docs */
+      /* Collection has some docs — check for missing ones */
       var existingIds = {};
       snapshot.forEach(function(doc) { existingIds[doc.id] = true; });
       var missing = mockData.filter(function(r) { return r.id && !existingIds[r.id]; });
       if (missing.length > 0) {
-        return fbSeedMissing(key, missing);
+        console.log('[Firebase] Collection ' + key + ' has ' + Object.keys(existingIds).length + ' docs, adding ' + missing.length + ' missing');
+        var batch = fbDB.batch();
+        var col = fbCollection(key);
+        missing.forEach(function(record) {
+          var cleanRec = {};
+          Object.keys(record).forEach(function(k) {
+            if (record[k] !== undefined) cleanRec[k] = record[k];
+          });
+          batch.set(col.doc(record.id), cleanRec, {merge: true});
+        });
+        return batch.commit().then(function() {
+          console.log('[Firebase] Completed ' + key + ': added ' + missing.length + ' missing docs');
+          return key;
+        });
       }
       return null;
     });
@@ -184,25 +197,6 @@ function fbSeedIfEmpty() {
     if (seeded.length > 0) {
       console.log('[Firebase] Seeded/completed ' + seeded.length + ' collections');
     }
-  });
-}
-
-/* Seed only missing docs (merge:true to never overwrite existing) */
-function fbSeedMissing(key, records) {
-  var batch = fbDB.batch();
-  var col = fbCollection(key);
-  records.forEach(function(record) {
-    var cleanRec = {};
-    Object.keys(record).forEach(function(k) {
-      if (record[k] !== undefined) cleanRec[k] = record[k];
-    });
-    var docRef = record.id ? col.doc(record.id) : col.doc();
-    if (!record.id) cleanRec.id = docRef.id;
-    batch.set(docRef, cleanRec, {merge: true});
-  });
-  return batch.commit().then(function() {
-    console.log('[Firebase] Completed ' + key + ': added ' + records.length + ' missing docs');
-    return key;
   });
 }
 

@@ -438,7 +438,7 @@ function injectProductPickerStyles() {
   .pp-modal-header,.pp-modal-filters,.pp-modal-footer{padding-left:16px;padding-right:16px}\
   .pp-card-img{height:180px}\
   .pp-card-body{padding:10px 12px 14px}\
-  .pp-gallery-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}\
+  .pp-gallery-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}\
   .pp-gallery{padding:8px 14px 32px}\
 }\
 @media(max-width:480px){\

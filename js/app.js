@@ -41,13 +41,10 @@ document.addEventListener('DOMContentLoaded', function() {
       /* Load Firestore data */
       fbLoadAll().then(function(totalDocs) {
         if (totalDocs === 0) {
-          console.log('[App] Firestore empty — seeding mock data...');
+          console.log('[App] Firestore empty — full seed...');
           fbShowStatus('Seeding Firestore with demo data...');
-          return fbSeedIfEmpty().then(function() {
-            return fbLoadAll();
-          });
         }
-        /* Always check for missing docs (new objects added in code updates) */
+        /* Always run seed completion (adds missing docs from code updates) */
         return fbSeedIfEmpty().then(function() {
           return fbLoadAll();
         });
