@@ -823,7 +823,7 @@ function noraMergeDuplicates() {
     var sc = p.score >= 90 ? 'background:#dcfce7;color:#166534' : 'background:#fef9c3;color:#854d0e';
     return '<div style="padding:7px 0;border-bottom:'+(i<pairs.length-1?'1px solid #f0f2f5':'none')+'">' +
       '<div style="display:flex;align-items:center;gap:7px">' +
-        '<input type="checkbox" id="nora-dup-'+i+'" style="width:14px;height:14px;accent-color:#0ea5e9;cursor:pointer;flex-shrink:0" onchange="noraDupUpdateCount()">' +
+        '<input type="checkbox" id="nora-dup-'+i+'" style="width:14px;height:14px;accent-color:#0ea5e9;cursor:pointer;flex-shrink:0" onclick="noraDupUpdateCount()">' +
         '<div style="flex:1;min-width:0;cursor:pointer" onclick="noraDupToggleEvidence('+i+')">' +
           '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">' +
             _noraLink(p.dupName, 'accounts', p.dup, '#ef4444') +
@@ -879,26 +879,18 @@ function noraDupToggleEvidence(idx) {
 
 /* Toggle all checkboxes */
 function noraDupToggleAll(on) {
-  var pairs = window._NORA_DUP_PAIRS_LIVE || [];
-  for (var i = 0; i < pairs.length; i++) {
-    var el = document.getElementById('nora-dup-' + i);
-    if (el) el.checked = on;
-  }
+  for (var i = 0; i < 50; i++) { var el = document.getElementById('nora-dup-' + i); if (!el) break; el.checked = on; }
   noraDupUpdateCount();
 }
 
 /* Update count display + button state */
 function noraDupUpdateCount() {
-  var pairs = window._NORA_DUP_PAIRS_LIVE || [];
-  var count = 0;
-  for (var i = 0; i < pairs.length; i++) {
-    var el = document.getElementById('nora-dup-' + i);
-    if (el && el.checked) count++;
-  }
+  var count = 0; var total = 0;
+  for (var i = 0; i < 50; i++) { var el = document.getElementById('nora-dup-' + i); if (!el) break; total++; if (el.checked) count++; }
   var countEl = document.getElementById('nora-dup-count');
-  if (countEl) { countEl.textContent = count + '/' + pairs.length; countEl.style.color = count > 0 ? '#0ea5e9' : '#94a3b8'; }
+  if (countEl) { countEl.textContent = count + '/' + total; countEl.style.color = count > 0 ? '#0ea5e9' : '#94a3b8'; }
   var allEl = document.getElementById('nora-dup-all');
-  if (allEl) allEl.checked = count === pairs.length;
+  if (allEl) allEl.checked = (count === total && total > 0);
   var btn = document.getElementById('nora-dup-btn');
   if (btn) {
     if (count > 0) { btn.disabled = false; btn.style.background = '#0ea5e9'; btn.style.color = '#fff'; btn.style.cursor = 'pointer'; btn.textContent = 'Fusionner (' + count + ')'; }
@@ -1062,7 +1054,7 @@ function noraOrphanAccounts() {
     var sc = o.status === 'Active' ? '#10b981' : '#f59e0b';
     return '<div style="padding:7px 0;border-bottom:'+(i<orphans.length-1?'1px solid #f0f2f5':'none')+'">' +
       '<div style="display:flex;align-items:center;gap:7px">' +
-        '<input type="checkbox" id="nora-orph-'+i+'" style="width:14px;height:14px;accent-color:#0ea5e9;cursor:pointer;flex-shrink:0" onchange="noraOrphUpdateCount()">' +
+        '<input type="checkbox" id="nora-orph-'+i+'" style="width:14px;height:14px;accent-color:#0ea5e9;cursor:pointer;flex-shrink:0" onclick="noraOrphUpdateCount()">' +
         '<div style="flex:1;min-width:0">' +
           '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">' +
             _noraLink(o.name, 'accounts', o.id, '#0ea5e9') +
@@ -1089,20 +1081,18 @@ function noraOrphanAccounts() {
 
 /* Toggle all */
 function noraOrphToggleAll(on) {
-  var orphans = window._NORA_ORPHANS_LIVE || [];
-  for (var i = 0; i < orphans.length; i++) { var el = document.getElementById('nora-orph-' + i); if (el) el.checked = on; }
+  for (var i = 0; i < 50; i++) { var el = document.getElementById('nora-orph-' + i); if (!el) break; el.checked = on; }
   noraOrphUpdateCount();
 }
 
 /* Update count + button */
 function noraOrphUpdateCount() {
-  var orphans = window._NORA_ORPHANS_LIVE || [];
-  var count = 0;
-  for (var i = 0; i < orphans.length; i++) { var el = document.getElementById('nora-orph-' + i); if (el && el.checked) count++; }
+  var count = 0; var total = 0;
+  for (var i = 0; i < 50; i++) { var el = document.getElementById('nora-orph-' + i); if (!el) break; total++; if (el.checked) count++; }
   var countEl = document.getElementById('nora-orph-count');
-  if (countEl) { countEl.textContent = count + '/' + orphans.length; countEl.style.color = count > 0 ? '#0ea5e9' : '#94a3b8'; }
+  if (countEl) { countEl.textContent = count + '/' + total; countEl.style.color = count > 0 ? '#0ea5e9' : '#94a3b8'; }
   var allEl = document.getElementById('nora-orph-all');
-  if (allEl) allEl.checked = count === orphans.length;
+  if (allEl) allEl.checked = (count === total && total > 0);
   var btn = document.getElementById('nora-orph-btn');
   if (btn) {
     if (count > 0) { btn.disabled = false; btn.style.background = '#0ea5e9'; btn.style.color = '#fff'; btn.style.cursor = 'pointer'; btn.textContent = 'Corriger ' + count + ' compte(s)'; }
