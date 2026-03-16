@@ -543,7 +543,7 @@ var AC_SCENARIOS = [
   {keywords:['workflow','automation','automatisation','règle','rule','notification auto','alerte auto','trigger','déclencheur'],actionId:'ca6',responses:{delegated:'✅ Action réalisée : Règle d\'automatisation configurée.',supervised:'🔄 Action préparée — soumise à validation admin.',escalated:'⚠️ [ESCALADE] Configuration de workflow / automation\nCette action nécessite une intervention admin.'}},
   /* ── NORA: 4 Data Quality scenarios (end-to-end mutations) ── */
   {keywords:['doublon','duplicate','doublons','duplicates','merge','fusionner','fusion','même compte','meme compte'],actionId:'nora_merge_dupes',responses:{delegated:null,supervised:null,escalated:null}},
-  {keywords:['orphelin','orphan','0 contact','aucun contact','sans contact','pas de contact','no contact','comptes seuls','comptes isolés'],actionId:'nora_orphan_accounts',responses:{delegated:null,supervised:null,escalated:null}},
+  {keywords:['orphelin','orphan','0 contact','aucun contact','sans contact','pas de contact','no contact','comptes seuls','comptes isolés','comptes sans','contact ?','sans contact ?'],actionId:'nora_orphan_accounts',responses:{delegated:null,supervised:null,escalated:null}},
   {keywords:['audit','champ','vide','vides','manquant','missing','incomplet','incomplete','obligatoire','required','complétude','completude','remplissage'],actionId:'nora_audit_fields',responses:{delegated:null,supervised:null,escalated:null}},
   {keywords:['périmé','perime','expired','overdue','retard','passée','passee','close date','date dépassée','relance','stale','opp périmée','opps périmées'],actionId:'nora_expired_opps',responses:{delegated:null,supervised:null,escalated:null}}
 ];
@@ -1007,12 +1007,32 @@ function noraDupCancel() {
   _noraPushMsg('Pas de problème Mickaël, la fusion est annulée. Les doublons restent en place. N\'hésitez pas à relancer quand vous êtes prêt !');
 }
 
-/* ── SCENARIO 2: Orphan Accounts (0 contacts) ─────────── */
-function noraOrphanAccounts() {
+
+/* ── SCENARIO 2: Orphan Accounts — 0 contacts (Interactive + Actionable) ── */
+
+/* Seed 3 dedicated orphan test accounts (independent from dup accounts) */
+function noraSeedOrphans() {
   var D = window.DATA || {};
   var accounts = D.accounts || [];
+  var orphansToSeed = [
+    {id:'a_orph1',name:'Keller Fondations',industry:'Foundations & Piling',city:'Strasbourg',pipeline:0,opps:0,status:'Prospect'},
+    {id:'a_orph2',name:'Eurovia TP',industry:'Road & Rail',city:'Bordeaux',pipeline:0,opps:0,status:'Active'},
+    {id:'a_orph3',name:'Sogea-Satom',industry:'General Contractor',city:'Marseille',pipeline:0,opps:0,status:'Prospect'}
+  ];
+  orphansToSeed.forEach(function(o) {
+    if (!accounts.find(function(a){ return a.id === o.id; })) {
+      accounts.push(o);
+      if (typeof fbCreate === 'function') { try { fbCreate('accounts', o); } catch(e) {} }
+    }
+  });
+}
+
+function noraOrphanAccounts() {
+  var D = window.DATA || {};
+  noraSeedOrphans();
+
+  var accounts = D.accounts || [];
   var contacts = D.contacts || [];
-  if (!accounts.length) return 'Mickaël, aucun compte trouvé dans le CRM.';
 
   /* Find accounts with zero contacts */
   var contactsByAccount = {};
@@ -1020,80 +1040,176 @@ function noraOrphanAccounts() {
   var orphans = accounts.filter(function(a) { return !contactsByAccount[a.id]; });
 
   if (orphans.length === 0) {
-    return 'Mickaël, excellente nouvelle ! Tous vos comptes ont au moins un contact associé. Votre base relationnelle est complète.';
+    return 'Mickaël, excellente nouvelle ! Tous vos comptes ont au moins un contact. Votre base relationnelle est complète.';
   }
 
-  /* Create a placeholder contact + follow-up activity for each orphan */
-  var today = new Date().toISOString().split('T')[0];
-  var nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+  /* Store for phase 2 */
+  window._NORA_ORPHANS_LIVE = orphans;
+
+  var nextWeek = new Date(Date.now() + 7 * 86400000).toLocaleDateString('fr-FR', {day:'numeric',month:'short'});
+
+  var stepBar = '<div style="display:flex;gap:4px;margin-bottom:14px;align-items:center">' +
+    '<div style="flex:1;height:4px;border-radius:2px;background:#0ea5e9;opacity:.6"></div>' +
+    '<div style="flex:1;height:4px;border-radius:2px;background:#e2e8f0"></div>' +
+    '<span style="font-size:10px;color:#94a3b8;margin-left:6px">Scan</span></div>';
+
+  var selectAll = '<div style="display:flex;align-items:center;gap:8px;padding-bottom:7px;border-bottom:1px solid #e8eaed;margin-bottom:4px">' +
+    '<input type="checkbox" id="nora-orph-all" style="width:14px;height:14px;accent-color:#0ea5e9;cursor:pointer" onclick="noraOrphToggleAll(this.checked)">' +
+    '<span style="font-size:10.5px;color:#64748b">Tout sélectionner</span>' +
+    '<span id="nora-orph-count" style="margin-left:auto;font-size:10px;color:#94a3b8;font-weight:600">0/'+orphans.length+'</span></div>';
+
+  var rows = orphans.map(function(o, i) {
+    var sc = o.status === 'Active' ? '#10b981' : '#f59e0b';
+    return '<div style="padding:7px 0;border-bottom:'+(i<orphans.length-1?'1px solid #f0f2f5':'none')+'">' +
+      '<div style="display:flex;align-items:center;gap:7px">' +
+        '<input type="checkbox" id="nora-orph-'+i+'" style="width:14px;height:14px;accent-color:#0ea5e9;cursor:pointer;flex-shrink:0" onchange="noraOrphUpdateCount()">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">' +
+            _noraLink(o.name, 'accounts', o.id, '#0ea5e9') +
+            '<span style="background:'+sc+'12;color:'+sc+';padding:1px 7px;border-radius:10px;font-size:9.5px;font-weight:600">'+o.status+'</span>' +
+          '</div>' +
+          '<div style="font-size:10px;color:#94a3b8;margin-top:1px">'+o.industry+' · '+o.city+' · <span style="color:#ef4444;font-weight:500">0 contacts</span></div>' +
+        '</div>' +
+      '</div></div>';
+  }).join('');
+
+  var card = '<div style="background:#f8fafc;border:1px solid #e8eaed;border-radius:10px;padding:8px 10px;margin-bottom:8px">' + selectAll + rows + '</div>';
+
+  var infoBox = '<div style="background:#f0f7ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:10.5px;color:#1e40af;line-height:1.5">' +
+    '<div style="font-weight:600;margin-bottom:2px;font-size:10px;color:#3b82f6;text-transform:uppercase;letter-spacing:.3px">Ce que je vais faire pour chaque compte</div>' +
+    '<div style="display:flex;align-items:flex-start;gap:6px;margin-top:4px"><span style="color:#8b5cf6;font-weight:700;font-size:11px">1.</span><span>Créer un <b>Contact</b> placeholder rattaché au compte</span></div>' +
+    '<div style="display:flex;align-items:flex-start;gap:6px;margin-top:3px"><span style="color:#10b981;font-weight:700;font-size:11px">2.</span><span>Planifier une <b>Task</b> de suivi le '+nextWeek+'</span></div>' +
+  '</div>';
+
+  var btnRow = '<div style="display:flex;gap:8px;align-items:center">' +
+    '<button id="nora-orph-btn" onclick="noraOrphExecute()" disabled style="background:#e2e8f0;color:#94a3b8;border:none;padding:7px 16px;border-radius:8px;font-size:11.5px;font-weight:600;cursor:default;font-family:inherit;transition:all .15s">Sélectionnez des comptes</button></div>';
+
+  return 'Mickaël, j\'ai identifié ' + orphans.length + ' comptes sans aucun contact. Sélectionnez ceux à corriger.\n%%HTML%%' + stepBar + card + infoBox + btnRow + '%%/HTML%%';
+}
+
+/* Toggle all */
+function noraOrphToggleAll(on) {
+  var orphans = window._NORA_ORPHANS_LIVE || [];
+  for (var i = 0; i < orphans.length; i++) { var el = document.getElementById('nora-orph-' + i); if (el) el.checked = on; }
+  noraOrphUpdateCount();
+}
+
+/* Update count + button */
+function noraOrphUpdateCount() {
+  var orphans = window._NORA_ORPHANS_LIVE || [];
+  var count = 0;
+  for (var i = 0; i < orphans.length; i++) { var el = document.getElementById('nora-orph-' + i); if (el && el.checked) count++; }
+  var countEl = document.getElementById('nora-orph-count');
+  if (countEl) { countEl.textContent = count + '/' + orphans.length; countEl.style.color = count > 0 ? '#0ea5e9' : '#94a3b8'; }
+  var allEl = document.getElementById('nora-orph-all');
+  if (allEl) allEl.checked = count === orphans.length;
+  var btn = document.getElementById('nora-orph-btn');
+  if (btn) {
+    if (count > 0) { btn.disabled = false; btn.style.background = '#0ea5e9'; btn.style.color = '#fff'; btn.style.cursor = 'pointer'; btn.textContent = 'Corriger ' + count + ' compte(s)'; }
+    else { btn.disabled = true; btn.style.background = '#e2e8f0'; btn.style.color = '#94a3b8'; btn.style.cursor = 'default'; btn.textContent = 'Sélectionnez des comptes'; }
+  }
+}
+
+/* Execute: create contacts + tasks, show actionable results */
+function noraOrphExecute() {
+  var orphans = window._NORA_ORPHANS_LIVE || [];
+  var selected = [];
+  for (var i = 0; i < orphans.length; i++) { var el = document.getElementById('nora-orph-' + i); if (el && el.checked) selected.push(orphans[i]); }
+  if (!selected.length) return;
+
+  var D = window.DATA || {};
+  var contacts = D.contacts || [];
+  var nextWeekISO = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+  var nextWeekLabel = new Date(Date.now() + 7 * 86400000).toLocaleDateString('fr-FR', {day:'numeric',month:'short'});
   var created = [];
 
-  orphans.forEach(function(a) {
-    /* Create placeholder contact */
+  selected.forEach(function(a) {
     var cId = 'c_nora_' + a.id + '_' + Date.now();
-    var newContact = {
-      id: cId,
-      name: 'Contact à identifier — ' + a.name,
-      account: a.id,
-      role: 'À compléter',
-      email: '',
-      phone: ''
-    };
+    var newContact = { id:cId, name:'Contact à identifier — '+a.name, account:a.id, role:'À compléter', email:'', phone:'' };
     contacts.push(newContact);
-    if (typeof fbCreate === 'function') {
-      try { fbCreate('contacts', newContact); } catch(e) {}
-    }
+    if (typeof fbCreate === 'function') { try { fbCreate('contacts', newContact); } catch(e) {} }
 
-    /* Create follow-up activity */
-    var actId = 'act_nora_orphan_' + a.id + '_' + Date.now();
-    var newAct = {
-      id: actId,
-      type: 'Task',
-      subject: 'Identifier le contact principal — ' + a.name,
-      date: nextWeek,
-      time: '09:00',
-      status: 'Planned',
-      owner: 'Nora Leclerc — Agent Data Quality',
-      purpose: 'Compte sans contact détecté. Contact placeholder créé. Action de complétion requise.',
-      account: a.id
-    };
+    var actId = 'act_nora_orph_' + a.id + '_' + Date.now();
+    var newAct = { id:actId, type:'Task', subject:'Identifier le contact principal — '+a.name, date:nextWeekISO, time:'09:00', status:'Planned', owner:'Nora Leclerc — Agent Data Quality', purpose:'Compte sans contact détecté. Contact placeholder créé.', account:a.id };
     if (D.activities) D.activities.push(newAct);
-    if (typeof fbCreate === 'function') {
-      try { fbCreate('activities', newAct); } catch(e) {}
-    }
+    if (typeof fbCreate === 'function') { try { fbCreate('activities', newAct); } catch(e) {} }
 
-    created.push({account: a, contactId: cId, activityId: actId});
+    created.push({ account:a, contactId:cId, contactName:'Contact à identifier — '+a.name, taskSubject:'Identifier le contact principal — '+a.name, taskDate:nextWeekLabel });
   });
 
-  /* Build result table */
-  var tbl = '<table style="width:100%;border-collapse:collapse;font-size:11.5px;margin:10px 0;border-radius:10px;overflow:hidden"><thead><tr>';
-  ['Compte orphelin','Secteur','Ville','Actions créées'].forEach(function(h) {
-    tbl += '<th style="text-align:left;padding:7px 10px;background:#0ea5e910;color:#0ea5e9;font-weight:600;border-bottom:1px solid #e8eaed;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px">'+h+'</th>';
-  });
-  tbl += '</tr></thead><tbody>';
-  created.forEach(function(c,i) {
-    tbl += '<tr style="'+(i%2===1?'background:#f8f9fb':'')+';cursor:pointer" onclick="navigate(\'record\',\'accounts\',\''+c.account.id+'\')">' +
-      '<td style="padding:6px 10px;border-bottom:1px solid #f0f2f5;color:#0ea5e9;font-weight:500">'+c.account.name+'</td>' +
-      '<td style="padding:6px 10px;border-bottom:1px solid #f0f2f5;color:#1e293b;font-size:11px">'+(c.account.industry||'—')+'</td>' +
-      '<td style="padding:6px 10px;border-bottom:1px solid #f0f2f5;color:#64748b;font-size:11px">'+(c.account.city||'—')+'</td>' +
-      '<td style="padding:6px 10px;border-bottom:1px solid #f0f2f5"><span style="background:#8b5cf612;color:#8b5cf6;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">Contact + Task</span></td>' +
-    '</tr>';
-  });
-  tbl += '</tbody></table>';
+  /* Log audit */
+  var logAct = { id:'act_nora_orph_summary_'+Date.now(), type:'Task', subject:'Data Quality — '+created.length+' orphan accounts fixed by Nora', date:new Date().toISOString().split('T')[0], time:new Date().toTimeString().slice(0,5), status:'Completed', owner:'Nora Leclerc — Agent Data Quality', purpose:created.map(function(c){return c.account.name}).join(', ') };
+  if (D.activities) D.activities.push(logAct);
+  if (typeof fbCreate === 'function') { try { fbCreate('activities', logAct); } catch(e) {} }
 
-  var summary = '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">' +
-    '<span style="background:#ef444412;color:#ef4444;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">' + orphans.length + ' comptes sans contact</span>' +
-    '<span style="background:#8b5cf612;color:#8b5cf6;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">' + created.length + ' contacts placeholder créés</span>' +
-    '<span style="background:#10b98112;color:#10b981;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">' + created.length + ' tasks planifiées</span>' +
-  '</div>';
+  if (typeof acShowToast === 'function') acShowToast('Nora — Comptes corrigés', created.length + ' contacts + tasks créés', '#10b981');
 
-  var viewBtn = '<div style="margin-top:10px;display:flex;gap:8px">' +
-    '<button onclick="navigate(\'accounts\')" style="background:#0ea5e912;color:#0ea5e9;border:1px solid #0ea5e930;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Voir les Comptes</button>' +
-    '<button onclick="navigate(\'contacts\')" style="background:#8b5cf612;color:#8b5cf6;border:1px solid #8b5cf630;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Voir les Contacts</button>' +
-    '<button onclick="navigate(\'activities\')" style="background:#10b98112;color:#10b981;border:1px solid #10b98130;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Voir les Tasks</button>' +
-  '</div>';
+  /* Store for edit buttons */
+  window._NORA_ORPH_CREATED = created;
 
-  return 'Mickaël, j\'ai identifié ' + orphans.length + ' comptes qui n\'ont aucun contact rattaché. C\'est un vrai trou dans votre couverture relationnelle.\n\nVoilà ce que j\'ai fait pour chacun :\n— Créé un contact placeholder « À compléter » pour ne plus avoir de compte vide\n— Planifié une task de suivi pour la semaine prochaine\n\nVous pouvez cliquer sur chaque compte pour compléter les informations.\n%%HTML%%' + tbl + summary + viewBtn + '%%/HTML%%';
+  var stepBar = '<div style="display:flex;gap:4px;margin-bottom:14px;align-items:center">' +
+    '<div style="flex:1;height:4px;border-radius:2px;background:#0ea5e9"></div>' +
+    '<div style="flex:1;height:4px;border-radius:2px;background:#10b981"></div>' +
+    '<span style="font-size:10px;color:#10b981;margin-left:6px;font-weight:600">Done</span></div>';
+
+  var kpis = '<div style="display:flex;gap:6px;margin-bottom:10px">' +
+    '<div style="flex:1;background:#ef444408;border:1px solid #ef444420;border-radius:10px;padding:8px 4px;text-align:center"><div style="font-size:18px;font-weight:700;color:#ef4444">'+created.length+'</div><div style="font-size:9px;color:#64748b;margin-top:2px">Comptes corrigés</div></div>' +
+    '<div style="flex:1;background:#8b5cf608;border:1px solid #8b5cf620;border-radius:10px;padding:8px 4px;text-align:center"><div style="font-size:18px;font-weight:700;color:#8b5cf6">'+created.length+'</div><div style="font-size:9px;color:#64748b;margin-top:2px">Contacts créés</div></div>' +
+    '<div style="flex:1;background:#10b98108;border:1px solid #10b98120;border-radius:10px;padding:8px 4px;text-align:center"><div style="font-size:18px;font-weight:700;color:#10b981">'+created.length+'</div><div style="font-size:9px;color:#64748b;margin-top:2px">Tasks planifiées</div></div></div>';
+
+  var actionLabel = '<div style="font-size:10px;font-weight:600;color:#f59e0b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">Prochaine étape : compléter les contacts</div>';
+
+  var cards = created.map(function(c, i) {
+    return '<div id="nora-orph-card-'+i+'" style="background:#fff;border:1px solid #e8eaed;border-radius:10px;padding:10px 12px;margin-bottom:6px">' +
+      '<div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">' +
+        '<span id="nora-orph-icon-'+i+'" style="width:14px;height:14px;border-radius:50%;border:2px solid #f59e0b;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><span style="width:6px;height:6px;border-radius:50%;background:#f59e0b"></span></span>' +
+        _noraLink(c.account.name, 'accounts', c.account.id, '#1e293b') +
+      '</div>' +
+      '<div style="margin-left:20px;font-size:10.5px;color:#475569;line-height:1.6;margin-bottom:8px">' +
+        '<div style="display:flex;align-items:center;gap:4px"><span style="background:#8b5cf612;color:#8b5cf6;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">Contact</span><span style="color:#64748b">'+c.contactName+'</span></div>' +
+        '<div style="display:flex;align-items:center;gap:4px;margin-top:3px"><span style="background:#10b98112;color:#10b981;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">Task</span><span style="color:#64748b">'+c.taskSubject+'</span><span style="color:#94a3b8;font-size:9.5px">— '+c.taskDate+'</span></div>' +
+      '</div>' +
+      '<div id="nora-orph-action-'+i+'" style="margin-left:20px">' +
+        '<button onclick="noraOrphComplete('+i+')" style="display:inline-flex;align-items:center;gap:5px;background:#8b5cf6;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">' +
+          svgIcon('edit',11,'#fff') + ' Compléter ce contact</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  var tags = '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;margin-bottom:8px">' +
+    '<span style="background:#0ea5e912;color:#0ea5e9;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">Firestore persisté</span>' +
+    '<span style="background:#10b98112;color:#10b981;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">Audit trail créé</span></div>';
+
+  var navBtns = '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
+    '<button onclick="navigate(\'accounts\')" style="background:#0ea5e912;color:#0ea5e9;border:1px solid #0ea5e930;padding:6px 12px;border-radius:8px;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit">Comptes</button>' +
+    '<button onclick="navigate(\'contacts\')" style="background:#8b5cf612;color:#8b5cf6;border:1px solid #8b5cf630;padding:6px 12px;border-radius:8px;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit">Contacts</button>' +
+    '<button onclick="navigate(\'activities\')" style="background:#10b98112;color:#10b981;border:1px solid #10b98130;padding:6px 12px;border-radius:8px;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit">Activities</button></div>';
+
+  var msgText = 'C\'est fait Mickaël ! J\'ai créé '+created.length+' contacts placeholder et '+created.length+' tasks de suivi.\n\nCliquez sur « Compléter ce contact » pour ouvrir la modale d\'édition et renseigner les vraies coordonnées.\n%%HTML%%' + stepBar + kpis + actionLabel + cards + tags + navBtns + '%%/HTML%%';
+  _noraPushMsg(msgText);
+  window._NORA_ORPHANS_LIVE = null;
+}
+
+/* Open edit modal for the placeholder contact */
+function noraOrphComplete(idx) {
+  var created = window._NORA_ORPH_CREATED || [];
+  var c = created[idx];
+  if (!c) return;
+
+  /* Open edit modal */
+  if (typeof openEditModal === 'function') {
+    openEditModal('contacts', c.contactId);
+  } else {
+    navigate('record', 'contacts', c.contactId);
+  }
+
+  /* Mark card as completed visually */
+  var card = document.getElementById('nora-orph-card-' + idx);
+  if (card) { card.style.background = '#f0fdf4'; card.style.borderColor = '#bbf7d0'; }
+  var icon = document.getElementById('nora-orph-icon-' + idx);
+  if (icon) { icon.outerHTML = '<span style="color:#10b981;font-weight:700;font-size:14px">✓</span>'; }
+  var action = document.getElementById('nora-orph-action-' + idx);
+  if (action) { action.innerHTML = '<span style="background:#10b98112;color:#10b981;padding:3px 10px;border-radius:8px;font-size:10px;font-weight:600">Complété</span>'; }
 }
 
 /* ── SCENARIO 3: Audit Missing Required Fields ─────────── */
