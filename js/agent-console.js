@@ -709,101 +709,320 @@ function acMutateResetPassword(msg) {
    Each scenario: real data mutations + Firestore persist + rich HTML
    ═══════════════════════════════════════════════════════════════ */
 
-/* ── SCENARIO 1: Detect & Merge Duplicate Accounts ─────── */
-function noraMergeDuplicates() {
+/* ── SCENARIO 1: Detect & Merge Duplicate Accounts (Interactive 3-Phase) ── */
+
+/* Seed test duplicates + associated contacts/opps for demo */
+function noraSeedDuplicates() {
   var D = window.DATA || {};
   var accounts = D.accounts || [];
   var contacts = D.contacts || [];
   var opps = D.opportunities || [];
-  if (accounts.length < 2) return 'Mickaël, je n\'ai pas assez de comptes en base pour lancer une détection de doublons.';
 
-  /* Inject fake duplicates if not already present */
-  if (!accounts.find(function(a){ return a.id === 'a1_dup'; })) {
-    var dup1 = {id:'a1_dup',name:'Bouygues Constr.',industry:'General Contractor',city:'Paris',pipeline:0,opps:0,status:'Active'};
-    var dup2 = {id:'a2_dup',name:'VINCI Immo',industry:'Real Estate Developer',city:'Nanterre',pipeline:0,opps:0,status:'Active'};
-    var dup3 = {id:'a3_dup',name:'Eiffage GC',industry:'Civil Engineering',city:'Vélizy',pipeline:0,opps:0,status:'Active'};
-    accounts.push(dup1, dup2, dup3);
-  }
-
-  /* Define merge pairs */
-  var pairs = [
-    {dup:'a1_dup', master:'a1', dupName:'Bouygues Constr.', masterName:'Bouygues Construction'},
-    {dup:'a2_dup', master:'a2', dupName:'VINCI Immo', masterName:'Vinci Immobilier'},
-    {dup:'a3_dup', master:'a3', dupName:'Eiffage GC', masterName:'Eiffage Génie Civil'}
+  var dupsToSeed = [
+    {id:'a1_dup',name:'Bouygues Constr.',industry:'General Contractor',city:'Paris',pipeline:0,opps:0,status:'Active'},
+    {id:'a2_dup',name:'VINCI Immo',industry:'Real Estate Developer',city:'Nanterre',pipeline:0,opps:0,status:'Active'},
+    {id:'a3_dup',name:'Eiffage GC',industry:'Civil Engineering',city:'Vélizy',pipeline:0,opps:0,status:'Active'},
+    {id:'a4_dup',name:'Spie Bat.',industry:'General Contractor',city:'Neuilly-sur-Seine',pipeline:0,opps:0,status:'Active'},
+    {id:'a5_dup',name:'Colas Grp',industry:'Road & Rail',city:'Boulogne',pipeline:0,opps:0,status:'Active'}
+  ];
+  var contactsToSeed = [
+    {id:'c_dup1',name:'Pierre Dupont',account:'a1_dup',role:'Chef de Chantier',email:'p.dupont@bouygues.fr',phone:'+33 6 11 22 33 44'},
+    {id:'c_dup2',name:'Marie Laurent',account:'a2_dup',role:'Assistante Projets',email:'m.laurent@vinci.com',phone:'+33 6 22 33 44 55'},
+    {id:'c_dup3',name:'Julien Roche',account:'a4_dup',role:'Conducteur Travaux',email:'j.roche@spie.com',phone:'+33 6 33 44 55 66'}
+  ];
+  var oppsToSeed = [
+    {id:'o_dup1',name:'Bouygues — Extension Usine Roissy',account:'a1_dup',amount:6500000,prob:30,stage:'study',close:'2026-09-01'},
+    {id:'o_dup2',name:'Eiffage — Parking Souterrain Lyon',account:'a3_dup',amount:4200000,prob:20,stage:'lead',close:'2026-11-15'}
   ];
 
+  var seeded = 0;
+  dupsToSeed.forEach(function(d) {
+    if (!accounts.find(function(a){ return a.id === d.id; })) {
+      accounts.push(d);
+      if (typeof fbCreate === 'function') { try { fbCreate('accounts', d); } catch(e) {} }
+      seeded++;
+    }
+  });
+  contactsToSeed.forEach(function(c) {
+    if (!contacts.find(function(x){ return x.id === c.id; })) {
+      contacts.push(c);
+      if (typeof fbCreate === 'function') { try { fbCreate('contacts', c); } catch(e) {} }
+    }
+  });
+  oppsToSeed.forEach(function(o) {
+    if (!opps.find(function(x){ return x.id === o.id; })) {
+      opps.push(o);
+      if (typeof fbCreate === 'function') { try { fbCreate('opportunities', o); } catch(e) {} }
+    }
+  });
+  return seeded;
+}
+
+/* Duplicate pair definitions */
+var NORA_DUP_PAIRS = [
+  {dup:'a1_dup',master:'a1',dupName:'Bouygues Constr.',masterName:'Bouygues Construction',score:96,reason:'Nom tronqué'},
+  {dup:'a2_dup',master:'a2',dupName:'VINCI Immo',masterName:'Vinci Immobilier',score:91,reason:'Abréviation'},
+  {dup:'a3_dup',master:'a3',dupName:'Eiffage GC',masterName:'Eiffage Génie Civil',score:88,reason:'Acronyme'},
+  {dup:'a4_dup',master:'a4',dupName:'Spie Bat.',masterName:'Spie Batignolles',score:85,reason:'Nom tronqué'},
+  {dup:'a5_dup',master:'a5',dupName:'Colas Grp',masterName:'Colas Group',score:82,reason:'Abréviation'}
+];
+
+/* Phase 1: Build scan results HTML (checkboxes) */
+function noraMergeDuplicates() {
+  var D = window.DATA || {};
+
+  /* Seed duplicates if missing */
+  noraSeedDuplicates();
+
+  /* Count contacts & opps per dup */
+  var contacts = D.contacts || [];
+  var opps = D.opportunities || [];
+  var pairs = NORA_DUP_PAIRS.map(function(p) {
+    var c = contacts.filter(function(x){ return x.account === p.dup; }).length;
+    var o = opps.filter(function(x){ return x.account === p.dup; }).length;
+    return {dup:p.dup, master:p.master, dupName:p.dupName, masterName:p.masterName, score:p.score, reason:p.reason, contacts:c, opps:o};
+  });
+
+  /* Only show pairs where the dup account actually exists */
+  var accounts = D.accounts || [];
+  pairs = pairs.filter(function(p) {
+    return accounts.find(function(a){ return a.id === p.dup; });
+  });
+
+  if (pairs.length === 0) {
+    return 'Mickaël, j\'ai scanné tous vos comptes et je ne détecte aucun doublon. Votre base est propre !';
+  }
+
+  /* Store pairs globally for phase 2/3 */
+  window._NORA_DUP_PAIRS = pairs;
+
+  /* Build Phase 1 HTML */
+  var rows = pairs.map(function(p, i) {
+    var sc = p.score >= 90 ? 'background:#dcfce7;color:#166534' : 'background:#fef9c3;color:#854d0e';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f2f5">' +
+      '<input type="checkbox" id="nora-dup-'+i+'" style="width:16px;height:16px;accent-color:#0ea5e9;cursor:pointer" checked>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">' +
+          '<span style="font-size:12px;font-weight:500;color:#ef4444;text-decoration:line-through">'+p.dupName+'</span>' +
+          '<span style="color:#94a3b8;font-size:11px">→</span>' +
+          '<span style="font-size:12px;font-weight:600;color:#0ea5e9">'+p.masterName+'</span>' +
+        '</div>' +
+        '<div style="font-size:10.5px;color:#94a3b8;margin-top:2px">'+p.reason+' · '+p.contacts+' contact(s) · '+p.opps+' opp(s) à migrer</div>' +
+      '</div>' +
+      '<span style="'+sc+';padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;flex-shrink:0">'+p.score+'%</span>' +
+    '</div>';
+  }).join('');
+
+  var selectAll = '<div style="display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid #e8eaed;margin-bottom:4px">' +
+    '<input type="checkbox" id="nora-dup-all" style="width:16px;height:16px;accent-color:#0ea5e9;cursor:pointer" checked onclick="var c=this.checked;for(var i=0;i<'+pairs.length+';i++){var el=document.getElementById(\'nora-dup-\'+i);if(el)el.checked=c;}">' +
+    '<label for="nora-dup-all" style="font-size:11px;color:#64748b;cursor:pointer">Tout sélectionner / désélectionner</label></div>';
+
+  var cardStyle = 'background:#fff;border:1px solid #e8eaed;border-radius:12px;padding:14px 16px;margin:10px 0';
+  var phase1 = '<div style="'+cardStyle+'">' +
+    '<div style="font-size:10.5px;font-weight:600;color:#0ea5e9;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Doublons détectés — ' + pairs.length + ' paires</div>' +
+    selectAll + rows +
+  '</div>';
+
+  var stepBar = '<div style="display:flex;gap:4px;margin-bottom:14px">' +
+    '<div style="flex:1;height:4px;border-radius:2px;background:#0ea5e9;opacity:.6"></div>' +
+    '<div style="flex:1;height:4px;border-radius:2px;background:#e8eaed"></div>' +
+    '<div style="flex:1;height:4px;border-radius:2px;background:#e8eaed"></div></div>';
+
+  var buttons = '<div style="display:flex;gap:8px;margin-top:12px">' +
+    '<button onclick="noraDupPhase2()" style="background:#0ea5e9;color:#fff;border:none;padding:7px 18px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Fusionner la sélection</button>' +
+    '<button onclick="noraDupPhase2All()" style="background:transparent;color:#0ea5e9;border:1px solid #0ea5e930;padding:7px 18px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit">Tout fusionner</button>' +
+  '</div>';
+
+  return 'Mickaël, j\'ai scanné vos ' + (D.accounts||[]).length + ' comptes et détecté ' + pairs.length + ' doublons potentiels. Chacun a un score de similarité.\n\nCochez les paires que vous souhaitez fusionner, ou cliquez « Tout fusionner ».\n%%HTML%%' + stepBar + phase1 + buttons + '%%/HTML%%';
+}
+
+/* Phase 2: Preview impact (called from button click) */
+function noraDupPhase2All() {
+  window._NORA_DUP_SELECTED = (window._NORA_DUP_PAIRS || []).slice();
+  _noraDupShowPreview();
+}
+function noraDupPhase2() {
+  var pairs = window._NORA_DUP_PAIRS || [];
+  var selected = [];
+  pairs.forEach(function(p, i) {
+    var el = document.getElementById('nora-dup-' + i);
+    if (el && el.checked) selected.push(p);
+  });
+  if (selected.length === 0) {
+    if (typeof acShowToast === 'function') acShowToast('Nora', 'Sélectionnez au moins une paire', '#f59e0b');
+    return;
+  }
+  window._NORA_DUP_SELECTED = selected;
+  _noraDupShowPreview();
+}
+function _noraDupShowPreview() {
+  var sel = window._NORA_DUP_SELECTED || [];
+  var totalC = sel.reduce(function(s,p){ return s + p.contacts; }, 0);
+  var totalO = sel.reduce(function(s,p){ return s + p.opps; }, 0);
+
+  var stepBar = '<div style="display:flex;gap:4px;margin-bottom:14px">' +
+    '<div style="flex:1;height:4px;border-radius:2px;background:#0ea5e9"></div>' +
+    '<div style="flex:1;height:4px;border-radius:2px;background:#0ea5e9;opacity:.6"></div>' +
+    '<div style="flex:1;height:4px;border-radius:2px;background:#e8eaed"></div></div>';
+
+  var kpis = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0">' +
+    '<div style="background:#ef444408;border:1px solid #ef444420;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:#ef4444">'+sel.length+'</div><div style="font-size:10px;color:#64748b;margin-top:2px">Comptes supprimés</div></div>' +
+    '<div style="background:#0ea5e908;border:1px solid #0ea5e920;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:#0ea5e9">'+totalC+'</div><div style="font-size:10px;color:#64748b;margin-top:2px">Contacts migrés</div></div>' +
+    '<div style="background:#f59e0b08;border:1px solid #f59e0b20;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:#f59e0b">'+totalO+'</div><div style="font-size:10px;color:#64748b;margin-top:2px">Opps migrées</div></div>' +
+  '</div>';
+
+  var rows = sel.map(function(p) {
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f2f5;font-size:12px">' +
+      '<span style="color:#94a3b8;text-decoration:line-through">'+p.dupName+'</span>' +
+      '<span style="color:#94a3b8">→</span>' +
+      '<span style="font-weight:600;color:#0ea5e9">'+p.masterName+'</span>' +
+      (p.contacts > 0 ? '<span style="background:#0ea5e912;color:#0ea5e9;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">'+p.contacts+' contact(s)</span>' : '') +
+      (p.opps > 0 ? '<span style="background:#f59e0b12;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">'+p.opps+' opp(s)</span>' : '') +
+    '</div>';
+  }).join('');
+
+  var cardStyle = 'background:#fff;border:1px solid #e8eaed;border-radius:12px;padding:14px 16px;margin:10px 0';
+  var card = '<div style="'+cardStyle+'"><div style="font-size:10.5px;font-weight:600;color:#0ea5e9;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Détail des fusions</div>' + rows + '</div>';
+
+  var buttons = '<div style="display:flex;gap:8px;margin-top:12px">' +
+    '<button onclick="noraDupPhase3()" style="background:#0ea5e9;color:#fff;border:none;padding:7px 18px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Confirmer et exécuter</button>' +
+    '<button onclick="noraDupCancel()" style="background:transparent;color:#64748b;border:1px solid #e8eaed;padding:7px 18px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit">Annuler</button>' +
+  '</div>';
+
+  var msgText = 'Mickaël, voici l\'impact avant exécution : ' + sel.length + ' doublon(s) à supprimer, ' + totalC + ' contact(s) et ' + totalO + ' opp(s) à migrer vers les comptes maîtres.\n\nTout est prêt. Confirmez pour exécuter la fusion.\n%%HTML%%' + stepBar + kpis + card + buttons + '%%/HTML%%';
+
+  AC_CHAT_MESSAGES.push({ role:'assistant', content: msgText });
+  AC_CHAT_LOADING = false;
+
+  /* Render in the correct chat body */
+  if (typeof AT_ACTIVE_AGENT !== 'undefined' && AT_ACTIVE_AGENT && AT_ACTIVE_AGENT.id === 'nora') {
+    if (typeof AT_MESSAGES !== 'undefined') AT_MESSAGES['nora'].push({ role:'agent', text: msgText });
+    var el = document.getElementById('at-window-content');
+    if (el && typeof atRenderChat === 'function') atRenderChat(el);
+  } else {
+    acRenderChat(document.getElementById('ac-float-body'));
+  }
+}
+
+/* Phase 3: Execute merge (called from confirm button) */
+function noraDupPhase3() {
+  var sel = window._NORA_DUP_SELECTED || [];
+  if (!sel.length) return;
+
+  var D = window.DATA || {};
+  var accounts = D.accounts || [];
+  var contacts = D.contacts || [];
+  var opps = D.opportunities || [];
+
   var merged = [];
-  pairs.forEach(function(p) {
+  sel.forEach(function(p) {
     var dupAcct = accounts.find(function(a){ return a.id === p.dup; });
     if (!dupAcct) return;
 
-    /* Migrate contacts from dup → master */
-    var migratedContacts = 0;
+    /* Migrate contacts */
+    var mc = 0;
     contacts.forEach(function(c) {
-      if (c.account === p.dup) { c.account = p.master; migratedContacts++; }
+      if (c.account === p.dup) {
+        c.account = p.master;
+        mc++;
+        if (typeof fbUpdate === 'function') { try { fbUpdate('contacts', c.id, {account: p.master}); } catch(e) {} }
+      }
     });
 
-    /* Migrate opportunities from dup → master */
-    var migratedOpps = 0;
+    /* Migrate opportunities */
+    var mo = 0;
     opps.forEach(function(o) {
-      if (o.account === p.dup) { o.account = p.master; migratedOpps++; }
+      if (o.account === p.dup) {
+        o.account = p.master;
+        mo++;
+        if (typeof fbUpdate === 'function') { try { fbUpdate('opportunities', o.id, {account: p.master}); } catch(e) {} }
+      }
     });
 
-    merged.push({dupName:p.dupName, masterName:p.masterName, contacts:migratedContacts, opps:migratedOpps});
-
-    /* Remove duplicate from array */
+    /* Remove duplicate account */
     var idx = accounts.indexOf(dupAcct);
     if (idx >= 0) accounts.splice(idx, 1);
+    if (typeof fbDelete === 'function') { try { fbDelete('accounts', p.dup); } catch(e) {} }
 
-    /* Delete from Firestore */
-    if (typeof fbDelete === 'function') {
-      try { fbDelete('accounts', p.dup); } catch(e) {}
-    }
+    merged.push({dupName:p.dupName, masterName:p.masterName, contacts:mc, opps:mo});
   });
 
-  if (merged.length === 0) {
-    return 'Mickaël, bonne nouvelle ! J\'ai scanné l\'ensemble des comptes et je n\'ai détecté aucun doublon. Votre base est propre.';
-  }
-
-  /* Log activity */
+  /* Log audit activity */
   var actId = 'act_nora_merge_' + Date.now();
   var logAct = {
-    id: actId, type:'Task', subject:'Data Quality — ' + merged.length + ' duplicate accounts merged',
-    date: new Date().toISOString().split('T')[0], time: new Date().toTimeString().slice(0,5),
+    id: actId, type:'Task',
+    subject: 'Data Quality — ' + merged.length + ' duplicate accounts merged by Nora',
+    date: new Date().toISOString().split('T')[0],
+    time: new Date().toTimeString().slice(0,5),
     status:'Completed', owner:'Nora Leclerc — Agent Data Quality',
-    purpose: 'Automated duplicate detection and merge. ' + merged.length + ' duplicates removed.'
+    purpose: merged.map(function(m){ return m.dupName + ' → ' + m.masterName; }).join(', ')
   };
   if (D.activities) D.activities.push(logAct);
   if (typeof fbCreate === 'function') { try { fbCreate('activities', logAct); } catch(e) {} }
 
-  /* Build result table */
-  var tbl = '<table style="width:100%;border-collapse:collapse;font-size:11.5px;margin:10px 0;border-radius:10px;overflow:hidden"><thead><tr>';
-  ['Doublon supprimé','Fusionné vers','Contacts migrés','Opps migrées'].forEach(function(h) {
-    tbl += '<th style="text-align:left;padding:7px 10px;background:#0ea5e910;color:#0ea5e9;font-weight:600;border-bottom:1px solid #e8eaed;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px">'+h+'</th>';
-  });
-  tbl += '</tr></thead><tbody>';
-  merged.forEach(function(m,i) {
-    tbl += '<tr style="'+(i%2===1?'background:#f8f9fb':'')+'">' +
-      '<td style="padding:6px 10px;border-bottom:1px solid #f0f2f5;color:#ef4444;font-weight:500;text-decoration:line-through">'+m.dupName+'</td>' +
-      '<td style="padding:6px 10px;border-bottom:1px solid #f0f2f5;color:#10b981;font-weight:600">'+m.masterName+'</td>' +
-      '<td style="padding:6px 10px;border-bottom:1px solid #f0f2f5;color:#1e293b;text-align:center">'+m.contacts+'</td>' +
-      '<td style="padding:6px 10px;border-bottom:1px solid #f0f2f5;color:#1e293b;text-align:center">'+m.opps+'</td>' +
-    '</tr>';
-  });
-  tbl += '</tbody></table>';
+  /* Build Phase 3 result */
+  var stepBar = '<div style="display:flex;gap:4px;margin-bottom:14px">' +
+    '<div style="flex:1;height:4px;border-radius:2px;background:#0ea5e9"></div>' +
+    '<div style="flex:1;height:4px;border-radius:2px;background:#0ea5e9"></div>' +
+    '<div style="flex:1;height:4px;border-radius:2px;background:#10b981"></div></div>';
+
+  var rows = merged.map(function(m) {
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f2f5;font-size:12px">' +
+      '<span style="color:#10b981;font-size:14px;font-weight:700">✓</span>' +
+      '<span style="color:#94a3b8;text-decoration:line-through">'+m.dupName+'</span>' +
+      '<span style="color:#94a3b8">→</span>' +
+      '<span style="font-weight:600;color:#1e293b">'+m.masterName+'</span>' +
+      '<span style="background:#ef444412;color:#ef4444;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">Supprimé</span>' +
+      '<span style="background:#10b98112;color:#10b981;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">Fusionné</span>' +
+    '</div>';
+  }).join('');
+
+  var cardStyle = 'background:#fff;border:1px solid #e8eaed;border-radius:12px;padding:14px 16px;margin:10px 0';
+  var card = '<div style="'+cardStyle+'"><div style="font-size:10.5px;font-weight:600;color:#10b981;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Résultat de la fusion</div>' + rows + '</div>';
 
   var summary = '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">' +
-    '<span style="background:#ef444412;color:#ef4444;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">' + merged.length + ' doublons supprimés</span>' +
-    '<span style="background:#10b98112;color:#10b981;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">Données migrées automatiquement</span>' +
-    '<span style="background:#0ea5e912;color:#0ea5e9;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">Firestore nettoyé</span>' +
+    '<span style="background:#ef444412;color:#ef4444;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">'+merged.length+' doublons supprimés</span>' +
+    '<span style="background:#10b98112;color:#10b981;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">Données migrées</span>' +
+    '<span style="background:#0ea5e912;color:#0ea5e9;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">Firestore mis à jour</span>' +
   '</div>';
 
-  var viewBtn = '<div style="margin-top:10px;display:flex;gap:8px">' +
+  var viewBtn = '<div style="margin-top:12px;display:flex;gap:8px">' +
     '<button onclick="navigate(\'accounts\')" style="background:#0ea5e912;color:#0ea5e9;border:1px solid #0ea5e930;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Vérifier les Comptes</button>' +
     '<button onclick="navigate(\'activities\')" style="background:#10b98112;color:#10b981;border:1px solid #10b98130;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Voir l\'audit trail</button>' +
   '</div>';
 
-  return 'Mickaël, j\'ai scanné vos ' + (accounts.length + merged.length) + ' comptes et détecté ' + merged.length + ' doublons.\n\nJ\'ai procédé à la fusion : les contacts et opportunités ont été rattachés aux comptes principaux, et les doublons ont été supprimés de Firestore. Tout est propre !\n%%HTML%%' + tbl + summary + viewBtn + '%%/HTML%%';
+  var totalC = merged.reduce(function(s,m){ return s+m.contacts; },0);
+  var totalO = merged.reduce(function(s,m){ return s+m.opps; },0);
+
+  if (typeof acShowToast === 'function') acShowToast('Nora — Fusion terminée', merged.length + ' doublons supprimés', '#10b981');
+
+  var msgText = 'C\'est fait Mickaël ! J\'ai fusionné ' + merged.length + ' doublon(s), migré ' + totalC + ' contact(s) et ' + totalO + ' opp(s) vers les comptes maîtres.\n\nLes modifications sont persistées dans Firestore et un audit trail a été créé dans vos Activities.\n%%HTML%%' + stepBar + card + summary + viewBtn + '%%/HTML%%';
+
+  AC_CHAT_MESSAGES.push({ role:'assistant', content: msgText });
+  if (typeof AT_ACTIVE_AGENT !== 'undefined' && AT_ACTIVE_AGENT && AT_ACTIVE_AGENT.id === 'nora') {
+    if (typeof AT_MESSAGES !== 'undefined') AT_MESSAGES['nora'].push({ role:'agent', text: msgText });
+    var el = document.getElementById('at-window-content');
+    if (el && typeof atRenderChat === 'function') atRenderChat(el);
+  } else {
+    acRenderChat(document.getElementById('ac-float-body'));
+  }
+
+  /* Clean up */
+  window._NORA_DUP_PAIRS = null;
+  window._NORA_DUP_SELECTED = null;
+}
+
+/* Cancel merge — go back to chat */
+function noraDupCancel() {
+  var msgText = 'Pas de problème Mickaël, la fusion est annulée. Les doublons restent en place. N\'hésitez pas à relancer quand vous êtes prêt !';
+  AC_CHAT_MESSAGES.push({ role:'assistant', content: msgText });
+  if (typeof AT_ACTIVE_AGENT !== 'undefined' && AT_ACTIVE_AGENT && AT_ACTIVE_AGENT.id === 'nora') {
+    if (typeof AT_MESSAGES !== 'undefined') AT_MESSAGES['nora'].push({ role:'agent', text: msgText });
+    var el = document.getElementById('at-window-content');
+    if (el && typeof atRenderChat === 'function') atRenderChat(el);
+  } else {
+    acRenderChat(document.getElementById('ac-float-body'));
+  }
 }
 
 /* ── SCENARIO 2: Orphan Accounts (0 contacts) ─────────── */
