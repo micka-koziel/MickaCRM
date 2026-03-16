@@ -709,6 +709,7 @@ function acMutateResetPassword(msg) {
    Each scenario: real data mutations + Firestore persist + rich HTML
    ═══════════════════════════════════════════════════════════════ */
 
+
 /* ── SCENARIO 1: Detect & Merge Duplicate Accounts (Interactive 3-Phase) ── */
 
 /* Seed test duplicates + associated contacts/opps for demo */
@@ -758,271 +759,252 @@ function noraSeedDuplicates() {
   return seeded;
 }
 
-/* Duplicate pair definitions */
+/* Duplicate pair definitions with evidence */
 var NORA_DUP_PAIRS = [
-  {dup:'a1_dup',master:'a1',dupName:'Bouygues Constr.',masterName:'Bouygues Construction',score:96,reason:'Nom tronqué'},
-  {dup:'a2_dup',master:'a2',dupName:'VINCI Immo',masterName:'Vinci Immobilier',score:91,reason:'Abréviation'},
-  {dup:'a3_dup',master:'a3',dupName:'Eiffage GC',masterName:'Eiffage Génie Civil',score:88,reason:'Acronyme'},
-  {dup:'a4_dup',master:'a4',dupName:'Spie Bat.',masterName:'Spie Batignolles',score:85,reason:'Nom tronqué'},
-  {dup:'a5_dup',master:'a5',dupName:'Colas Grp',masterName:'Colas Group',score:82,reason:'Abréviation'}
+  {dup:'a1_dup',master:'a1',dupName:'Bouygues Constr.',masterName:'Bouygues Construction',score:96,reason:'Nom tronqué',evidence:'Même secteur (General Contractor), même ville (Paris). Le nom est une version tronquée du compte existant.'},
+  {dup:'a2_dup',master:'a2',dupName:'VINCI Immo',masterName:'Vinci Immobilier',score:91,reason:'Abréviation',evidence:'Même racine « VINCI », même ville (Nanterre). « Immo » est l\'abréviation courante de « Immobilier ».'},
+  {dup:'a3_dup',master:'a3',dupName:'Eiffage GC',masterName:'Eiffage Génie Civil',score:88,reason:'Acronyme',evidence:'« GC » = acronyme de « Génie Civil ». Même secteur (Civil Engineering), même ville (Vélizy).'},
+  {dup:'a4_dup',master:'a4',dupName:'Spie Bat.',masterName:'Spie Batignolles',score:85,reason:'Nom tronqué',evidence:'« Bat. » est la troncation de « Batignolles ». Même secteur, même ville (Neuilly-sur-Seine).'},
+  {dup:'a5_dup',master:'a5',dupName:'Colas Grp',masterName:'Colas Group',score:82,reason:'Abréviation',evidence:'« Grp » = abréviation de « Group ». Même secteur (Road & Rail), même ville (Boulogne).'}
 ];
 
-/* Phase 1: Build scan results HTML (checkboxes) */
+var _NORA_DUP_EXPANDED = null;
+
+/* Helper: clickable record link */
+function _noraLink(name, objKey, id, color) {
+  return '<span onclick="event.stopPropagation();navigate(\'record\',\''+objKey+'\',\''+id+'\')" style="font-size:12px;font-weight:600;color:'+color+';cursor:pointer;text-decoration:underline;text-decoration-color:'+color+'40;text-underline-offset:2px" title="Ouvrir '+name+'">'+name+'</span>';
+}
+
+/* Helper: push message to the correct chat */
+function _noraPushMsg(msgText) {
+  AC_CHAT_MESSAGES.push({ role:'assistant', content: msgText });
+  if (typeof AT_ACTIVE_AGENT !== 'undefined' && AT_ACTIVE_AGENT && AT_ACTIVE_AGENT.id === 'nora') {
+    if (typeof AT_MESSAGES !== 'undefined') AT_MESSAGES['nora'].push({ role:'agent', text: msgText });
+    var el = document.getElementById('at-window-content');
+    if (el && typeof atRenderChat === 'function') atRenderChat(el);
+  } else {
+    acRenderChat(document.getElementById('ac-float-body'));
+  }
+}
+
+/* ── Phase 1: Scan (checkboxes UNCHECKED, evidence panels, record links) ── */
 function noraMergeDuplicates() {
   var D = window.DATA || {};
-
-  /* Seed duplicates if missing */
   noraSeedDuplicates();
 
-  /* Count contacts & opps per dup */
   var contacts = D.contacts || [];
   var opps = D.opportunities || [];
+  var accounts = D.accounts || [];
+
   var pairs = NORA_DUP_PAIRS.map(function(p) {
     var c = contacts.filter(function(x){ return x.account === p.dup; }).length;
     var o = opps.filter(function(x){ return x.account === p.dup; }).length;
-    return {dup:p.dup, master:p.master, dupName:p.dupName, masterName:p.masterName, score:p.score, reason:p.reason, contacts:c, opps:o};
+    return {dup:p.dup,master:p.master,dupName:p.dupName,masterName:p.masterName,score:p.score,reason:p.reason,evidence:p.evidence,contacts:c,opps:o};
   });
+  pairs = pairs.filter(function(p) { return accounts.find(function(a){ return a.id === p.dup; }); });
 
-  /* Only show pairs where the dup account actually exists */
-  var accounts = D.accounts || [];
-  pairs = pairs.filter(function(p) {
-    return accounts.find(function(a){ return a.id === p.dup; });
-  });
+  if (pairs.length === 0) return 'Mickaël, j\'ai scanné tous vos comptes et je ne détecte aucun doublon. Votre base est propre !';
 
-  if (pairs.length === 0) {
-    return 'Mickaël, j\'ai scanné tous vos comptes et je ne détecte aucun doublon. Votre base est propre !';
-  }
+  window._NORA_DUP_PAIRS_LIVE = pairs;
+  _NORA_DUP_EXPANDED = null;
 
-  /* Store pairs globally for phase 2/3 */
-  window._NORA_DUP_PAIRS = pairs;
+  var stepBar = '<div style="display:flex;gap:4px;margin-bottom:14px;align-items:center">' +
+    '<div style="flex:1;height:4px;border-radius:2px;background:#0ea5e9;opacity:.6"></div>' +
+    '<div style="flex:1;height:4px;border-radius:2px;background:#e2e8f0"></div>' +
+    '<div style="flex:1;height:4px;border-radius:2px;background:#e2e8f0"></div>' +
+    '<span style="font-size:10px;color:#94a3b8;margin-left:6px">Scan</span></div>';
 
-  /* Build Phase 1 HTML */
+  var selectAll = '<div style="display:flex;align-items:center;gap:8px;padding-bottom:7px;border-bottom:1px solid #e8eaed;margin-bottom:4px">' +
+    '<input type="checkbox" id="nora-dup-all" style="width:14px;height:14px;accent-color:#0ea5e9;cursor:pointer" onclick="noraDupToggleAll(this.checked)">' +
+    '<span style="font-size:10.5px;color:#64748b">Tout sélectionner</span>' +
+    '<span id="nora-dup-count" style="margin-left:auto;font-size:10px;color:#94a3b8;font-weight:600">0/'+pairs.length+'</span></div>';
+
   var rows = pairs.map(function(p, i) {
     var sc = p.score >= 90 ? 'background:#dcfce7;color:#166534' : 'background:#fef9c3;color:#854d0e';
-    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f2f5">' +
-      '<input type="checkbox" id="nora-dup-'+i+'" style="width:16px;height:16px;accent-color:#0ea5e9;cursor:pointer" checked>' +
-      '<div style="flex:1;min-width:0">' +
-        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">' +
-          '<span style="font-size:12px;font-weight:500;color:#ef4444;text-decoration:line-through">'+p.dupName+'</span>' +
-          '<span style="color:#94a3b8;font-size:11px">→</span>' +
-          '<span style="font-size:12px;font-weight:600;color:#0ea5e9">'+p.masterName+'</span>' +
+    return '<div style="padding:7px 0;border-bottom:'+(i<pairs.length-1?'1px solid #f0f2f5':'none')+'">' +
+      '<div style="display:flex;align-items:center;gap:7px">' +
+        '<input type="checkbox" id="nora-dup-'+i+'" style="width:14px;height:14px;accent-color:#0ea5e9;cursor:pointer;flex-shrink:0" onchange="noraDupUpdateCount()">' +
+        '<div style="flex:1;min-width:0;cursor:pointer" onclick="noraDupToggleEvidence('+i+')">' +
+          '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">' +
+            _noraLink(p.dupName, 'accounts', p.dup, '#ef4444') +
+            '<span style="color:#94a3b8;font-size:10px">→</span>' +
+            _noraLink(p.masterName, 'accounts', p.master, '#0ea5e9') +
+          '</div>' +
+          '<div style="font-size:10px;color:#94a3b8;margin-top:1px;display:flex;align-items:center;gap:4px">' +
+            '<span>'+p.reason+'</span><span>·</span><span>'+p.contacts+' contact(s)</span><span>·</span><span>'+p.opps+' opp(s)</span>' +
+            '<svg id="nora-chev-'+i+'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" style="margin-left:2px;transition:transform .2s"><path d="M6 9l6 6 6-6"/></svg>' +
+          '</div>' +
         '</div>' +
-        '<div style="font-size:10.5px;color:#94a3b8;margin-top:2px">'+p.reason+' · '+p.contacts+' contact(s) · '+p.opps+' opp(s) à migrer</div>' +
+        '<span style="'+sc+';padding:3px 9px;border-radius:12px;font-size:10.5px;font-weight:600;flex-shrink:0">'+p.score+'%</span>' +
       '</div>' +
-      '<span style="'+sc+';padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;flex-shrink:0">'+p.score+'%</span>' +
+      '<div id="nora-evidence-'+i+'" style="display:none;margin-top:6px;margin-left:21px;padding:8px 10px;background:#f0f7ff;border:1px solid #bfdbfe;border-radius:8px;font-size:10.5px;color:#1e40af;line-height:1.5">' +
+        '<div style="font-weight:600;margin-bottom:3px;font-size:10px;text-transform:uppercase;letter-spacing:.3px;color:#3b82f6">Pourquoi ce doublon ?</div>' +
+        p.evidence +
+        '<div style="margin-top:6px;display:flex;gap:8px">' +
+          '<span onclick="navigate(\'record\',\'accounts\',\''+p.dup+'\')" style="font-size:10px;color:#ef4444;cursor:pointer;text-decoration:underline;font-weight:500">Ouvrir '+p.dupName+'</span>' +
+          '<span onclick="navigate(\'record\',\'accounts\',\''+p.master+'\')" style="font-size:10px;color:#0ea5e9;cursor:pointer;text-decoration:underline;font-weight:500">Ouvrir '+p.masterName+'</span>' +
+        '</div>' +
+      '</div>' +
     '</div>';
   }).join('');
 
-  var selectAll = '<div style="display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid #e8eaed;margin-bottom:4px">' +
-    '<input type="checkbox" id="nora-dup-all" style="width:16px;height:16px;accent-color:#0ea5e9;cursor:pointer" checked onclick="var c=this.checked;for(var i=0;i<'+pairs.length+';i++){var el=document.getElementById(\'nora-dup-\'+i);if(el)el.checked=c;}">' +
-    '<label for="nora-dup-all" style="font-size:11px;color:#64748b;cursor:pointer">Tout sélectionner / désélectionner</label></div>';
+  var card = '<div style="background:#f8fafc;border:1px solid #e8eaed;border-radius:10px;padding:8px 10px;margin-bottom:8px">' + selectAll + rows + '</div>';
+  var btnRow = '<div style="display:flex;gap:8px;align-items:center">' +
+    '<button id="nora-dup-btn" onclick="noraDupPhase2()" disabled style="background:#e2e8f0;color:#94a3b8;border:none;padding:7px 16px;border-radius:8px;font-size:11.5px;font-weight:600;cursor:default;font-family:inherit;transition:all .15s">Sélectionnez des paires</button></div>';
 
-  var cardStyle = 'background:#fff;border:1px solid #e8eaed;border-radius:12px;padding:14px 16px;margin:10px 0';
-  var phase1 = '<div style="'+cardStyle+'">' +
-    '<div style="font-size:10.5px;font-weight:600;color:#0ea5e9;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Doublons détectés — ' + pairs.length + ' paires</div>' +
-    selectAll + rows +
-  '</div>';
-
-  var stepBar = '<div style="display:flex;gap:4px;margin-bottom:14px">' +
-    '<div style="flex:1;height:4px;border-radius:2px;background:#0ea5e9;opacity:.6"></div>' +
-    '<div style="flex:1;height:4px;border-radius:2px;background:#e8eaed"></div>' +
-    '<div style="flex:1;height:4px;border-radius:2px;background:#e8eaed"></div></div>';
-
-  var buttons = '<div style="display:flex;gap:8px;margin-top:12px">' +
-    '<button onclick="noraDupPhase2()" style="background:#0ea5e9;color:#fff;border:none;padding:7px 18px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Fusionner la sélection</button>' +
-    '<button onclick="noraDupPhase2All()" style="background:transparent;color:#0ea5e9;border:1px solid #0ea5e930;padding:7px 18px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit">Tout fusionner</button>' +
-  '</div>';
-
-  return 'Mickaël, j\'ai scanné vos ' + (D.accounts||[]).length + ' comptes et détecté ' + pairs.length + ' doublons potentiels. Chacun a un score de similarité.\n\nCochez les paires que vous souhaitez fusionner, ou cliquez « Tout fusionner ».\n%%HTML%%' + stepBar + phase1 + buttons + '%%/HTML%%';
+  return 'Mickaël, j\'ai scanné vos ' + accounts.length + ' comptes et détecté ' + pairs.length + ' doublons potentiels. Cliquez sur une paire pour voir pourquoi je la suspecte, puis cochez celles à fusionner.\n%%HTML%%' + stepBar + card + btnRow + '%%/HTML%%';
 }
 
-/* Phase 2: Preview impact (called from button click) */
-function noraDupPhase2All() {
-  window._NORA_DUP_SELECTED = (window._NORA_DUP_PAIRS || []).slice();
-  _noraDupShowPreview();
-}
-function noraDupPhase2() {
-  var pairs = window._NORA_DUP_PAIRS || [];
-  var selected = [];
-  pairs.forEach(function(p, i) {
-    var el = document.getElementById('nora-dup-' + i);
-    if (el && el.checked) selected.push(p);
-  });
-  if (selected.length === 0) {
-    if (typeof acShowToast === 'function') acShowToast('Nora', 'Sélectionnez au moins une paire', '#f59e0b');
-    return;
+/* Toggle evidence panel */
+function noraDupToggleEvidence(idx) {
+  var el = document.getElementById('nora-evidence-' + idx);
+  var chev = document.getElementById('nora-chev-' + idx);
+  if (!el) return;
+  if (_NORA_DUP_EXPANDED === idx) {
+    el.style.display = 'none';
+    if (chev) chev.style.transform = 'rotate(0deg)';
+    _NORA_DUP_EXPANDED = null;
+  } else {
+    if (_NORA_DUP_EXPANDED !== null) {
+      var prev = document.getElementById('nora-evidence-' + _NORA_DUP_EXPANDED);
+      var prevChev = document.getElementById('nora-chev-' + _NORA_DUP_EXPANDED);
+      if (prev) prev.style.display = 'none';
+      if (prevChev) prevChev.style.transform = 'rotate(0deg)';
+    }
+    el.style.display = 'block';
+    if (chev) chev.style.transform = 'rotate(180deg)';
+    _NORA_DUP_EXPANDED = idx;
   }
-  window._NORA_DUP_SELECTED = selected;
-  _noraDupShowPreview();
 }
-function _noraDupShowPreview() {
-  var sel = window._NORA_DUP_SELECTED || [];
-  var totalC = sel.reduce(function(s,p){ return s + p.contacts; }, 0);
-  var totalO = sel.reduce(function(s,p){ return s + p.opps; }, 0);
 
-  var stepBar = '<div style="display:flex;gap:4px;margin-bottom:14px">' +
+/* Toggle all checkboxes */
+function noraDupToggleAll(on) {
+  var pairs = window._NORA_DUP_PAIRS_LIVE || [];
+  for (var i = 0; i < pairs.length; i++) {
+    var el = document.getElementById('nora-dup-' + i);
+    if (el) el.checked = on;
+  }
+  noraDupUpdateCount();
+}
+
+/* Update count display + button state */
+function noraDupUpdateCount() {
+  var pairs = window._NORA_DUP_PAIRS_LIVE || [];
+  var count = 0;
+  for (var i = 0; i < pairs.length; i++) {
+    var el = document.getElementById('nora-dup-' + i);
+    if (el && el.checked) count++;
+  }
+  var countEl = document.getElementById('nora-dup-count');
+  if (countEl) { countEl.textContent = count + '/' + pairs.length; countEl.style.color = count > 0 ? '#0ea5e9' : '#94a3b8'; }
+  var allEl = document.getElementById('nora-dup-all');
+  if (allEl) allEl.checked = count === pairs.length;
+  var btn = document.getElementById('nora-dup-btn');
+  if (btn) {
+    if (count > 0) { btn.disabled = false; btn.style.background = '#0ea5e9'; btn.style.color = '#fff'; btn.style.cursor = 'pointer'; btn.textContent = 'Fusionner (' + count + ')'; }
+    else { btn.disabled = true; btn.style.background = '#e2e8f0'; btn.style.color = '#94a3b8'; btn.style.cursor = 'default'; btn.textContent = 'Sélectionnez des paires'; }
+  }
+}
+
+/* ── Phase 2: Preview impact ── */
+function noraDupPhase2() {
+  var pairs = window._NORA_DUP_PAIRS_LIVE || [];
+  var selected = [];
+  for (var i = 0; i < pairs.length; i++) {
+    var el = document.getElementById('nora-dup-' + i);
+    if (el && el.checked) selected.push(pairs[i]);
+  }
+  if (selected.length === 0) { if (typeof acShowToast === 'function') acShowToast('Nora', 'Sélectionnez au moins une paire', '#f59e0b'); return; }
+  window._NORA_DUP_SELECTED = selected;
+
+  var totalC = 0, totalO = 0;
+  selected.forEach(function(p) { totalC += p.contacts; totalO += p.opps; });
+
+  var stepBar = '<div style="display:flex;gap:4px;margin-bottom:14px;align-items:center">' +
     '<div style="flex:1;height:4px;border-radius:2px;background:#0ea5e9"></div>' +
     '<div style="flex:1;height:4px;border-radius:2px;background:#0ea5e9;opacity:.6"></div>' +
-    '<div style="flex:1;height:4px;border-radius:2px;background:#e8eaed"></div></div>';
+    '<div style="flex:1;height:4px;border-radius:2px;background:#e2e8f0"></div>' +
+    '<span style="font-size:10px;color:#94a3b8;margin-left:6px">Preview</span></div>';
 
-  var kpis = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0">' +
-    '<div style="background:#ef444408;border:1px solid #ef444420;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:#ef4444">'+sel.length+'</div><div style="font-size:10px;color:#64748b;margin-top:2px">Comptes supprimés</div></div>' +
-    '<div style="background:#0ea5e908;border:1px solid #0ea5e920;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:#0ea5e9">'+totalC+'</div><div style="font-size:10px;color:#64748b;margin-top:2px">Contacts migrés</div></div>' +
-    '<div style="background:#f59e0b08;border:1px solid #f59e0b20;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:#f59e0b">'+totalO+'</div><div style="font-size:10px;color:#64748b;margin-top:2px">Opps migrées</div></div>' +
-  '</div>';
+  var kpis = '<div style="display:flex;gap:6px;margin-bottom:10px">' +
+    '<div style="flex:1;background:#ef444408;border:1px solid #ef444420;border-radius:10px;padding:10px 6px;text-align:center"><div style="font-size:20px;font-weight:700;color:#ef4444">'+selected.length+'</div><div style="font-size:9.5px;color:#64748b;margin-top:2px">Comptes supprimés</div></div>' +
+    '<div style="flex:1;background:#0ea5e908;border:1px solid #0ea5e920;border-radius:10px;padding:10px 6px;text-align:center"><div style="font-size:20px;font-weight:700;color:#0ea5e9">'+totalC+'</div><div style="font-size:9.5px;color:#64748b;margin-top:2px">Contacts migrés</div></div>' +
+    '<div style="flex:1;background:#f59e0b08;border:1px solid #f59e0b20;border-radius:10px;padding:10px 6px;text-align:center"><div style="font-size:20px;font-weight:700;color:#f59e0b">'+totalO+'</div><div style="font-size:9.5px;color:#64748b;margin-top:2px">Opps migrées</div></div></div>';
 
-  var rows = sel.map(function(p) {
-    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f2f5;font-size:12px">' +
-      '<span style="color:#94a3b8;text-decoration:line-through">'+p.dupName+'</span>' +
-      '<span style="color:#94a3b8">→</span>' +
-      '<span style="font-weight:600;color:#0ea5e9">'+p.masterName+'</span>' +
+  var rows = selected.map(function(p,i) {
+    return '<div style="display:flex;align-items:center;gap:5px;padding:5px 0;border-bottom:'+(i<selected.length-1?'1px solid #f0f2f5':'none')+';font-size:11.5px;flex-wrap:wrap">' +
+      '<span style="color:#94a3b8;text-decoration:line-through">'+p.dupName+'</span><span style="color:#94a3b8;font-size:10px">→</span><span style="font-weight:600;color:#0ea5e9">'+p.masterName+'</span>' +
       (p.contacts > 0 ? '<span style="background:#0ea5e912;color:#0ea5e9;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">'+p.contacts+' contact(s)</span>' : '') +
       (p.opps > 0 ? '<span style="background:#f59e0b12;color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">'+p.opps+' opp(s)</span>' : '') +
     '</div>';
   }).join('');
+  var card = '<div style="background:#f8fafc;border:1px solid #e8eaed;border-radius:10px;padding:6px 10px;margin-bottom:8px">' + rows + '</div>';
 
-  var cardStyle = 'background:#fff;border:1px solid #e8eaed;border-radius:12px;padding:14px 16px;margin:10px 0';
-  var card = '<div style="'+cardStyle+'"><div style="font-size:10.5px;font-weight:600;color:#0ea5e9;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Détail des fusions</div>' + rows + '</div>';
+  var buttons = '<div style="display:flex;gap:8px">' +
+    '<button onclick="noraDupPhase3()" style="background:#0ea5e9;color:#fff;border:none;padding:7px 16px;border-radius:8px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit">Confirmer et exécuter</button>' +
+    '<button onclick="noraDupCancel()" style="background:transparent;color:#64748b;border:1px solid #e2e8f0;padding:7px 16px;border-radius:8px;font-size:11.5px;font-weight:500;cursor:pointer;font-family:inherit">Annuler</button></div>';
 
-  var buttons = '<div style="display:flex;gap:8px;margin-top:12px">' +
-    '<button onclick="noraDupPhase3()" style="background:#0ea5e9;color:#fff;border:none;padding:7px 18px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Confirmer et exécuter</button>' +
-    '<button onclick="noraDupCancel()" style="background:transparent;color:#64748b;border:1px solid #e8eaed;padding:7px 18px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit">Annuler</button>' +
-  '</div>';
-
-  var msgText = 'Mickaël, voici l\'impact avant exécution : ' + sel.length + ' doublon(s) à supprimer, ' + totalC + ' contact(s) et ' + totalO + ' opp(s) à migrer vers les comptes maîtres.\n\nTout est prêt. Confirmez pour exécuter la fusion.\n%%HTML%%' + stepBar + kpis + card + buttons + '%%/HTML%%';
-
-  AC_CHAT_MESSAGES.push({ role:'assistant', content: msgText });
-  AC_CHAT_LOADING = false;
-
-  /* Render in the correct chat body */
-  if (typeof AT_ACTIVE_AGENT !== 'undefined' && AT_ACTIVE_AGENT && AT_ACTIVE_AGENT.id === 'nora') {
-    if (typeof AT_MESSAGES !== 'undefined') AT_MESSAGES['nora'].push({ role:'agent', text: msgText });
-    var el = document.getElementById('at-window-content');
-    if (el && typeof atRenderChat === 'function') atRenderChat(el);
-  } else {
-    acRenderChat(document.getElementById('ac-float-body'));
-  }
+  _noraPushMsg('Voici l\'impact avant exécution : ' + selected.length + ' doublon(s), ' + totalC + ' contact(s) et ' + totalO + ' opp(s) à migrer. Vérifiez puis confirmez.\n%%HTML%%' + stepBar + kpis + card + buttons + '%%/HTML%%');
 }
 
-/* Phase 3: Execute merge (called from confirm button) */
+/* ── Phase 3: Execute merge ── */
 function noraDupPhase3() {
   var sel = window._NORA_DUP_SELECTED || [];
   if (!sel.length) return;
-
   var D = window.DATA || {};
-  var accounts = D.accounts || [];
-  var contacts = D.contacts || [];
-  var opps = D.opportunities || [];
-
+  var accounts = D.accounts || []; var contacts = D.contacts || []; var opps = D.opportunities || [];
   var merged = [];
+
   sel.forEach(function(p) {
     var dupAcct = accounts.find(function(a){ return a.id === p.dup; });
     if (!dupAcct) return;
-
-    /* Migrate contacts */
-    var mc = 0;
-    contacts.forEach(function(c) {
-      if (c.account === p.dup) {
-        c.account = p.master;
-        mc++;
-        if (typeof fbUpdate === 'function') { try { fbUpdate('contacts', c.id, {account: p.master}); } catch(e) {} }
-      }
-    });
-
-    /* Migrate opportunities */
-    var mo = 0;
-    opps.forEach(function(o) {
-      if (o.account === p.dup) {
-        o.account = p.master;
-        mo++;
-        if (typeof fbUpdate === 'function') { try { fbUpdate('opportunities', o.id, {account: p.master}); } catch(e) {} }
-      }
-    });
-
-    /* Remove duplicate account */
-    var idx = accounts.indexOf(dupAcct);
-    if (idx >= 0) accounts.splice(idx, 1);
+    var mc = 0; contacts.forEach(function(c) { if (c.account === p.dup) { c.account = p.master; mc++; if (typeof fbUpdate === 'function') { try { fbUpdate('contacts', c.id, {account:p.master}); } catch(e) {} } } });
+    var mo = 0; opps.forEach(function(o) { if (o.account === p.dup) { o.account = p.master; mo++; if (typeof fbUpdate === 'function') { try { fbUpdate('opportunities', o.id, {account:p.master}); } catch(e) {} } } });
+    var idx = accounts.indexOf(dupAcct); if (idx >= 0) accounts.splice(idx, 1);
     if (typeof fbDelete === 'function') { try { fbDelete('accounts', p.dup); } catch(e) {} }
-
-    merged.push({dupName:p.dupName, masterName:p.masterName, contacts:mc, opps:mo});
+    merged.push({dupName:p.dupName,masterName:p.masterName,masterId:p.master,contacts:mc,opps:mo});
   });
 
-  /* Log audit activity */
-  var actId = 'act_nora_merge_' + Date.now();
-  var logAct = {
-    id: actId, type:'Task',
-    subject: 'Data Quality — ' + merged.length + ' duplicate accounts merged by Nora',
-    date: new Date().toISOString().split('T')[0],
-    time: new Date().toTimeString().slice(0,5),
-    status:'Completed', owner:'Nora Leclerc — Agent Data Quality',
-    purpose: merged.map(function(m){ return m.dupName + ' → ' + m.masterName; }).join(', ')
-  };
+  var logAct = { id:'act_nora_merge_'+Date.now(), type:'Task', subject:'Data Quality — '+merged.length+' duplicate accounts merged by Nora',
+    date:new Date().toISOString().split('T')[0], time:new Date().toTimeString().slice(0,5), status:'Completed', owner:'Nora Leclerc — Agent Data Quality',
+    purpose: merged.map(function(m){ return m.dupName+' → '+m.masterName; }).join(', ') };
   if (D.activities) D.activities.push(logAct);
   if (typeof fbCreate === 'function') { try { fbCreate('activities', logAct); } catch(e) {} }
 
-  /* Build Phase 3 result */
-  var stepBar = '<div style="display:flex;gap:4px;margin-bottom:14px">' +
-    '<div style="flex:1;height:4px;border-radius:2px;background:#0ea5e9"></div>' +
-    '<div style="flex:1;height:4px;border-radius:2px;background:#0ea5e9"></div>' +
-    '<div style="flex:1;height:4px;border-radius:2px;background:#10b981"></div></div>';
-
-  var rows = merged.map(function(m) {
-    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f2f5;font-size:12px">' +
-      '<span style="color:#10b981;font-size:14px;font-weight:700">✓</span>' +
-      '<span style="color:#94a3b8;text-decoration:line-through">'+m.dupName+'</span>' +
-      '<span style="color:#94a3b8">→</span>' +
-      '<span style="font-weight:600;color:#1e293b">'+m.masterName+'</span>' +
-      '<span style="background:#ef444412;color:#ef4444;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">Supprimé</span>' +
-      '<span style="background:#10b98112;color:#10b981;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">Fusionné</span>' +
-    '</div>';
-  }).join('');
-
-  var cardStyle = 'background:#fff;border:1px solid #e8eaed;border-radius:12px;padding:14px 16px;margin:10px 0';
-  var card = '<div style="'+cardStyle+'"><div style="font-size:10.5px;font-weight:600;color:#10b981;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Résultat de la fusion</div>' + rows + '</div>';
-
-  var summary = '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">' +
-    '<span style="background:#ef444412;color:#ef4444;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">'+merged.length+' doublons supprimés</span>' +
-    '<span style="background:#10b98112;color:#10b981;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">Données migrées</span>' +
-    '<span style="background:#0ea5e912;color:#0ea5e9;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">Firestore mis à jour</span>' +
-  '</div>';
-
-  var viewBtn = '<div style="margin-top:12px;display:flex;gap:8px">' +
-    '<button onclick="navigate(\'accounts\')" style="background:#0ea5e912;color:#0ea5e9;border:1px solid #0ea5e930;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Vérifier les Comptes</button>' +
-    '<button onclick="navigate(\'activities\')" style="background:#10b98112;color:#10b981;border:1px solid #10b98130;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Voir l\'audit trail</button>' +
-  '</div>';
-
   var totalC = merged.reduce(function(s,m){ return s+m.contacts; },0);
   var totalO = merged.reduce(function(s,m){ return s+m.opps; },0);
-
   if (typeof acShowToast === 'function') acShowToast('Nora — Fusion terminée', merged.length + ' doublons supprimés', '#10b981');
 
-  var msgText = 'C\'est fait Mickaël ! J\'ai fusionné ' + merged.length + ' doublon(s), migré ' + totalC + ' contact(s) et ' + totalO + ' opp(s) vers les comptes maîtres.\n\nLes modifications sont persistées dans Firestore et un audit trail a été créé dans vos Activities.\n%%HTML%%' + stepBar + card + summary + viewBtn + '%%/HTML%%';
+  var stepBar = '<div style="display:flex;gap:4px;margin-bottom:14px;align-items:center">' +
+    '<div style="flex:1;height:4px;border-radius:2px;background:#0ea5e9"></div><div style="flex:1;height:4px;border-radius:2px;background:#0ea5e9"></div>' +
+    '<div style="flex:1;height:4px;border-radius:2px;background:#10b981"></div><span style="font-size:10px;color:#10b981;margin-left:6px;font-weight:600">Done</span></div>';
 
-  AC_CHAT_MESSAGES.push({ role:'assistant', content: msgText });
-  if (typeof AT_ACTIVE_AGENT !== 'undefined' && AT_ACTIVE_AGENT && AT_ACTIVE_AGENT.id === 'nora') {
-    if (typeof AT_MESSAGES !== 'undefined') AT_MESSAGES['nora'].push({ role:'agent', text: msgText });
-    var el = document.getElementById('at-window-content');
-    if (el && typeof atRenderChat === 'function') atRenderChat(el);
-  } else {
-    acRenderChat(document.getElementById('ac-float-body'));
-  }
+  var rows = merged.map(function(m,i) {
+    return '<div style="display:flex;align-items:center;gap:5px;padding:5px 0;border-bottom:'+(i<merged.length-1?'1px solid #f0f2f5':'none')+';font-size:11.5px;flex-wrap:wrap">' +
+      '<span style="color:#10b981;font-weight:700;font-size:13px">✓</span>' +
+      '<span style="color:#94a3b8;text-decoration:line-through">'+m.dupName+'</span><span style="color:#94a3b8;font-size:10px">→</span>' +
+      _noraLink(m.masterName, 'accounts', m.masterId, '#1e293b') +
+      '<span style="background:#ef444412;color:#ef4444;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">Supprimé</span>' +
+      '<span style="background:#10b98112;color:#10b981;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">Fusionné</span></div>';
+  }).join('');
+  var card = '<div style="background:#f8fafc;border:1px solid #e8eaed;border-radius:10px;padding:6px 10px;margin-bottom:8px">' + rows + '</div>';
 
-  /* Clean up */
-  window._NORA_DUP_PAIRS = null;
-  window._NORA_DUP_SELECTED = null;
+  var tags = '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">' +
+    '<span style="background:#ef444412;color:#ef4444;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">'+merged.length+' doublons supprimés</span>' +
+    '<span style="background:#10b98112;color:#10b981;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">Données migrées</span>' +
+    '<span style="background:#0ea5e912;color:#0ea5e9;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">Firestore OK</span></div>';
+
+  var viewBtns = '<div style="display:flex;gap:8px">' +
+    '<button onclick="navigate(\'accounts\')" style="background:#0ea5e912;color:#0ea5e9;border:1px solid #0ea5e930;padding:6px 12px;border-radius:8px;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit">Vérifier les Comptes</button>' +
+    '<button onclick="navigate(\'activities\')" style="background:#10b98112;color:#10b981;border:1px solid #10b98130;padding:6px 12px;border-radius:8px;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit">Voir l\'audit trail</button></div>';
+
+  _noraPushMsg('C\'est fait Mickaël ! J\'ai fusionné ' + merged.length + ' doublon(s), migré ' + totalC + ' contact(s) et ' + totalO + ' opp(s) vers les comptes maîtres. Les modifications sont persistées dans Firestore.\n%%HTML%%' + stepBar + card + tags + viewBtns + '%%/HTML%%');
+  window._NORA_DUP_PAIRS_LIVE = null; window._NORA_DUP_SELECTED = null;
 }
 
-/* Cancel merge — go back to chat */
+/* Cancel merge */
 function noraDupCancel() {
-  var msgText = 'Pas de problème Mickaël, la fusion est annulée. Les doublons restent en place. N\'hésitez pas à relancer quand vous êtes prêt !';
-  AC_CHAT_MESSAGES.push({ role:'assistant', content: msgText });
-  if (typeof AT_ACTIVE_AGENT !== 'undefined' && AT_ACTIVE_AGENT && AT_ACTIVE_AGENT.id === 'nora') {
-    if (typeof AT_MESSAGES !== 'undefined') AT_MESSAGES['nora'].push({ role:'agent', text: msgText });
-    var el = document.getElementById('at-window-content');
-    if (el && typeof atRenderChat === 'function') atRenderChat(el);
-  } else {
-    acRenderChat(document.getElementById('ac-float-body'));
-  }
+  _noraPushMsg('Pas de problème Mickaël, la fusion est annulée. Les doublons restent en place. N\'hésitez pas à relancer quand vous êtes prêt !');
 }
 
 /* ── SCENARIO 2: Orphan Accounts (0 contacts) ─────────── */
