@@ -28,6 +28,7 @@ var FB_COLLECTIONS = {
   claims:        'claims',
   activities:    'activities',
   products:      'products',
+  products:      'products',
   campaigns:     'campaigns',
   cases:         'cases'
 };
@@ -119,11 +120,11 @@ function fbUpdate(collectionKey, docId, data) {
       console.log('[Firebase] Updated ' + collectionKey + '/' + docId);
     })
     .catch(function(err) {
-      // If doc doesn't exist, create it
+      // If doc doesn't exist, create it with merge to preserve any existing fields
       if (err.code === 'not-found') {
         cleanData.id = docId;
-        return fbCollection(collectionKey).doc(docId).set(cleanData).then(function() {
-          console.log('[Firebase] Created (upsert) ' + collectionKey + '/' + docId);
+        return fbCollection(collectionKey).doc(docId).set(cleanData, {merge: true}).then(function() {
+          console.log('[Firebase] Created (upsert/merge) ' + collectionKey + '/' + docId);
         });
       }
       console.error('[Firebase] Update error:', err);
