@@ -327,6 +327,13 @@ function renderQuote360(rec) {
   const accountName = q.accountName || (typeof getAccountName === 'function' ? getAccountName(q.accountId) : q.accountId || '—');
   const oppName = q.opportunityName || q.opportunity || '—';
 
+  // Product name
+  var qProduct = null;
+  if (q.productId && window.DATA && window.DATA.products) {
+    qProduct = window.DATA.products.find(function(p){ return p.id === q.productId; });
+  }
+  var qProductName = qProduct ? qProduct.name : null;
+
   // ── Build HTML ──
   let html = '<div class="q360-wrapper">';
 
@@ -346,6 +353,10 @@ function renderQuote360(rec) {
   html += '<span class="q360-header-meta-item">' + q360icon('target', 13, '#64748b') + ' <span class="q360-link" data-nav="opportunity" data-id="' + esc(q.opportunityId || '') + '">' + esc(oppName) + '</span></span>';
   html += '<span class="q360-header-meta-sep">|</span>';
   html += '<span class="q360-header-meta-item">' + q360icon('building', 13, '#64748b') + ' <span class="q360-link" data-nav="account" data-id="' + esc(q.accountId || '') + '">' + esc(accountName) + '</span></span>';
+  if (qProductName) {
+    html += '<span class="q360-header-meta-sep">|</span>';
+    html += '<span class="q360-header-meta-item">' + q360icon('products', 13, '#64748b') + ' <span class="q360-link" data-nav="product" data-id="' + esc(q.productId || '') + '">' + esc(qProductName) + '</span></span>';
+  }
   html += '</div>';
   html += '<div class="q360-header-sub">' + esc(q.id || '') + ' &middot; Created ' + q360fmtDate(q.createdDate || q.CreatedDate || new Date()) + (q.createdBy ? ' by ' + esc(q.createdBy) : '') + '</div>';
   html += '</div>';
@@ -605,13 +616,16 @@ function bindQuote360Events(container) {
   container.addEventListener('click', function(e) {
     var el = e.target.nodeType === 3 ? e.target.parentElement : e.target;
 
-    // Navigate links (Account, Opportunity)
+    // Navigate links (Account, Opportunity, Product)
     var link = el.closest('[data-nav]');
     if (link) {
       var page = link.getAttribute('data-nav');
       var id = link.getAttribute('data-id');
       if (typeof navigate === 'function' && page && id) {
-        navigate(page, null, id);
+        /* Map singular to plural object keys */
+        var navMap = {account:'accounts',opportunity:'opportunities',product:'products'};
+        var objKey = navMap[page] || page;
+        navigate('record', objKey, id);
       }
       return;
     }

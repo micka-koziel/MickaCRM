@@ -27,6 +27,7 @@ var FB_COLLECTIONS = {
   quotes:        'quotes',
   claims:        'claims',
   activities:    'activities',
+  products:      'products',
   campaigns:     'campaigns',
   cases:         'cases'
 };

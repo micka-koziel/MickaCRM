@@ -35,6 +35,7 @@ var OBJ_CONFIG = {
     ],
     formFields: [
       {key:'name',label:'Opportunity Name',type:'text',required:true},
+      {key:'productIds',label:'Products',type:'product-picker'},
       {key:'account',label:'Account',type:'select',options:function(){return (window.DATA.accounts||[]).map(function(a){return{value:a.id,label:a.name};});}},
       {key:'stage',label:'Stage',type:'select',options:function(){return (STAGES.opportunities||[]).map(function(s){return{value:s.key,label:s.label};});}},
       {key:'amount',label:'Amount (€)',type:'number'},
@@ -167,6 +168,7 @@ var OBJ_CONFIG = {
     ],
     formFields: [
       {key:'name',label:'Quote Name',type:'text',required:true},
+      {key:'productIds',label:'Products',type:'product-picker'},
       {key:'accountId',label:'Account',type:'select',options:function(){return (window.DATA.accounts||[]).map(function(a){return{value:a.id,label:a.name};});}},
       {key:'opportunity',label:'Opportunity',type:'text'},
       {key:'stage',label:'Stage',type:'select',options:function(){return [{value:'Draft',label:'Draft'},{value:'Internal Review',label:'Internal Review'},{value:'Sent',label:'Sent'},{value:'Negotiation',label:'Negotiation'},{value:'Accepted',label:'Accepted'}];}},
@@ -261,6 +263,7 @@ var OBJ_CONFIG = {
     ],
     formFields: [
       {key:'title',label:'Claim Title',type:'text',required:true},
+      {key:'productIds',label:'Products',type:'product-picker'},
       {key:'projectId',label:'Project',type:'select',options:function(){return (window.DATA.projects||[]).map(function(p){return{value:p.id,label:p.name};});}},
       {key:'accountId',label:'Account',type:'select',options:function(){return (window.DATA.accounts||[]).map(function(a){return{value:a.id,label:a.name};});}},
       {key:'status',label:'Status',type:'select',options:function(){return [{value:'Open',label:'Open'},{value:'Investigation',label:'Investigation'},{value:'Negotiation',label:'Negotiation'},{value:'Resolved',label:'Resolved'},{value:'Closed',label:'Closed'}];}},
@@ -307,6 +310,44 @@ var OBJ_CONFIG = {
       {key:'duration',label:'Duration (min)',type:'number'},
       {key:'location',label:'Location',type:'text'},
       {key:'purpose',label:'Purpose / Notes',type:'textarea'}
+    ]
+  },
+  products: {
+    title: 'Products', hasKanban: false,
+    getData: function(){ return (window.DATA.products||[]).slice(); },
+    columns: [
+      {key:'name',label:'Product Name',isLink:true},
+      {key:'category',label:'Category',render:function(it){
+        var colors = {Glazing:'#3b82f6',Insulation:'#f59e0b','Mortars & Concrete':'#8b5cf6',Coatings:'#10b981',Structural:'#ef4444'};
+        var c = colors[it.category]||'var(--text-muted)';
+        return '<span class="stage-badge" style="color:'+c+'"><span class="dot" style="background:'+c+'"></span>'+(it.category||'—')+'</span>';
+      }},
+      {key:'family',label:'Family'},
+      {key:'sku',label:'SKU'},
+      {key:'unitPrice',label:'Unit Price',render:function(it){return it.unitPrice ? it.unitPrice.toLocaleString('en-US')+'€/'+it.unit : '—';}},
+      {key:'status',label:'Status',render:function(it){
+        var c = it.status==='Active' ? 'var(--success)' : 'var(--text-light)';
+        return '<span class="stage-badge" style="color:'+c+'"><span class="dot" style="background:'+c+'"></span>'+(it.status||'—')+'</span>';
+      }},
+      {key:'stockLevel',label:'Stock',render:function(it){return it.stockLevel ? it.stockLevel.toLocaleString('en-US')+' '+it.unit : '—';}}
+    ],
+    filters: [
+      {key:'category',label:'Category',type:'select',options:function(){var s=[];(window.DATA.products||[]).forEach(function(p){if(p.category&&s.indexOf(p.category)<0)s.push(p.category);});return s.map(function(v){return{value:v,label:v};});}},
+      {key:'family',label:'Family',type:'select',options:function(){var s=[];(window.DATA.products||[]).forEach(function(p){if(p.family&&s.indexOf(p.family)<0)s.push(p.family);});return s.map(function(v){return{value:v,label:v};});}},
+      {key:'status',label:'Status',type:'select',options:function(){return [{value:'Active',label:'Active'},{value:'Discontinued',label:'Discontinued'}];}},
+      {key:'manufacturer',label:'Manufacturer',type:'select',options:function(){var s=[];(window.DATA.products||[]).forEach(function(p){if(p.manufacturer&&s.indexOf(p.manufacturer)<0)s.push(p.manufacturer);});return s.map(function(v){return{value:v,label:v};});}}
+    ],
+    formFields: [
+      {key:'name',label:'Product Name',type:'text',required:true},
+      {key:'category',label:'Category',type:'select',options:function(){return [{value:'Glazing',label:'Glazing'},{value:'Insulation',label:'Insulation'},{value:'Mortars & Concrete',label:'Mortars & Concrete'},{value:'Coatings',label:'Coatings'},{value:'Structural',label:'Structural'},{value:'Other',label:'Other'}];}},
+      {key:'family',label:'Product Family',type:'text'},
+      {key:'sku',label:'SKU',type:'text'},
+      {key:'unitPrice',label:'Unit Price (€)',type:'number'},
+      {key:'unit',label:'Unit',type:'select',options:function(){return [{value:'m²',label:'m²'},{value:'m³',label:'m³'},{value:'pcs',label:'pcs'},{value:'kg',label:'kg'},{value:'L',label:'L'}];}},
+      {key:'manufacturer',label:'Manufacturer',type:'text'},
+      {key:'application',label:'Application',type:'text'},
+      {key:'status',label:'Status',type:'select',options:function(){return [{value:'Active',label:'Active'},{value:'Discontinued',label:'Discontinued'}];}},
+      {key:'description',label:'Description',type:'textarea'}
     ]
   }
 };
@@ -531,6 +572,8 @@ function renderObjContent(objKey, cfg, mode, contentEl) {
     /* V2 enhanced list for contacts & accounts */
     if ((objKey === 'contacts' || objKey === 'accounts') && typeof renderListViewV2 === 'function') {
       renderListViewV2(filtered, cfg.columns, listContainer, objKey);
+    } else if (objKey === 'products' && typeof renderProductGallery === 'function') {
+      renderProductGallery(listContainer, filtered);
     } else {
       renderListView(filtered, cfg.columns, listContainer, objKey);
     }
@@ -944,7 +987,7 @@ function injectPipelineInsightStyles() {
    ────────────────────────────────────────────────────── */
 
 /* Objects that support photo upload in create modal */
-var CREATE_PHOTO_OBJECTS = ['accounts','contacts','leads','opportunities','projects'];
+var CREATE_PHOTO_OBJECTS = ['accounts','contacts','leads','opportunities','projects','products'];
 
 /* Users formFields config (not in OBJ_CONFIG) */
 var USERS_FORM_FIELDS = [
@@ -1015,7 +1058,10 @@ function openCreateModal(objKey, cfg) {
     h += '<div class="crm-form-group">';
     h += '<label class="crm-form-label">' + f.label + (f.required ? ' <span style="color:var(--danger)">*</span>' : '') + '</label>';
 
-    if (f.type === 'select') {
+    if (f.type === 'product-picker') {
+      h += (typeof ppFieldButton === 'function' ? ppFieldButton(f.key, []) : '<input type="text" class="crm-form-input" data-field="' + f.key + '" placeholder="Select products..." />');
+      h += (typeof ppHiddenInput === 'function' ? ppHiddenInput(f.key, []) : '');
+    } else if (f.type === 'select') {
       var opts = typeof f.options === 'function' ? f.options() : (f.options || []);
       h += '<select class="crm-form-input" data-field="' + f.key + '">';
       h += '<option value="">— Select —</option>';
@@ -1079,12 +1125,45 @@ function openCreateModal(objKey, cfg) {
     });
   }
 
+  /* ── Product picker field binding ── */
+  overlay.querySelectorAll('.pp-field-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var fieldKey = btn.getAttribute('data-pp-field');
+      var hiddenEl = document.getElementById('pp-hidden-' + fieldKey);
+      var currentIds = hiddenEl && hiddenEl.value ? hiddenEl.value.split(',').filter(Boolean) : [];
+      if (typeof openProductPicker === 'function') {
+        openProductPicker({
+          selected: currentIds,
+          onConfirm: function(ids) {
+            if (hiddenEl) hiddenEl.value = ids.join(',');
+            /* Re-render the button */
+            var newHtml = ppFieldButton(fieldKey, ids) + ppHiddenInput(fieldKey, ids);
+            btn.parentElement.querySelector('.pp-field-btn').outerHTML = ppFieldButton(fieldKey, ids);
+            var oldHidden = document.getElementById('pp-hidden-' + fieldKey);
+            if (oldHidden) oldHidden.value = ids.join(',');
+            /* Re-bind the new button */
+            var newBtn = overlay.querySelector('.pp-field-btn[data-pp-field="' + fieldKey + '"]');
+            if (newBtn) {
+              newBtn.addEventListener('click', function() { btn.click(); });
+            }
+          }
+        });
+      }
+    });
+  });
+
   /* ── Save handler ── */
   document.getElementById('crm-modal-save').addEventListener('click', function() {
     var record = {};
     var valid = true;
 
     fields.forEach(function(f) {
+      if (f.type === 'product-picker') {
+        var hiddenEl = document.getElementById('pp-hidden-' + f.key);
+        var val = hiddenEl ? hiddenEl.value : '';
+        record[f.key] = val ? val.split(',').filter(Boolean) : [];
+        return;
+      }
       var el = overlay.querySelector('[data-field="' + f.key + '"]');
       var val = el ? el.value.trim() : '';
       if (f.required && !val) {

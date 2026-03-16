@@ -87,6 +87,11 @@ function renderClaim360(container, rec) {
   else if (project && project.account) account = (D.accounts||[]).find(function(a){ return a.id === project.account; });
   var accountName = account ? account.name : (rec.accountName||'\u2014');
 
+  /* Resolve product */
+  var clProduct = null;
+  if (rec.productId) clProduct = (D.products||[]).find(function(p){ return p.id === rec.productId; });
+  var clProductName = clProduct ? clProduct.name : null;
+
   var opp = null;
   if (rec.opportunityId) opp = (D.opportunities||[]).find(function(o){ return o.id === rec.opportunityId; });
   else if (project) opp = (D.opportunities||[]).find(function(o){ return o.projectId === (project.id); });
@@ -152,6 +157,10 @@ function renderClaim360(container, rec) {
   h += '<a class="cl36-link" id="cl36-project-link" data-proj-id="'+(rec.projectId||'')+'">' + cl36Icon('projects',13,'var(--accent)') + ' ' + projectName + '</a>';
   h += '<span class="cl36-sep">\u00B7</span>';
   h += '<a class="cl36-link" id="cl36-acct-link" data-acct-id="'+((account&&account.id)||'')+'">' + cl36Icon('accounts',13,'var(--accent)') + ' ' + accountName + '</a>';
+  if (clProductName) {
+    h += '<span class="cl36-sep">\u00B7</span>';
+    h += '<a class="cl36-link" id="cl36-prod-link" data-prod-id="'+(rec.productId||'')+'">' + cl36Icon('products',13,'var(--accent)') + ' ' + clProductName + '</a>';
+  }
   h += '</div>';
 
   /* Chips */
@@ -408,6 +417,15 @@ function renderClaim360(container, rec) {
     acctLink.addEventListener('click', function(){
       var aid = acctLink.getAttribute('data-acct-id');
       if (aid) navigate('record','accounts',aid);
+    });
+  }
+
+  /* Product link */
+  var prodLink = document.getElementById('cl36-prod-link');
+  if (prodLink) {
+    prodLink.addEventListener('click', function(){
+      var pid = prodLink.getAttribute('data-prod-id');
+      if (pid) navigate('record','products',pid);
     });
   }
 

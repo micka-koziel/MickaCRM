@@ -71,6 +71,12 @@ function renderRecordPage(objKey, recId, headerEl, contentEl) {
     return;
   }
 
+  if (objKey === 'products') {
+    headerEl.style.display = 'none';
+    renderProduct360(contentEl, rec);
+    return;
+  }
+
   if (objKey === 'users') {
     headerEl.style.display = 'none';
     if (typeof renderUser360 === 'function') {
@@ -190,6 +196,22 @@ function renderAccount360(container, rec) {
     h += '<div class="a360-row-sub">'+(ph?ph.label:'—')+'</div></div>';
     h += '<div class="a360-row-right"><div class="a360-row-amount">'+budStr+'</div>';
     if(ph) h+='<span class="stage-badge" style="color:'+ph.color+'"><span class="dot" style="background:'+ph.color+'"></span>'+ph.label+'</span>';
+    h += '</div></div>';
+  });
+  h += '</div>';
+
+  // Products (related via quotes/claims for this account)
+  var accProducts = _a360GetRelatedProducts(accId);
+  h += a360SectionOpen('Products', 'products', accProducts.length);
+  if (!accProducts.length) h += '<div class="a360-empty">No products linked</div>';
+  else accProducts.forEach(function(pr,i) {
+    var catColors = {Glazing:'#3b82f6',Insulation:'#f59e0b','Mortars & Concrete':'#8b5cf6',Coatings:'#10b981',Structural:'#ef4444'};
+    var pc = catColors[pr.category] || 'var(--text-muted)';
+    h += '<div class="a360-row'+(i===accProducts.length-1?' a360-row-last':'')+'" data-nav-obj="products" data-nav-id="'+pr.id+'">';
+    h += '<div class="a360-row-left"><div class="a360-row-title">'+pr.name+'</div>';
+    h += '<div class="a360-row-sub">'+(pr.category||'—')+' · '+(pr.sku||'')+'</div></div>';
+    h += '<div class="a360-row-right">';
+    h += '<span class="stage-badge" style="color:'+pc+'"><span class="dot" style="background:'+pc+'"></span>'+(pr.category||'—')+'</span>';
     h += '</div></div>';
   });
   h += '</div>';
@@ -321,6 +343,26 @@ function a360QA(i,l,primary){var cls=primary?'a360-qa a360-qa-primary':'a360-qa 
 function a360Kpi(v,l,n,ins,t){var c=t==='positive'?'#4ade80':t==='warning'?'#f87171':'#64748b';var vc=n==='opportunities'?'var(--accent)':n==='projects'?'var(--purple)':n==='contacts'?'var(--success)':n==='activities'?'var(--warning)':'var(--text)';return '<div class="a360-kpi-card" data-nav="'+n+'"><div class="a360-kpi-top">'+svgIcon('chart',15,'var(--text-light)')+'<span class="a360-kpi-view">View all</span></div><div class="a360-kpi-value" style="color:'+vc+'">'+v+'</div><div class="a360-kpi-label">'+l+'</div>'+(ins?'<div class="a360-kpi-insight"><span class="a360-kpi-insight-dot" style="background:'+c+'"></span><span style="color:'+c+'">'+ins+'</span></div>':'')+'</div>';}
 function a360SectionOpen(t,n,c){return '<div class="a360-section"><div class="a360-section-head"><span class="a360-section-title">'+t+'</span>'+(c!==undefined?'<span class="a360-section-count">'+c+'</span>':'')+'<span class="a360-section-link" data-nav="'+n+'">View all</span></div>';}
 function a360StageDots(sk){var st=STAGES.opportunities||[];var ks=st.map(function(s){return s.key;});var idx=ks.indexOf(sk);var h='<div class="a360-stage-dots">';ks.forEach(function(k,i){var a=i<=idx;h+='<div class="a360-stage-dot" style="background:'+(a?'var(--accent)':'#e8e8eb')+';opacity:'+(a?(.25+(i/(ks.length-1))*.75):1)+'"></div>';});return h+'</div>';}
+
+/* ── Get products related to an account (via quotes + claims productId) ── */
+function _a360GetRelatedProducts(accId) {
+  var products = window.DATA.products || [];
+  if (!products.length) return [];
+  var quotes = window.DATA.quotes || [];
+  var claims = window.DATA.claims || [];
+  var productIds = {};
+  quotes.forEach(function(q){ if (q.accountId === accId && q.productId) productIds[q.productId] = true; });
+  claims.forEach(function(c){ if (c.accountId === accId && c.productId) productIds[c.productId] = true; });
+  /* Also match by lineItems product name */
+  quotes.forEach(function(q){
+    if (q.accountId !== accId || !q.lineItems) return;
+    q.lineItems.forEach(function(li){
+      var match = products.find(function(p){ return p.name === li.product; });
+      if (match) productIds[match.id] = true;
+    });
+  });
+  return products.filter(function(p){ return productIds[p.id]; });
+}
 
 
 /* ════════════════════════════════════════════════════════
@@ -458,6 +500,22 @@ function renderContact360(container, rec) {
     h += '<div class="c360-row-sub">'+(q.date||'')+(q.status?' · '+q.status:'')+'</div></div>';
     h += '<div class="c360-row-right">'+(q.amount?'<div class="c360-row-amount">'+fmtAmount(q.amount)+'</div>':'')+'</div>';
     h += '</div>';
+  });
+  h += '</div>';
+
+  // Products (related to this contact's account)
+  var c360Products = _a360GetRelatedProducts(rec.account);
+  h += c360SectionOpen('Products', 'products', c360Products.length);
+  if (!c360Products.length) h += '<div class="c360-empty">No products linked</div>';
+  else c360Products.forEach(function(pr,i) {
+    var catColors = {Glazing:'#3b82f6',Insulation:'#f59e0b','Mortars & Concrete':'#8b5cf6',Coatings:'#10b981',Structural:'#ef4444'};
+    var pc = catColors[pr.category] || 'var(--text-muted)';
+    h += '<div class="c360-row'+(i===c360Products.length-1?' c360-row-last':'')+'" data-nav-obj="products" data-nav-id="'+pr.id+'">';
+    h += '<div class="c360-row-left"><div class="c360-row-title">'+pr.name+'</div>';
+    h += '<div class="c360-row-sub">'+(pr.category||'—')+' · '+(pr.sku||'')+'</div></div>';
+    h += '<div class="c360-row-right">';
+    h += '<span class="stage-badge" style="color:'+pc+'"><span class="dot" style="background:'+pc+'"></span>'+(pr.category||'—')+'</span>';
+    h += '</div></div>';
   });
   h += '</div>';
 
@@ -1567,6 +1625,329 @@ function injectO360Styles() {
 }
 
 
+
+/* ════════════════════════════════════════════════════════
+   PRODUCT 360
+   ════════════════════════════════════════════════════════ */
+
+function renderProduct360(container, rec) {
+  injectProd360Styles();
+  var D = window.DATA;
+  var prodId = rec.id;
+  var prodName = rec.name || 'Unknown Product';
+  var initials = prodName.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
+
+  /* Related data */
+  var quotes = (D.quotes||[]).filter(function(q){
+    if (q.productId === prodId) return true;
+    /* Also check lineItems for product name match */
+    if (q.lineItems && q.lineItems.length) {
+      return q.lineItems.some(function(li){ return li.product === prodName; });
+    }
+    return false;
+  });
+  var claims = (D.claims||[]).filter(function(c){ return c.productId === prodId; });
+  var activities = (D.activities||[]).filter(function(a){ return a.productId === prodId; }).slice(0,5);
+
+  /* Totals */
+  var totalQuoteValue = quotes.reduce(function(s,q){ return s + (q.value||0); }, 0);
+  var wonQuotes = quotes.filter(function(q){ return q.stage==='Won'||q.stage==='Accepted'; });
+  var wonValue = wonQuotes.reduce(function(s,q){ return s + (q.value||0); }, 0);
+  var openClaims = claims.filter(function(c){ return c.status==='Open'||c.status==='In Progress'||c.status==='Investigation'; });
+
+  /* Category color */
+  var catColors = {Glazing:'#3b82f6',Insulation:'#f59e0b','Mortars & Concrete':'#8b5cf6',Coatings:'#10b981',Structural:'#ef4444'};
+  var catColor = catColors[rec.category] || 'var(--text-muted)';
+
+  var h = '<div class="pd3">';
+
+  /* Back nav */
+  h += '<div class="pd3-back" id="pd3-back">' + svgIcon('arrowLeft',14,'var(--text-muted)') + '<span>Products</span></div>';
+
+  /* Header card */
+  h += '<div class="pd3-header-card">';
+  h += '<div class="pd3-header-top">';
+
+  /* Photo avatar 92px */
+  var photoUrl = rec.photoURL || rec.photo || '';
+  h += '<div class="pd3-photo-wrap" id="pd3-photo-wrap" title="Click to change photo">';
+  if (photoUrl) {
+    h += '<div class="pd3-avatar pd3-avatar-img" id="pd3-avatar"><img src="'+photoUrl+'" alt="'+prodName+'" /></div>';
+  } else {
+    h += '<div class="pd3-avatar pd3-avatar-initials" id="pd3-avatar" style="background:'+catColor+'14;color:'+catColor+';border-color:'+catColor+'40">' + initials + '</div>';
+  }
+  h += '<div class="pd3-photo-overlay">' + svgIcon('plus',16,'#fff') + '</div>';
+  h += '<input type="file" id="pd3-photo-input" accept="image/*" style="display:none" />';
+  h += '</div>';
+
+  /* Info */
+  h += '<div class="pd3-header-info">';
+  h += '<div class="pd3-name-row"><h1 class="pd3-name">' + prodName + '</h1>';
+  var sc = rec.status==='Active' ? 'var(--success)' : 'var(--text-light)';
+  h += '<span class="stage-badge" style="color:'+sc+'"><span class="dot" style="background:'+sc+'"></span>'+(rec.status||'Active')+'</span>';
+  h += '</div>';
+  h += '<div class="pd3-subtitle">' + (rec.category||'—') + ' · ' + (rec.family||'—') + '</div>';
+  h += '<div class="pd3-detail-chips">';
+  if (rec.sku) h += '<span class="pd3-chip">' + svgIcon('quotes',12,'var(--text-light)') + ' SKU: ' + rec.sku + '</span>';
+  if (rec.manufacturer) h += '<span class="pd3-chip">' + svgIcon('accounts',12,'var(--text-light)') + ' ' + rec.manufacturer + '</span>';
+  if (rec.warehouse) h += '<span class="pd3-chip">' + svgIcon('mapPin',12,'var(--text-light)') + ' ' + rec.warehouse + '</span>';
+  if (rec.unitPrice) h += '<span class="pd3-chip" style="color:'+catColor+';font-weight:700">' + rec.unitPrice.toLocaleString('en-US') + '€/' + (rec.unit||'unit') + '</span>';
+  h += '</div>';
+  h += '</div>';
+
+  /* Header metrics */
+  h += '<div class="pd3-header-metrics">';
+  h += _pd3HMetric(quotes.length, 'Quotes', 'var(--accent)');
+  h += _pd3HMetric(typeof fmtAmount==='function' ? fmtAmount(totalQuoteValue) : Math.round(totalQuoteValue/1000)+'K€', 'Quote Value', '');
+  h += _pd3HMetric(openClaims.length, 'Open Claims', openClaims.length>0?'var(--danger)':'var(--success)');
+  h += _pd3HMetric(rec.stockLevel ? rec.stockLevel.toLocaleString('en-US') : '—', 'In Stock', '');
+  h += '</div></div>';
+
+  /* Actions */
+  h += '<div class="pd3-actions">';
+  h += crmActionButtons('pd3', 'products', prodId);
+  h += '</div>';
+  h += '</div>';
+
+  /* KPI row */
+  h += '<div class="pd3-kpi-row">';
+  h += _pd3Kpi(rec.unitPrice ? rec.unitPrice.toLocaleString('en-US')+'€' : '—', 'Unit Price', catColor);
+  h += _pd3Kpi(rec.leadTime ? rec.leadTime+' days' : '—', 'Lead Time', '#3b82f6');
+  h += _pd3Kpi(rec.minOrder ? rec.minOrder.toLocaleString('en-US') : '—', 'Min Order', '#8b5cf6');
+  h += _pd3Kpi(rec.certification || '—', 'Certification', '#10b981');
+  h += '</div>';
+
+  /* 2-col layout */
+  h += '<div class="pd3-grid2"><div class="pd3-col">';
+
+  /* Product Specs section */
+  h += '<div class="pd3-section"><div class="pd3-section-head">' + svgIcon('quotes',13,'var(--text-light)') + '<span class="pd3-section-title">Product Specifications</span></div>';
+  h += '<div class="pd3-specs">';
+  var specFields = [
+    {l:'Application', v:rec.application},
+    {l:'Dimensions', v:rec.dimensions},
+    {l:'Weight', v:rec.weight ? rec.weight+' kg' : null},
+    {l:'Certification', v:rec.certification},
+    {l:'Lead Time', v:rec.leadTime ? rec.leadTime+' days' : null},
+    {l:'Min Order', v:rec.minOrder ? rec.minOrder.toLocaleString('en-US')+' '+rec.unit : null},
+    {l:'Stock Level', v:rec.stockLevel ? rec.stockLevel.toLocaleString('en-US')+' '+rec.unit : null},
+    {l:'Warehouse', v:rec.warehouse}
+  ];
+  specFields.forEach(function(sf){
+    if(!sf.v) return;
+    h += '<div class="pd3-spec-row"><span class="pd3-spec-label">'+sf.l+'</span><span class="pd3-spec-value">'+sf.v+'</span></div>';
+  });
+  h += '</div></div>';
+
+  /* Description */
+  if (rec.description) {
+    h += '<div class="pd3-section"><div class="pd3-section-head">' + svgIcon('list',13,'var(--text-light)') + '<span class="pd3-section-title">Description</span></div>';
+    h += '<div style="padding:14px 16px;font-size:12.5px;color:var(--text);line-height:1.6">' + rec.description + '</div></div>';
+  }
+
+  /* Quotes section */
+  h += '<div class="pd3-section"><div class="pd3-section-head">' + svgIcon('quotes',13,'var(--text-light)') + '<span class="pd3-section-title">Quotes</span><span class="pd3-section-count">'+quotes.length+'</span><span class="pd3-section-link" data-nav="quotes">View all</span></div>';
+  if (!quotes.length) {
+    h += '<div class="pd3-empty">No quotes reference this product</div>';
+  } else {
+    quotes.slice(0,5).forEach(function(q,i){
+      var qStageColors = {Draft:'#94a3b8',Sent:'#3b82f6',Negotiation:'#f59e0b',Won:'#10b981',Accepted:'#10b981',Lost:'#ef4444'};
+      var qc = qStageColors[q.stage]||'var(--text-muted)';
+      h += '<div class="pd3-row'+(i===Math.min(quotes.length,5)-1?' pd3-row-last':'')+'" data-nav-obj="quotes" data-nav-id="'+q.id+'">';
+      h += '<div class="pd3-row-left"><div class="pd3-row-title">'+q.name+'</div>';
+      h += '<div class="pd3-row-sub">'+(q.accountName||'')+(q.validUntil?' · Valid '+fmtDate(q.validUntil):'')+'</div></div>';
+      h += '<div class="pd3-row-right">';
+      h += '<div class="pd3-row-amount">'+(typeof fmtAmount==='function'?fmtAmount(q.value||0):'—')+'</div>';
+      h += '<span class="stage-badge" style="color:'+qc+'"><span class="dot" style="background:'+qc+'"></span>'+(q.stage||'—')+'</span>';
+      h += '</div></div>';
+    });
+  }
+  h += '</div>';
+
+  h += '</div><div class="pd3-col">';
+
+  /* Claims section */
+  h += '<div class="pd3-section"><div class="pd3-section-head">' + svgIcon('claims',13,'var(--text-light)') + '<span class="pd3-section-title">Claims</span><span class="pd3-section-count">'+claims.length+'</span><span class="pd3-section-link" data-nav="claims">View all</span></div>';
+  if (!claims.length) {
+    h += '<div class="pd3-empty">No claims for this product</div>';
+  } else {
+    claims.slice(0,5).forEach(function(cl,i){
+      var clColors = {Open:'#ef4444','In Progress':'#f59e0b',Investigation:'#3b82f6',Resolved:'#10b981',Closed:'#94a3b8'};
+      var clc = clColors[cl.status]||'var(--text-muted)';
+      h += '<div class="pd3-row'+(i===Math.min(claims.length,5)-1?' pd3-row-last':'')+'" data-nav-obj="claims" data-nav-id="'+cl.id+'">';
+      h += '<div class="pd3-row-left"><div class="pd3-row-title">'+(cl.title||cl.name||'—')+'</div>';
+      h += '<div class="pd3-row-sub">'+(cl.priority||'')+' · '+(cl.reportedDate?fmtDate(cl.reportedDate):'')+'</div></div>';
+      h += '<div class="pd3-row-right">';
+      h += '<span class="stage-badge" style="color:'+clc+'"><span class="dot" style="background:'+clc+'"></span>'+(cl.status||'—')+'</span>';
+      h += '</div></div>';
+    });
+  }
+  h += '</div>';
+
+  /* Details */
+  h += crmDetailsSection('pd3', 'products', rec);
+
+  h += '</div></div></div>';
+
+  container.innerHTML = h;
+  container.scrollTop = 0;
+
+  /* ── Bind events ── */
+  document.getElementById('pd3-back').addEventListener('click', function(){ navigate('products'); });
+
+  /* Photo upload */
+  var pd3PhotoWrap = document.getElementById('pd3-photo-wrap');
+  var pd3PhotoInput = document.getElementById('pd3-photo-input');
+  if (pd3PhotoWrap && pd3PhotoInput) {
+    var pd3Overlay = pd3PhotoWrap.querySelector('.pd3-photo-overlay');
+    if (pd3Overlay) {
+      pd3Overlay.addEventListener('click', function(e){ e.stopPropagation(); pd3PhotoInput.click(); });
+    }
+    var pd3AvatarEl = document.getElementById('pd3-avatar');
+    if (pd3AvatarEl) {
+      pd3AvatarEl.addEventListener('click', function(e){
+        e.stopPropagation();
+        var currentUrl = rec.photoURL || rec.photo || '';
+        if (currentUrl && typeof fbShowPhotoPreview === 'function') {
+          fbShowPhotoPreview(currentUrl, prodName);
+        } else {
+          pd3PhotoInput.click();
+        }
+      });
+    }
+    pd3PhotoInput.addEventListener('change', function(e) {
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+      var avatar = document.getElementById('pd3-avatar');
+      if (avatar) { avatar.classList.add('pd3-avatar-loading'); avatar.innerHTML = '<div class="pd3-spinner"></div>'; }
+      if (typeof fbCompressAndSavePhoto === 'function') {
+        fbCompressAndSavePhoto(file, 'products', prodId).then(function(url) {
+          if (avatar) { avatar.classList.remove('pd3-avatar-loading'); avatar.className = 'pd3-avatar pd3-avatar-img'; avatar.innerHTML = '<img src="'+url+'" alt="'+prodName+'" />'; }
+          fbShowStatus('Photo uploaded');
+        }).catch(function(err) {
+          console.error('[PD3] Photo error:', err);
+          if (avatar) { avatar.classList.remove('pd3-avatar-loading'); avatar.innerHTML = initials; }
+          fbShowStatus('Photo upload failed', true);
+        });
+      }
+    });
+  }
+
+  /* Row navigation */
+  container.querySelectorAll('.pd3-row[data-nav-id]').forEach(function(el) {
+    el.addEventListener('click', function(){ navigate('record', el.getAttribute('data-nav-obj'), el.getAttribute('data-nav-id')); });
+  });
+  container.querySelectorAll('.pd3-section-link[data-nav]').forEach(function(el) {
+    el.addEventListener('click', function(){ navigate(el.getAttribute('data-nav')); });
+  });
+  bindCrmActionButtons(container);
+  bindDetailsLinks(container);
+}
+
+/* ── Product 360 Helpers ── */
+function _pd3HMetric(v,l,a){var s=a?'color:'+a:'color:var(--text)';return '<div class="pd3-hmetric"><div class="pd3-hmetric-val" style="'+s+'">'+v+'</div><div class="pd3-hmetric-label">'+l+'</div></div>';}
+function _pd3Kpi(v,l,c){return '<div class="pd3-kpi"><div class="pd3-kpi-value" style="color:'+c+'">'+v+'</div><div class="pd3-kpi-label">'+l+'</div></div>';}
+
+function injectProd360Styles() {
+  if (document.getElementById('pd3-css')) return;
+  var s = document.createElement('style'); s.id = 'pd3-css';
+  s.textContent = '\
+/* ═══ Product 360 — pd3- prefix ════════════════════ */\
+.pd3{padding:14px 28px 40px;max-width:1200px;margin:0 auto}\
+\
+/* Back */\
+.pd3-back{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:12px;padding:4px 0;transition:color .12s}\
+.pd3-back:hover{color:var(--accent)}\
+\
+/* Header Card */\
+.pd3-header-card{background:var(--card);border-radius:14px;border:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,.04);margin-bottom:14px;overflow:hidden}\
+.pd3-header-top{display:flex;align-items:center;gap:22px;padding:22px 26px 16px}\
+\
+/* Photo Avatar */\
+.pd3-photo-wrap{position:relative;flex-shrink:0;cursor:pointer}\
+.pd3-avatar{width:92px;height:92px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;border:1.5px solid var(--border);background:var(--card);box-shadow:0 2px 8px rgba(0,0,0,.06);transition:transform .15s}\
+.pd3-avatar:hover{transform:scale(1.04)}\
+.pd3-avatar-img{padding:0;overflow:hidden}\
+.pd3-avatar-img img{width:100%;height:100%;object-fit:cover;border-radius:13px}\
+.pd3-photo-overlay{position:absolute;bottom:0;right:0;width:26px;height:26px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s;box-shadow:0 2px 6px rgba(37,99,235,.3)}\
+.pd3-photo-wrap:hover .pd3-photo-overlay{opacity:1}\
+.pd3-spinner{width:22px;height:22px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}\
+.pd3-avatar-loading{opacity:.5}\
+\
+/* Header Info */\
+.pd3-header-info{flex:1;min-width:0}\
+.pd3-name-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}\
+.pd3-name{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.3px;margin:0;line-height:1.2}\
+.pd3-subtitle{font-size:13px;color:var(--text-muted);margin-top:4px;font-weight:500}\
+.pd3-detail-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}\
+.pd3-chip{display:inline-flex;align-items:center;gap:5px;background:#f8f9fb;border:1px solid var(--border);padding:4px 10px;border-radius:7px;font-size:11px;color:var(--text-muted);font-weight:500}\
+\
+/* Header Metrics */\
+.pd3-header-metrics{display:flex;flex-direction:column;gap:12px;flex-shrink:0;align-items:center;padding-left:20px;border-left:1px solid var(--border)}\
+.pd3-hmetric{display:flex;flex-direction:column;align-items:center}\
+.pd3-hmetric-val{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1;font-variant-numeric:tabular-nums}\
+.pd3-hmetric-label{font-size:9px;color:var(--text-light);font-weight:500;margin-top:2px;text-transform:uppercase;letter-spacing:.3px}\
+\
+/* Actions */\
+.pd3-actions{display:flex;gap:7px;padding:0 26px 14px;flex-wrap:wrap}\
+\
+/* KPI Row */\
+.pd3-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}\
+.pd3-kpi{background:var(--card);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);padding:16px 18px;text-align:center;transition:all .15s}\
+.pd3-kpi:hover{box-shadow:0 4px 14px rgba(0,0,0,.08);transform:translateY(-2px)}\
+.pd3-kpi-value{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1;margin-bottom:3px;font-variant-numeric:tabular-nums}\
+.pd3-kpi-label{font-size:10.5px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px}\
+\
+/* 2-Column Grid */\
+.pd3-grid2{display:grid;grid-template-columns:1.12fr 1fr;gap:14px;align-items:start}\
+.pd3-col{display:flex;flex-direction:column;gap:12px}\
+\
+/* Sections */\
+.pd3-section{background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid var(--border);overflow:hidden}\
+.pd3-section-head{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px}\
+.pd3-section-title{font-size:11.5px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.5px}\
+.pd3-section-count{font-size:10px;font-weight:700;background:var(--accent-light);color:var(--accent);padding:1px 7px;border-radius:8px;margin-left:4px}\
+.pd3-section-link{margin-left:auto;font-size:10px;font-weight:500;color:var(--text-light);cursor:pointer;transition:color .12s}\
+.pd3-section-link:hover{color:var(--accent)}\
+\
+/* Specs */\
+.pd3-specs{padding:4px 0}\
+.pd3-spec-row{display:flex;justify-content:space-between;align-items:center;padding:9px 16px;border-bottom:1px solid #f8fafc}\
+.pd3-spec-row:last-child{border-bottom:none}\
+.pd3-spec-label{font-size:11px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.3px}\
+.pd3-spec-value{font-size:12.5px;font-weight:600;color:var(--text)}\
+\
+/* Rows */\
+.pd3-row{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .08s;display:flex;align-items:center;gap:10px}\
+.pd3-row:hover{background:#fafbfc}\
+.pd3-row-last{border-bottom:none}\
+.pd3-row-left{flex:1;min-width:0}\
+.pd3-row-right{display:flex;align-items:center;gap:8px;flex-shrink:0}\
+.pd3-row-title{font-size:12.5px;font-weight:700;color:var(--text);line-height:1.2}\
+.pd3-row-sub{font-size:10px;color:var(--text-light);margin-top:2px}\
+.pd3-row-amount{font-size:15px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.3px;margin-right:4px}\
+.pd3-empty{padding:20px 16px;text-align:center;color:var(--text-light);font-size:11px}\
+\
+/* Responsive */\
+@media(max-width:1100px){\
+  .pd3-grid2{grid-template-columns:1fr}\
+  .pd3-kpi-row{grid-template-columns:repeat(2,1fr)}\
+  .pd3-header-top{flex-wrap:wrap}\
+  .pd3-header-metrics{border-left:none;padding-left:0;flex-direction:row;gap:20px;margin-top:10px}\
+}\
+@media(max-width:640px){\
+  .pd3{padding:10px 10px 32px}\
+  .pd3-header-top{padding:16px 14px 12px;gap:12px}\
+  .pd3-avatar{width:64px;height:64px;font-size:20px}\
+  .pd3-name{font-size:17px}\
+  .pd3-kpi-value{font-size:18px}\
+  .pd3-actions{padding:10px 14px}\
+}\
+';
+  document.head.appendChild(s);
+}
+
+
 /* ════════════════════════════════════════════════════════
    GENERIC RECORD
    ════════════════════════════════════════════════════════ */
@@ -1652,6 +2033,7 @@ var EDIT_FIELDS = {
   ],
   opportunities: [
     {key:'name',    label:'Opportunity Name', type:'text'},
+    {key:'productIds', label:'Products',      type:'product-picker'},
     {key:'account', label:'Account',          type:'text', ref:'accounts'},
     {key:'amount',  label:'Amount',           type:'number'},
     {key:'prob',    label:'Probability (%)',   type:'number'},
@@ -1683,6 +2065,7 @@ var EDIT_FIELDS = {
     {key:'risk',            label:'Risk Level',       type:'select', options:['High','Medium','Low']},
     {key:'impact',          label:'Impact Value',     type:'number'},
     {key:'category',        label:'Category',         type:'text'},
+    {key:'productIds',      label:'Products',         type:'product-picker'},
     {key:'projectId',       label:'Project',          type:'text', ref:'projects'},
     {key:'accountId',       label:'Account',          type:'text', ref:'accounts'},
     {key:'owner',           label:'Owner',            type:'text'},
@@ -1722,11 +2105,31 @@ var EDIT_FIELDS = {
     {key:'paymentTerms',    label:'Payment Terms',      type:'text'},
     {key:'deliveryTerms',   label:'Delivery Terms',     type:'text'},
     {key:'contact',         label:'Contact',            type:'text'},
+    {key:'productIds',      label:'Products',           type:'product-picker'},
     {key:'opportunityId',   label:'Opportunity',        type:'text', ref:'opportunities'},
     {key:'accountId',       label:'Account',            type:'text', ref:'accounts'},
     {key:'winProb',         label:'Win Probability',    type:'text'},
     {key:'competitors',     label:'Competitors',        type:'text'},
     {key:'negoNote',        label:'Negotiation Note',   type:'textarea'}
+  ],
+  products: [
+    {key:'name',            label:'Product Name',       type:'text'},
+    {key:'category',        label:'Category',           type:'select', options:['Glazing','Insulation','Mortars & Concrete','Coatings','Structural','Other']},
+    {key:'family',          label:'Product Family',     type:'text'},
+    {key:'sku',             label:'SKU',                type:'text'},
+    {key:'unitPrice',       label:'Unit Price',         type:'number'},
+    {key:'unit',            label:'Unit',               type:'select', options:['m²','m³','pcs','kg','L']},
+    {key:'manufacturer',    label:'Manufacturer',       type:'text'},
+    {key:'application',     label:'Application',        type:'text'},
+    {key:'certification',   label:'Certification',      type:'text'},
+    {key:'weight',          label:'Weight (kg)',        type:'number'},
+    {key:'dimensions',      label:'Dimensions',         type:'text'},
+    {key:'leadTime',        label:'Lead Time (days)',   type:'number'},
+    {key:'minOrder',        label:'Min Order Qty',      type:'number'},
+    {key:'stockLevel',      label:'Stock Level',        type:'number'},
+    {key:'warehouse',       label:'Warehouse',          type:'text'},
+    {key:'status',          label:'Status',             type:'select', options:['Active','Discontinued']},
+    {key:'description',     label:'Description',        type:'textarea'}
   ],
   users: [
     {key:'name',       label:'Full Name',    type:'text'},
@@ -1811,6 +2214,23 @@ function _detailsFormat(f, v, objKey, rec) {
     var pj = (window.DATA.projects||[]).find(function(p){ return p.id === v; });
     if (pj) return '<span class="crm-details-link" data-nav-obj="projects" data-nav-id="'+v+'">' + pj.name + '</span>';
     return String(v);
+  }
+  if (f.ref === 'products') {
+    var pd = (window.DATA.products||[]).find(function(p){ return p.id === v; });
+    if (pd) return '<span class="crm-details-link" data-nav-obj="products" data-nav-id="'+v+'">' + pd.name + '</span>';
+    return String(v);
+  }
+
+  /* Product picker (array of IDs) */
+  if (f.type === 'product-picker') {
+    var ids = Array.isArray(v) ? v : (typeof v === 'string' && v ? v.split(',').filter(Boolean) : []);
+    if (!ids.length) return '<span style="color:var(--text-light)">\u2014</span>';
+    var products = window.DATA.products || [];
+    return ids.map(function(pid) {
+      var pr = products.find(function(p){ return p.id === pid; });
+      if (pr) return '<span class="crm-details-link" data-nav-obj="products" data-nav-id="'+pid+'" style="display:inline-block;margin:1px 3px 1px 0;padding:2px 8px;background:#2563eb0a;border:1px solid #2563eb20;border-radius:5px;font-size:11.5px">' + pr.name + '</span>';
+      return pid;
+    }).join(' ');
   }
 
   /* Amount fields */
@@ -1977,7 +2397,16 @@ function openEditModal(objKey, recId) {
     if (val === undefined || val === null) val = '';
     formHtml += '<div class="crm-field-group">';
     formHtml += '<label class="crm-field-label">' + f.label + '</label>';
-    if (f.type === 'select' && f.options) {
+    if (f.type === 'product-picker') {
+      /* Resolve current IDs from rec — support both array and single string */
+      var currentPIds = [];
+      if (Array.isArray(val)) currentPIds = val;
+      else if (typeof val === 'string' && val) currentPIds = val.split(',').filter(Boolean);
+      /* Also check legacy productId */
+      if (!currentPIds.length && rec.productId) currentPIds = [rec.productId];
+      formHtml += (typeof ppFieldButton === 'function' ? ppFieldButton(f.key, currentPIds) : '<input type="text" class="crm-field-input" data-field="' + f.key + '" value="' + currentPIds.join(',') + '" />');
+      formHtml += (typeof ppHiddenInput === 'function' ? ppHiddenInput(f.key, currentPIds) : '');
+    } else if (f.type === 'select' && f.options) {
       formHtml += '<select class="crm-field-input" data-field="' + f.key + '">';
       formHtml += '<option value="">— Select —</option>';
       f.options.forEach(function(opt) {
@@ -2024,6 +2453,31 @@ function openEditModal(objKey, recId) {
   backdrop.querySelector('#crm-edit-cancel').addEventListener('click', closeEdit);
   backdrop.addEventListener('click', function(e) { if (e.target === backdrop) closeEdit(); });
 
+  /* ── Product picker field binding in edit modal ── */
+  backdrop.querySelectorAll('.pp-field-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var fieldKey = btn.getAttribute('data-pp-field');
+      var hiddenEl = document.getElementById('pp-hidden-' + fieldKey);
+      var currentIds = hiddenEl && hiddenEl.value ? hiddenEl.value.split(',').filter(Boolean) : [];
+      if (typeof openProductPicker === 'function') {
+        openProductPicker({
+          selected: currentIds,
+          onConfirm: function(ids) {
+            if (hiddenEl) hiddenEl.value = ids.join(',');
+            var container = btn.parentElement;
+            var newBtnHtml = ppFieldButton(fieldKey, ids);
+            btn.outerHTML = newBtnHtml;
+            var newHidden = document.getElementById('pp-hidden-' + fieldKey);
+            if (newHidden) newHidden.value = ids.join(',');
+            /* Re-bind new button */
+            var freshBtn = backdrop.querySelector('.pp-field-btn[data-pp-field="' + fieldKey + '"]');
+            if (freshBtn) freshBtn.addEventListener('click', function() { btn.click(); });
+          }
+        });
+      }
+    });
+  });
+
   /* Save */
   backdrop.querySelector('#crm-edit-save').addEventListener('click', function() {
     var saveBtn = backdrop.querySelector('#crm-edit-save');
@@ -2035,7 +2489,9 @@ function openEditModal(objKey, recId) {
       var fieldKey = input.getAttribute('data-field');
       var fieldDef = fields.find(function(f) { return f.key === fieldKey; });
       var newVal = input.value;
-      if (fieldDef && fieldDef.type === 'number' && newVal !== '') {
+      if (fieldDef && fieldDef.type === 'product-picker') {
+        newVal = newVal ? newVal.split(',').filter(Boolean) : [];
+      } else if (fieldDef && fieldDef.type === 'number' && newVal !== '') {
         newVal = parseFloat(newVal);
         if (isNaN(newVal)) newVal = 0;
       }

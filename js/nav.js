@@ -33,6 +33,7 @@ const NAV_ICONS = {
   save: 'M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2zM17 21v-8H7v8M7 3v5h8',
   x: 'M18 6L6 18M6 6l12 12',
   agentConsole: 'M13 10V3L4 14h7v7l9-11h-7z',
+  products: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
   logout: 'M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1',
 };
 
@@ -51,6 +52,7 @@ var NAV_ITEMS = [
   { key: 'opportunities', label: 'Opportunities', icon: 'opportunities' },
   { key: 'quotes', label: 'Quotes', icon: 'quotes' },
   { key: 'projects', label: 'Projects', icon: 'projects' },
+  { key: 'products', label: 'Products', icon: 'products' },
   { key: 'claims', label: 'Claims', icon: 'claims' },
   { key: 'activities', label: 'Activities', icon: 'activities' },
   { key: 'agentConsole', label: 'Agent Console', icon: 'agentConsole' },
@@ -207,6 +209,7 @@ function renderCurrentPage() {
     case 'contacts':
     case 'quotes':
     case 'projects':
+    case 'products':
     case 'claims':
     case 'activities':
       header.style.display = '';
