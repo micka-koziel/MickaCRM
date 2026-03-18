@@ -222,7 +222,7 @@ function ccInjectStyles() {
 
 /* KPI Box HTML */
 function ccKpiBox(icon, iconBg, label, valueHtml, subHtml, tabId) {
-  return '<div class="cc-kpi-box" data-cc-tab="' + tabId + '" onclick="ccSwitchTab(this,\'' + tabId + '\')">' +
+  return '<div class="cc-kpi-box" data-cc-tab="' + tabId + '">' +
     '<div class="cc-kpi-head">' +
     '<div class="cc-kpi-icon" style="background:' + iconBg + '">' + svgIcon(icon, 15, iconBg.replace(/14$/, '').replace('#f0f4ff', '#2563eb').replace('#ecfdf5', '#059669').replace('#fef7ec', '#d97706').replace('#fef3f2', '#dc2626').replace('#f3f0ff', '#7c3aed')) + '</div>' +
     '<span class="cc-kpi-label">' + label + '</span>' +
@@ -234,7 +234,7 @@ function ccKpiBox(icon, iconBg, label, valueHtml, subHtml, tabId) {
 
 /* Tab HTML */
 function ccTab(id, label, icon, count) {
-  return '<div class="cc-tab" data-cc-tab="' + id + '" onclick="ccSwitchTab(this,\'' + id + '\')">' +
+  return '<div class="cc-tab" data-cc-tab="' + id + '">' +
     svgIcon(icon, 14, 'currentColor') + ' ' + label +
     (count !== undefined && count !== null ? ' <span class="cc-tab-count">' + count + '</span>' : '') +
     '</div>';
@@ -305,26 +305,10 @@ function ccTimelineItem(icon, color, title, date, desc) {
     '</div></div>';
 }
 
-/* Global tab switch — called by inline onclick on KPI boxes and tabs */
-function ccSwitchTab(el, tabId) {
-  var wrap = el.closest('.cc-wrap');
-  if (!wrap) return;
-  wrap.querySelectorAll('.cc-section').forEach(function(s) { s.classList.remove('cc-visible'); });
-  wrap.querySelectorAll('.cc-tab').forEach(function(t) { t.classList.remove('cc-tab-active'); });
-  wrap.querySelectorAll('.cc-kpi-box').forEach(function(k) { k.classList.remove('cc-kpi-active'); });
-  /* Find section by suffix — try all prefixes */
-  var sec = wrap.querySelector('.cc-section[id$="-sec-' + tabId + '"]');
-  if (sec) sec.classList.add('cc-visible');
-  wrap.querySelectorAll('.cc-tab[data-cc-tab="' + tabId + '"]').forEach(function(t) { t.classList.add('cc-tab-active'); });
-  wrap.querySelectorAll('.cc-kpi-box[data-cc-tab="' + tabId + '"]').forEach(function(k) { k.classList.add('cc-kpi-active'); });
-}
-
-/* Bind tab switching + KPI box clicks + row navigation */
+/* Bind tab switching + KPI box clicks + row navigation via EVENT DELEGATION */
 function ccBindTabs(container, prefix) {
-  var activeTab = 'details';
 
   function switchTo(tabId) {
-    activeTab = tabId;
     container.querySelectorAll('.cc-section').forEach(function(s) { s.classList.remove('cc-visible'); });
     container.querySelectorAll('.cc-tab').forEach(function(t) { t.classList.remove('cc-tab-active'); });
     container.querySelectorAll('.cc-kpi-box').forEach(function(k) { k.classList.remove('cc-kpi-active'); });
@@ -334,20 +318,29 @@ function ccBindTabs(container, prefix) {
     container.querySelectorAll('.cc-kpi-box[data-cc-tab="' + tabId + '"]').forEach(function(k) { k.classList.add('cc-kpi-active'); });
   }
 
-  container.querySelectorAll('.cc-tab').forEach(function(t) {
-    t.addEventListener('click', function() { switchTo(t.getAttribute('data-cc-tab')); });
-  });
-  container.querySelectorAll('.cc-kpi-box').forEach(function(k) {
-    k.addEventListener('click', function() { switchTo(k.getAttribute('data-cc-tab')); });
+  /* ONE click listener via delegation — catches everything */
+  container.addEventListener('click', function(e) {
+    /* Find closest KPI box or tab */
+    var kpi = e.target.closest('.cc-kpi-box[data-cc-tab]');
+    if (kpi) {
+      var tabId = kpi.getAttribute('data-cc-tab');
+      if (tabId) { switchTo(tabId); return; }
+    }
+    var tab = e.target.closest('.cc-tab[data-cc-tab]');
+    if (tab) {
+      var tabId2 = tab.getAttribute('data-cc-tab');
+      if (tabId2) { switchTo(tabId2); return; }
+    }
+    /* Row navigation */
+    var row = e.target.closest('.cc-rel-row[data-nav-id]');
+    if (row) {
+      navigate('record', row.getAttribute('data-nav-obj'), row.getAttribute('data-nav-id'));
+      return;
+    }
   });
 
   /* Set initial active */
   switchTo('details');
-
-  /* Row navigation */
-  container.querySelectorAll('.cc-rel-row[data-nav-id]').forEach(function(el) {
-    el.addEventListener('click', function() { navigate('record', el.getAttribute('data-nav-obj'), el.getAttribute('data-nav-id')); });
-  });
 }
 
 
