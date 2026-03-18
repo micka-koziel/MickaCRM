@@ -90,7 +90,9 @@ function renderSidebar() {
 
   sb.innerHTML =
     '<div class="sb-logo">' +
-      (sidebarCollapsed ? '' : '<span class="sb-logo-text">MickaCRM<span class="sb-logo-360">360</span></span>') +
+      (sidebarCollapsed ?
+        '<svg width="28" height="28" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="36" width="9" height="44" rx="2" fill="#f59e0b" opacity=".85"/><rect x="19" y="24" width="9" height="56" rx="2" fill="#ef4444" opacity=".85"/><rect x="32" y="12" width="9" height="68" rx="2" fill="#3b82f6" opacity=".85"/><rect x="45" y="28" width="9" height="52" rx="2" fill="#10b981" opacity=".85"/><rect x="58" y="42" width="9" height="38" rx="2" fill="#8b5cf6" opacity=".85"/></svg>' :
+        '<svg width="140" height="44" viewBox="0 0 320 90" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="36" width="9" height="44" rx="2" fill="#f59e0b" opacity=".85"/><rect x="19" y="24" width="9" height="56" rx="2" fill="#ef4444" opacity=".85"/><rect x="32" y="12" width="9" height="68" rx="2" fill="#3b82f6" opacity=".85"/><rect x="45" y="28" width="9" height="52" rx="2" fill="#10b981" opacity=".85"/><rect x="58" y="42" width="9" height="38" rx="2" fill="#8b5cf6" opacity=".85"/><text x="76" y="52" font-family="DM Sans, sans-serif" font-weight="800" font-size="38" fill="white" letter-spacing="-1">CRM360</text><text x="76" y="74" font-family="DM Sans, sans-serif" font-weight="600" font-size="14" fill="rgba(255,255,255,0.35)" letter-spacing="3.5">SAINT-GOBAIN</text></svg>') +
     '</div>' +
     '<div class="sb-nav">' + items + '</div>' +
     '<div class="sb-footer">' + userBadgeHtml +

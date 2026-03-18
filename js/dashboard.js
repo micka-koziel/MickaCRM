@@ -1,6 +1,6 @@
 // ============================================================
-// MICKACRM v4 — DASHBOARD.JS — Construction Cockpit + Hero
-// Hero header + Grid 4x2 + 2col — English UI
+// MICKACRM v4 — DASHBOARD.JS — CRM360 Cockpit
+// Single merged header + Grid 3x2 + 2col — English UI
 // ============================================================
 
 function _ckIcon(name, size, color) {
@@ -43,14 +43,17 @@ function renderDashboard(containerEl) {
 
   var html = '<div class="ck">';
 
-  // ═══ HERO HEADER ═══
+  // ═══ SINGLE MERGED HEADER — greeting left + KPIs right ═══
   html += '<div class="ck-hero">';
+  html += '<div class="ck-hero-bg"></div>';
   html += '<div class="ck-hero-overlay"></div>';
   html += '<div class="ck-hero-content">';
+  // Left: greeting
   html += '<div class="ck-hero-left">';
   html += '<div class="ck-hero-greeting">Good morning, Micka</div>';
   html += '<div class="ck-hero-date">' + dateStr + '</div>';
   html += '</div>';
+  // Right: KPIs
   html += '<div class="ck-hero-metrics">';
   html += '<div class="ck-hero-metric"><span class="ck-hero-metric-val">' + _ckAmt(totalPipe) + '</span><span class="ck-hero-metric-label">pipeline</span></div>';
   html += '<div class="ck-hero-metric-sep"></div>';
@@ -62,14 +65,14 @@ function renderDashboard(containerEl) {
   html += '</div>';
   html += '</div></div>';
 
-  // ═══ ROW 1 — 4 CELLS ═══
-  html += '<div class="ck-grid4">';
+  // ═══ ROW 1 — 3 CELLS ═══
+  html += '<div class="ck-grid3">';
 
   // Cell 1: Pipeline
   html += cellOpen("Opportunity Pipeline", "Kanban", "navigate('opportunities')");
   html += '<div onclick="navigate(\'opportunities\')" style="cursor:pointer">';
   html += '<div class="ck-big-row"><span class="ck-big">' + _ckAmt(totalPipe) + '</span><span class="ck-trend-up">+12% YOY</span></div>';
-  html += miniSparkline([12, 18, 15, 22, 19, 28, 25, 32], "#2563eb", 120, 28);
+  html += miniSparkline([12, 18, 15, 22, 19, 28, 25, 32], "#2563eb", 130, 30);
   html += '<div class="ck-hint">' + OPPS.length + ' active opportunities</div>';
   html += '</div>' + cellClose();
 
@@ -95,59 +98,32 @@ function renderDashboard(containerEl) {
   // Cell 3: Claims
   html += cellOpen("Claims / Issues", "View all", "navigate('claims')");
   html += '<div onclick="navigate(\'claims\')" style="cursor:pointer">';
-  html += '<div style="display:flex;gap:16px;margin-bottom:6px">';
+  html += '<div style="display:flex;gap:20px;margin-bottom:8px">';
   html += '<div><div class="ck-tiny-label">Total</div><div class="ck-num-lg">' + openClaims.length + '</div></div>';
   html += '<div><div class="ck-tiny-label">Open</div><div class="ck-num-lg" style="color:#dc2626">' + newClaims + '</div></div></div>';
-  html += stackedBar([{ v: newClaims, c: "#dc2626", l: "Open" }, { v: wipClaims, c: "#f59e0b", l: "In Progress" }], 14);
+  html += stackedBar([{ v: newClaims, c: "#dc2626", l: "Open" }, { v: wipClaims, c: "#f59e0b", l: "In Progress" }], 16);
   html += '<div class="ck-legend-row"><div class="ck-legend-item"><div class="ck-legend-dot" style="background:#dc2626"></div><span>Open</span></div>';
   html += '<div class="ck-legend-item"><div class="ck-legend-dot" style="background:#f59e0b"></div><span>In Progress</span></div></div>';
   html += '</div>' + cellClose();
 
-  // Cell 4: Activities
-  var actTypes = [
-    { key: "Meeting", label: "Meetings", color: "#8b5cf6" },
-    { key: "Call", label: "Calls", color: "#3b82f6" },
-    { key: "Site Visit", label: "Site Visits", color: "#f59e0b" },
-    { key: "Email", label: "Emails", color: "#10b981" }
-  ];
-  var actData = actTypes.map(function(t) {
-    return { label: t.label, color: t.color, count: ACTIVITIES.filter(function(a) { return a.type === t.key; }).length };
-  });
-  var maxAct = Math.max.apply(null, actData.map(function(a) { return a.count; })) || 1;
-  var actTotal = actData.reduce(function(s, a) { return s + a.count; }, 0);
-
-  html += cellOpen("Activities (30d)", "View all", "navigate('activities')");
-  html += '<div onclick="navigate(\'activities\')" style="cursor:pointer">';
-  html += '<div class="ck-big-row"><span class="ck-big">' + actTotal + '</span></div>';
-  html += '<div class="ck-mini-bars">';
-  actData.forEach(function(a) {
-    var w = Math.max((a.count / maxAct) * 100, a.count > 0 ? 12 : 0);
-    html += '<div class="ck-mini-bar-row ck-clickable" onclick="event.stopPropagation();navigate(\'activities\')">';
-    html += '<span class="ck-mini-label" style="width:52px">' + a.label + '</span>';
-    html += '<div class="ck-mini-track"><div class="ck-mini-fill" style="width:' + w + '%;background:' + a.color + '"></div></div>';
-    html += '<span class="ck-mini-val">' + a.count + '</span></div>';
-  });
-  html += '</div><div class="ck-hint" style="margin-top:5px">Last activity: 2h ago</div>';
-  html += '</div>' + cellClose();
-
   html += '</div>'; // end row 1
 
-  // ═══ ROW 2 — 4 CELLS ═══
-  html += '<div class="ck-grid4">';
+  // ═══ ROW 2 — 3 CELLS ═══
+  html += '<div class="ck-grid3">';
 
-  // Cell 5: Won vs Target
+  // Cell 4: Won vs Target
   var targetAmt = 120000000;
   var pctObj = Math.round((wonAmt / targetAmt) * 100);
   html += cellOpen("Won vs Target", "Won deals", "navigate('opportunities')");
   html += '<div onclick="navigate(\'opportunities\')" style="cursor:pointer">';
-  html += '<div style="display:flex;gap:14px;margin-bottom:6px">';
-  html += '<div><div class="ck-tiny-label">Won</div><div style="font-size:20px;font-weight:800;color:var(--text)">' + _ckAmt(wonAmt) + '</div></div>';
-  html += '<div><div class="ck-tiny-label">Target</div><div style="font-size:20px;font-weight:800;color:var(--text-light)">' + _ckAmt(targetAmt) + '</div></div></div>';
+  html += '<div style="display:flex;gap:16px;margin-bottom:8px">';
+  html += '<div><div class="ck-tiny-label">Won</div><div style="font-size:22px;font-weight:800;color:var(--text)">' + _ckAmt(wonAmt) + '</div></div>';
+  html += '<div><div class="ck-tiny-label">Target</div><div style="font-size:22px;font-weight:800;color:var(--text-light)">' + _ckAmt(targetAmt) + '</div></div></div>';
   html += progressBar(pctObj, "#10b981", 10);
-  html += '<div style="display:flex;justify-content:space-between;margin-top:3px"><span style="font-size:9px;font-weight:600;color:#10b981">' + pctObj + '%</span><span class="ck-hint">Yearly target</span></div>';
+  html += '<div style="display:flex;justify-content:space-between;margin-top:4px"><span style="font-size:10px;font-weight:600;color:#10b981">' + pctObj + '%</span><span class="ck-hint">Yearly target</span></div>';
   html += '</div>' + cellClose();
 
-  // Cell 6: Top Opps
+  // Cell 5: Top Opps
   var topOpps = OPPS.slice().sort(function(a, b) { return (b.amount || 0) - (a.amount || 0); }).slice(0, 4);
   html += cellOpen("Top Opportunities", "View all", "navigate('opportunities')");
   html += '<div class="ck-top-list">';
@@ -158,7 +134,7 @@ function renderDashboard(containerEl) {
   });
   html += '</div>' + cellClose();
 
-  // Cell 7: Projects by Phase
+  // Cell 6: Projects by Phase
   var phCfg = (STAGES && STAGES.projects) || [];
   var totalProj = Math.max(PROJECTS.length, 1);
   var phData = phCfg.map(function(p) {
@@ -172,36 +148,21 @@ function renderDashboard(containerEl) {
 
   html += cellOpen("Projects by Phase", "View all", "navigate('projects')");
   html += '<div onclick="navigate(\'projects\')" style="cursor:pointer">';
-  html += '<div class="ck-big-row"><span class="ck-big" style="font-size:22px">' + PROJECTS.length + '</span><span class="ck-hint" style="font-size:10px">active projects</span></div>';
-  html += stackedBar(phData.map(function(p) { return { v: p.count, c: p.color, l: p.label }; }), 14);
+  html += '<div class="ck-big-row"><span class="ck-big" style="font-size:24px">' + PROJECTS.length + '</span><span class="ck-hint" style="font-size:10px">active projects</span></div>';
+  html += stackedBar(phData.map(function(p) { return { v: p.count, c: p.color, l: p.label }; }), 16);
   html += '<div class="ck-phase-grid">';
   phData.forEach(function(p) {
     html += '<div class="ck-legend-item"><div class="ck-legend-dot" style="background:' + p.color + '"></div><span>' + p.label + '</span><strong>' + p.count + '</strong></div>';
   });
   html += '</div></div>' + cellClose();
 
-  // Cell 8: Leads
-  var newL = LEADS.filter(function(l) { return l.stage === "new"; }).length;
-  var conL = LEADS.filter(function(l) { return l.stage === "contacted"; }).length;
-  var qualL = LEADS.filter(function(l) { return l.stage === "qualified"; }).length;
-
-  html += cellOpen("Incoming Leads", "View all", "navigate('leads')");
-  html += '<div onclick="navigate(\'leads\')" style="cursor:pointer">';
-  html += '<div class="ck-big-row"><span class="ck-big">' + LEADS.length + '</span><span class="ck-trend-up">+2 this week</span></div>';
-  html += miniSparkline([1, 3, 2, 4, 3, LEADS.length], "#d97706", 110, 24);
-  html += '<div class="ck-legend-row" style="margin-top:4px">';
-  html += '<div class="ck-legend-item"><div class="ck-legend-dot" style="background:#10b981;border-radius:50%"></div><span>New <strong>' + newL + '</strong></span></div>';
-  html += '<div class="ck-legend-item"><div class="ck-legend-dot" style="background:#3b82f6;border-radius:50%"></div><span>Contacted <strong>' + conL + '</strong></span></div>';
-  html += '<div class="ck-legend-item"><div class="ck-legend-dot" style="background:#8b5cf6;border-radius:50%"></div><span>Qualified <strong>' + qualL + '</strong></span></div>';
-  html += '</div></div>' + cellClose();
-
   html += '</div>'; // end row 2
 
-  // ═══ ROW 3 — Recently Viewed + Upcoming Activities (4 items each) ═══
+  // ═══ ROW 3 — Recently Viewed + Upcoming Activities ═══
   html += '<div class="ck-grid2">';
 
   // Recently Viewed
-  html += cellOpen("Recently Viewed", "View all →", "navigate('accounts')");
+  html += cellOpen("Recently Viewed", "View all \u2192", "navigate('accounts')");
   var recentItems = getRecentlyViewed();
   if (recentItems.length === 0) {
     html += '<div style="padding:12px 0;text-align:center;color:var(--text-light);font-size:11px">No recently viewed records</div>';
@@ -225,7 +186,7 @@ function renderDashboard(containerEl) {
   // Upcoming Activities
   var _actIcons = { Call: "phone", Meeting: "users", "Site Visit": "mapPin", Email: "mail" };
   var _actColorsMap = { Call: "#3b82f6", Meeting: "#8b5cf6", "Site Visit": "#f59e0b", Email: "#10b981" };
-  html += cellOpen("Upcoming Activities", "View all →", "navigate('activities')");
+  html += cellOpen("Upcoming Activities", "View all \u2192", "navigate('activities')");
   ACTIVITIES.slice(0, 4).forEach(function(a) {
     var ic = _actIcons[a.type] || "phone";
     var ac = _actColorsMap[a.type] || "#3b82f6";
@@ -298,15 +259,15 @@ function miniSparkline(data, color, w, h) {
   var max = Math.max.apply(null, data), min = Math.min.apply(null, data), range = max - min || 1;
   var pts = data.map(function(v, i) { return ((i / (data.length - 1)) * w) + "," + (h - ((v - min) / range) * h); }).join(" ");
   var lastY = h - ((data[data.length - 1] - min) / range) * h;
-  return '<svg width="' + w + '" height="' + h + '" style="display:block;margin:2px 0"><polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="' + w + '" cy="' + lastY + '" r="2.5" fill="' + color + '"/></svg>';
+  return '<svg width="' + w + '" height="' + h + '" style="display:block;margin:2px 0"><polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="' + w + '" cy="' + lastY + '" r="3" fill="' + color + '"/></svg>';
 }
 
 function stackedBar(segs, h) {
   var total = segs.reduce(function(s, seg) { return s + (seg.v || 0); }, 0) || 1;
-  var html = '<div style="display:flex;height:' + h + 'px;border-radius:4px;overflow:hidden;gap:1px;width:100%">';
+  var html = '<div style="display:flex;height:' + h + 'px;border-radius:5px;overflow:hidden;gap:2px;width:100%">';
   segs.forEach(function(seg) {
     var pct = Math.max((seg.v / total) * 100, seg.v > 0 ? 8 : 0);
-    html += '<div style="width:' + pct + '%;background:' + seg.c + ';transition:width .4s" title="' + seg.l + ': ' + seg.v + '"></div>';
+    html += '<div style="width:' + pct + '%;background:' + seg.c + ';border-radius:5px;transition:width .4s" title="' + seg.l + ': ' + seg.v + '"></div>';
   });
   html += '</div>'; return html;
 }
@@ -320,84 +281,93 @@ function injectCKStyles() {
   if (document.getElementById("ck3-css")) return;
   var s = document.createElement("style"); s.id = "ck3-css";
   s.textContent = '\
-/* ── Hero Header ── */\
-.ck-hero{position:relative;height:144px;border-radius:12px;overflow:hidden;margin-bottom:12px;\
-  background:url(assets/Header.png) center/cover no-repeat}\
+/* ── Single merged header ── */\
+.ck-hero{position:relative;overflow:hidden;\
+  background:linear-gradient(180deg, #1e2a5e 0%, #263d72 50%, #f0f2f5 100%);\
+  padding:0 0 40px}\
+.ck-hero-bg{position:absolute;inset:0;\
+  background:url(assets/Header.png) center 45%/cover no-repeat;\
+  opacity:.12;filter:blur(1.5px)}\
 .ck-hero-overlay{position:absolute;inset:0;\
-  background:linear-gradient(135deg,rgba(10,20,45,.50) 0%,rgba(15,23,42,.35) 50%,rgba(30,40,70,.28) 100%)}\
-.ck-hero-content{position:relative;z-index:1;height:100%;display:flex;align-items:center;justify-content:space-between;padding:0 28px;gap:24px}\
-.ck-hero-left{display:flex;flex-direction:column;gap:0}\
-.ck-hero-greeting{font-size:26px;font-weight:800;color:#fff;letter-spacing:-.3px;text-shadow:0 2px 8px rgba(0,0,0,.3)}\
-.ck-hero-date{font-size:12px;font-weight:400;color:rgba(255,255,255,.55);margin-top:4px;text-shadow:0 1px 4px rgba(0,0,0,.2)}\
-.ck-hero-metrics{display:flex;align-items:center;gap:0}\
-.ck-hero-metric{display:flex;flex-direction:column;align-items:center;padding:0 18px}\
-.ck-hero-metric-val{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.5px;line-height:1.1}\
-.ck-hero-metric-label{font-size:9.5px;font-weight:500;color:rgba(255,255,255,.45);margin-top:2px;text-transform:uppercase;letter-spacing:.3px}\
+  background:linear-gradient(180deg, rgba(30,42,94,.7) 0%, rgba(38,61,114,.5) 50%, rgba(240,242,245,1) 100%)}\
+.ck-hero-content{position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between;padding:22px 28px 0}\
+.ck-hero-left{display:flex;flex-direction:column}\
+.ck-hero-greeting{font-size:28px;font-weight:800;color:#fff;letter-spacing:-.3px;text-shadow:0 2px 12px rgba(0,0,0,.2)}\
+.ck-hero-date{font-size:12.5px;font-weight:400;color:rgba(255,255,255,.45);margin-top:4px}\
+.ck-hero-metrics{display:flex;align-items:center;padding-top:4px}\
+.ck-hero-metric{display:flex;flex-direction:column;align-items:center;padding:0 20px}\
+.ck-hero-metric-val{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.5px;line-height:1}\
+.ck-hero-metric-label{font-size:8.5px;font-weight:600;color:rgba(255,255,255,.35);margin-top:3px;text-transform:uppercase;letter-spacing:1.5px}\
 .ck-hero-metric-sep{width:1px;height:32px;background:rgba(255,255,255,.12)}\
 \
 /* ── Grid ── */\
-.ck{max-width:1280px;margin:0 auto;padding:0 2px}\
-.ck-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}\
-.ck-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}\
+.ck{max-width:1320px;margin:0 auto}\
+.ck-grid3{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:12px;margin-bottom:12px;padding:0 16px}\
+.ck-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px}\
+\
+/* ── Cards overlap header ── */\
+.ck-grid3:first-of-type{margin-top:-30px;position:relative;z-index:2}\
 \
 /* ── Cells ── */\
-.ck-cell{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;box-shadow:0 1px 2px rgba(0,0,0,.03);display:flex;flex-direction:column;transition:box-shadow .15s,border-color .15s}\
-.ck-cell:hover{box-shadow:0 3px 12px rgba(0,0,0,.05);border-color:#d0d5dd}\
-.ck-cell-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}\
-.ck-cell-title{font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px}\
-.ck-cell-link{background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;gap:2px;font-size:9.5px;font-weight:600;color:var(--accent);opacity:.8;transition:opacity .15s;font-family:inherit}\
+.ck-cell{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;\
+  box-shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.02);\
+  display:flex;flex-direction:column;transition:box-shadow .15s,border-color .15s}\
+.ck-cell:hover{box-shadow:0 3px 12px rgba(0,0,0,.06);border-color:#d0d5dd}\
+.ck-cell-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}\
+.ck-cell-title{font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}\
+.ck-cell-link{background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;gap:2px;font-size:10px;font-weight:600;color:var(--accent);opacity:.8;transition:opacity .15s;font-family:inherit}\
 .ck-cell-link:hover{opacity:1}\
 \
 /* ── Typography ── */\
-.ck-big-row{display:flex;align-items:baseline;gap:6px;margin-bottom:2px}\
-.ck-big{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-1px;line-height:1}\
-.ck-trend-up{font-size:10px;font-weight:600;color:#059669}\
-.ck-trend-down{font-size:10px;font-weight:600;color:#dc2626}\
+.ck-big-row{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}\
+.ck-big{font-size:26px;font-weight:800;color:var(--text);letter-spacing:-1px;line-height:1}\
+.ck-trend-up{font-size:11px;font-weight:600;color:#059669}\
+.ck-trend-down{font-size:11px;font-weight:600;color:#dc2626}\
 .ck-hint{font-size:9px;color:var(--text-light)}\
 .ck-tiny-label{font-size:9px;color:var(--text-light);font-weight:500}\
-.ck-num-lg{font-size:22px;font-weight:800;color:var(--text)}\
+.ck-num-lg{font-size:24px;font-weight:800;color:var(--text)}\
 \
 /* ── Mini bars ── */\
-.ck-mini-bars{display:flex;flex-direction:column;gap:3px}\
-.ck-mini-bar-row{display:flex;align-items:center;gap:5px;padding:1px 2px;border-radius:3px;transition:background .12s}\
+.ck-mini-bars{display:flex;flex-direction:column;gap:4px}\
+.ck-mini-bar-row{display:flex;align-items:center;gap:6px;padding:1px 2px;border-radius:3px;transition:background .12s}\
 .ck-mini-bar-row:hover{background:#f8f9fb}\
-.ck-mini-label{width:42px;font-size:9.5px;font-weight:600;color:var(--text-muted);text-align:right;flex-shrink:0}\
-.ck-mini-track{flex:1;background:#f1f5f9;border-radius:3px;height:12px;overflow:hidden}\
-.ck-mini-fill{height:100%;border-radius:3px;transition:width .4s}\
-.ck-mini-val{font-size:9px;font-weight:700;color:var(--text);width:14px;text-align:right}\
+.ck-mini-label{width:48px;font-size:10px;font-weight:600;color:var(--text-muted);text-align:right;flex-shrink:0}\
+.ck-mini-track{flex:1;background:#f1f5f9;border-radius:4px;height:14px;overflow:hidden}\
+.ck-mini-fill{height:100%;border-radius:4px;transition:width .5s}\
+.ck-mini-val{font-size:10px;font-weight:700;color:var(--text);width:16px;text-align:right}\
 \
 /* ── Shared ── */\
 .ck-clickable{cursor:pointer}\
-.ck-legend-row{display:flex;gap:10px;margin-top:5px}\
-.ck-legend-item{display:flex;align-items:center;gap:3px;font-size:9px;color:var(--text-muted)}\
+.ck-legend-row{display:flex;gap:12px;margin-top:6px}\
+.ck-legend-item{display:flex;align-items:center;gap:3px;font-size:9.5px;color:var(--text-muted)}\
 .ck-legend-item strong{color:var(--text);margin-left:1px}\
 .ck-legend-dot{width:6px;height:6px;border-radius:2px;flex-shrink:0}\
-.ck-phase-grid{display:flex;flex-wrap:wrap;gap:3px 10px;margin-top:6px}\
+.ck-phase-grid{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px}\
 \
 /* ── Top list ── */\
-.ck-top-list{display:flex;flex-direction:column;gap:2px}\
-.ck-top-row{display:flex;align-items:center;justify-content:space-between;padding:3px 4px;border-radius:4px;transition:background .12s}\
+.ck-top-list{display:flex;flex-direction:column;gap:3px}\
+.ck-top-row{display:flex;align-items:center;justify-content:space-between;padding:4px 6px;border-radius:5px;transition:background .12s}\
 .ck-top-row:hover{background:#f8f9fb}\
 .ck-top-left{flex:1;min-width:0}\
-.ck-top-name{font-size:10.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\
-.ck-top-meta{font-size:9px;color:var(--text-light)}\
-.ck-top-amt{font-size:11px;font-weight:700;color:var(--text);flex-shrink:0;margin-left:6px}\
+.ck-top-name{font-size:11.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\
+.ck-top-meta{font-size:9.5px;color:var(--text-light)}\
+.ck-top-amt{font-size:12px;font-weight:700;color:var(--text);flex-shrink:0;margin-left:8px}\
 \
 /* ── Row items ── */\
-.ck-row-sm{display:flex;align-items:center;gap:7px;padding:5px 6px;border-radius:5px}\
+.ck-row-sm{display:flex;align-items:center;gap:8px;padding:6px;border-radius:6px}\
 .ck-row-body{flex:1;min-width:0}\
-.ck-row-t{font-size:11px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3}\
-.ck-row-m{font-size:9px;color:var(--text-light)}\
-.ck-recent-ico{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}\
-.ck-act-ico{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}\
+.ck-row-t{font-size:11.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3}\
+.ck-row-m{font-size:9.5px;color:var(--text-light)}\
+.ck-recent-ico{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}\
+.ck-act-ico{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}\
 .ck-row-time{text-align:right;flex-shrink:0}\
-.ck-row-date{font-size:9.5px;font-weight:600;color:var(--text-muted)}\
+.ck-row-date{font-size:10px;font-weight:600;color:var(--text-muted)}\
 .ck-row-hour{font-size:9px;color:var(--text-light)}\
 \
 /* ── Responsive ── */\
-@media(max-width:1100px){.ck-grid4{grid-template-columns:repeat(2,1fr)}.ck-hero-metrics{flex-wrap:wrap;gap:8px}}\
-@media(max-width:768px){.ck-grid4{grid-template-columns:1fr}.ck-grid2{grid-template-columns:1fr}.ck-hero{height:auto;padding:16px}.ck-hero-content{flex-direction:column;align-items:flex-start;padding:16px}}\
-@media(max-width:640px){.ck-hero-greeting{font-size:20px}.ck-hero-metric-val{font-size:16px}.ck-hero-metric{padding:0 10px}.ck-hero-metrics{gap:4px}.ck{padding:0}.ck-cell{padding:10px 12px}.ck-big{font-size:20px}.ck-num-lg{font-size:18px}}\
+@media(max-width:1100px){.ck-grid3{grid-template-columns:1fr 1fr}.ck-hero-metrics{flex-wrap:wrap;gap:8px}}\
+@media(max-width:768px){.ck-grid3{grid-template-columns:1fr}.ck-grid2{grid-template-columns:1fr}.ck-hero-content{flex-direction:column;gap:16px;padding:16px 20px 0}}\
+@media(max-width:640px){.ck-hero-greeting{font-size:22px}.ck-hero-metric-val{font-size:16px}.ck-hero-metric{padding:0 12px}}\
 ';
   document.head.appendChild(s);
 }
