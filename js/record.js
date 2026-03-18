@@ -1789,7 +1789,8 @@ var EDIT_FIELDS = {
     {key:'website',   label:'Website',       type:'text'},
     {key:'pipeline',  label:'Pipeline Value', type:'number'},
     {key:'opps',      label:'Open Opps',     type:'number'},
-    {key:'status',    label:'Status',        type:'select', options:['Active','Prospect','Inactive']}
+    {key:'status',    label:'Status',        type:'select', options:['Active','Prospect','Inactive']},
+    {key:'keyRelationship', label:'Key Account', type:'select', options:['Yes','No']}
   ],
   contacts: [
     {key:'name',      label:'Contact Name',  type:'text'},
@@ -1798,7 +1799,8 @@ var EDIT_FIELDS = {
     {key:'phone',     label:'Phone',         type:'text'},
     {key:'city',      label:'City',          type:'text'},
     {key:'account',   label:'Account',       type:'text', ref:'accounts'},
-    {key:'influence', label:'Influence',     type:'select', options:['Decision Maker','Influencer','Champion','Technical','Other']}
+    {key:'influence', label:'Influence',     type:'select', options:['Decision Maker','Influencer','Champion','Technical','Other']},
+    {key:'keyRelationship', label:'Key Contact', type:'select', options:['Yes','No']}
   ],
   leads: [
     {key:'name',          label:'Lead Name',       type:'text'},
@@ -2052,6 +2054,12 @@ function _detailsFormat(f, v, objKey, rec) {
   if (f.key === 'discount' || f.key === 'margin') return v + '%';
   if (f.key === 'duration') return v + ' min';
 
+  /* Key Relationship — boolean to badge */
+  if (f.key === 'keyRelationship') {
+    if (v === true || v === 'Yes') return '<span class="stage-badge" style="color:var(--warning)"><span class="dot" style="background:var(--warning)"></span>Key</span>';
+    return '<span style="color:var(--text-light)">\u2014</span>';
+  }
+
   return String(v);
 }
 
@@ -2172,6 +2180,10 @@ function openEditModal(objKey, recId) {
   fields.forEach(function(f) {
     var val = rec[f.key];
     if (val === undefined || val === null) val = '';
+    /* Convert boolean keyRelationship to Yes/No for the select */
+    if (f.key === 'keyRelationship') {
+      val = val ? 'Yes' : (val === false ? 'No' : '');
+    }
     formHtml += '<div class="crm-field-group">';
     formHtml += '<label class="crm-field-label">' + f.label + '</label>';
     if (f.type === 'product-picker') {
@@ -2271,6 +2283,10 @@ function openEditModal(objKey, recId) {
       } else if (fieldDef && fieldDef.type === 'number' && newVal !== '') {
         newVal = parseFloat(newVal);
         if (isNaN(newVal)) newVal = 0;
+      }
+      /* Convert Yes/No selects to boolean for keyRelationship */
+      if (fieldKey === 'keyRelationship') {
+        newVal = (newVal === 'Yes');
       }
       updates[fieldKey] = newVal;
     });
