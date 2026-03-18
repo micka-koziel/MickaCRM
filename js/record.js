@@ -783,8 +783,8 @@ function renderContact360(container, rec) {
   /* ── KPI BOXES ── */
   h += '<div class="cc-kpi-grid" style="grid-template-columns:repeat(4,1fr)">';
   h += ccKpiBox('opportunities','#ecfdf5','Opportunities','<div class="cc-kpi-val">'+opps.length+'</div>',pipeStr+' pipeline','opportunities');
-  h += ccKpiBox('projects','#f3f0ff','Projects','<div class="cc-kpi-val">'+projects.length+'</div>',projects.length>0?'Active':'None','projects');
   h += ccKpiBox('quotes','#f0f4ff','Quotes','<div class="cc-kpi-val">'+quotes.length+'</div>',quotes.length>0?'Latest active':'None yet','quotes');
+  h += ccKpiBox('claims','#fef3f2','Claims','<div class="cc-kpi-val">'+claims.length+'</div>',claims.length>0?claims.length+' open':'No claims','claims');
   h += ccKpiBox('activities','#fef7ec','Activities','<div class="cc-kpi-val">'+activities.length+'</div>','Last: recently','activity');
   h += '</div>';
 
