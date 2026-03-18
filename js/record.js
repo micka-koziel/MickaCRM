@@ -1,1630 +1,1400 @@
 /* ═══════════════════════════════════════════════════════
-   record.js — Record Detail Views
-   Account 360 + Contact 360 + Lead 360 + Generic
+   record.js — Command Center Standard v2
+   Premium 360 views with tabbed related objects
+   Account 360 + Contact 360 + Lead 360 + Opp 360 + Product 360 + Generic
    ═══════════════════════════════════════════════════════ */
 
+/* ── Router ── */
 function renderRecordPage(objKey, recId, headerEl, contentEl) {
   var data = objKey === 'users' ? (typeof UM_USERS !== 'undefined' ? UM_USERS : []) : window.DATA[objKey];
   if (!data) { contentEl.innerHTML = '<div class="placeholder-view">Object not found</div>'; return; }
   var rec = data.find(function(r) { return r.id === recId; });
   if (!rec) { contentEl.innerHTML = '<div class="placeholder-view">Record not found</div>'; return; }
 
-  if (objKey === 'accounts') {
-    headerEl.style.display = 'none';
-    renderAccount360(contentEl, rec);
-    return;
-  }
+  headerEl.style.display = 'none';
 
-  if (objKey === 'contacts') {
-    headerEl.style.display = 'none';
-    renderContact360(contentEl, rec);
-    return;
-  }
-
-  if (objKey === 'leads') {
-    headerEl.style.display = 'none';
-    renderLead360(contentEl, rec);
-    return;
-  }
-
-  if (objKey === 'opportunities') {
-    headerEl.style.display = 'none';
-    renderOpp360(contentEl, rec);
-    return;
-  }
+  if (objKey === 'accounts')      { renderAccount360(contentEl, rec); return; }
+  if (objKey === 'contacts')      { renderContact360(contentEl, rec); return; }
+  if (objKey === 'leads')         { renderLead360(contentEl, rec); return; }
+  if (objKey === 'opportunities') { renderOpp360(contentEl, rec); return; }
 
   if (objKey === 'projects') {
-    headerEl.style.display = 'none';
-    if (typeof renderProject360 === 'function') {
-      renderProject360(contentEl, rec);
-    } else {
-      contentEl.innerHTML = '<div class="placeholder-view">Project 360 module not loaded. Check script order in index.html.</div>';
-    }
+    if (typeof renderProject360 === 'function') { renderProject360(contentEl, rec); }
+    else { contentEl.innerHTML = '<div class="placeholder-view">Project 360 module not loaded.</div>'; }
     return;
   }
-
   if (objKey === 'quotes') {
-    headerEl.style.display = 'none';
     var qHtml = renderQuote360(rec);
     contentEl.innerHTML = qHtml;
     bindQuote360Events(contentEl);
     return;
   }
-
   if (objKey === 'claims') {
-    headerEl.style.display = 'none';
-    if (typeof renderClaim360 === 'function') {
-      renderClaim360(contentEl, rec);
-    } else {
-      contentEl.innerHTML = '<div class="placeholder-view">Claim 360 module not loaded. Check script order in index.html.</div>';
-    }
+    if (typeof renderClaim360 === 'function') { renderClaim360(contentEl, rec); }
+    else { contentEl.innerHTML = '<div class="placeholder-view">Claim 360 module not loaded.</div>'; }
     return;
   }
-
   if (objKey === 'activities') {
-    headerEl.style.display = 'none';
-    if (typeof renderActivity360 === 'function') {
-      renderActivity360(contentEl, rec);
-    } else {
-      contentEl.innerHTML = '<div class="placeholder-view">Activity 360 module not loaded. Check script order in index.html.</div>';
-    }
+    if (typeof renderActivity360 === 'function') { renderActivity360(contentEl, rec); }
+    else { contentEl.innerHTML = '<div class="placeholder-view">Activity 360 module not loaded.</div>'; }
     return;
   }
-
-  if (objKey === 'products') {
-    headerEl.style.display = 'none';
-    renderProduct360(contentEl, rec);
-    return;
-  }
-
+  if (objKey === 'products') { renderProduct360(contentEl, rec); return; }
   if (objKey === 'users') {
-    headerEl.style.display = 'none';
-    if (typeof renderUser360 === 'function') {
-      renderUser360(contentEl, rec);
-    } else {
-      contentEl.innerHTML = '<div class="placeholder-view">User 360 module not loaded. Check script order in index.html.</div>';
-    }
+    if (typeof renderUser360 === 'function') { renderUser360(contentEl, rec); }
+    else { contentEl.innerHTML = '<div class="placeholder-view">User 360 module not loaded.</div>'; }
     return;
   }
 
   renderGenericRecord(objKey, rec, headerEl, contentEl);
 }
 
-/* ════════════════════════════════════════════════════════
-   ACCOUNT 360
-   ════════════════════════════════════════════════════════ */
 
-function renderAccount360(container, rec) {
-  injectA360Styles();
-  var D = window.DATA;
-  var accId = rec.id;
-  var accName = rec.name;
-  var initials = accName.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
-
-  var contacts = (D.contacts||[]).filter(function(c){ return c.account === accId; });
-  var opps = (D.opportunities||[]).filter(function(o){ return o.account === accId; });
-  var projects = (D.projects||[]).filter(function(p){ return p.account === accId; });
-  var upcoming = (D.upcoming||[]).slice(0, 6);
-
-  var totalPipe = opps.reduce(function(s,o){ return s + (o.amount||0); }, 0);
-  var pipeStr = typeof fmtAmount === 'function' ? fmtAmount(totalPipe) : (totalPipe/1000000).toFixed(1)+'M€';
-
-  var h = '<div class="a360">';
-
-  // Back nav
-  h += '<div class="a360-back" id="a360-back">' + svgIcon('arrowLeft',14,'var(--text-muted)') + '<span>Accounts</span></div>';
-
-  // Header card
-  h += '<div class="a360-header-card">';
-  h += '<div class="a360-header-top">';
-  // Photo avatar 92px (click to upload, click to preview)
-  var accPhotoUrl = rec.photoURL || rec.photo || '';
-  h += '<div class="a360-photo-wrap" id="a360-photo-wrap" title="Click to change photo">';
-  if (accPhotoUrl) {
-    h += '<div class="a360-avatar a360-avatar-img" id="a360-avatar"><img src="'+accPhotoUrl+'" alt="'+accName+'" /></div>';
-  } else {
-    h += '<div class="a360-avatar a360-avatar-initials" id="a360-avatar">' + initials + '</div>';
-  }
-  h += '<div class="a360-photo-overlay">' + svgIcon('plus',16,'#fff') + '</div>';
-  h += '<input type="file" id="a360-photo-input" accept="image/*" style="display:none" />';
-  h += '</div>';
-  h += '<div class="a360-header-info">';
-  h += '<div class="a360-name-row"><h1 class="a360-name">' + accName + '</h1>';
-  var sc = rec.status==='Active' ? 'var(--success)' : 'var(--text-light)';
-  h += '<span class="stage-badge" style="color:'+sc+'"><span class="dot" style="background:'+sc+'"></span>'+rec.status+'</span>';
-  h += '</div>';
-  h += '<div class="a360-subtitle">' + (rec.industry||'—') + '</div>';
-  h += '<div class="a360-detail-chips">';
-  if (rec.city) h += '<span class="a360-chip">' + svgIcon('mapPin',12,'var(--text-light)') + ' ' + rec.city + '</span>';
-  if (rec.phone) h += '<span class="a360-chip">' + svgIcon('phone',12,'var(--text-light)') + ' ' + rec.phone + '</span>';
-  if (rec.website) h += '<span class="a360-chip">' + svgIcon('link',12,'var(--text-light)') + ' ' + rec.website + '</span>';
-  h += '</div>';
-  h += '</div>';
-
-  h += '<div class="a360-header-metrics">';
-  h += a360HMetric(pipeStr, 'Pipeline', 'var(--accent)');
-  h += a360HMetric(projects.length, 'Projects', '');
-  h += a360HMetric(opps.length, 'Opps', '');
-  h += a360HMetric(contacts.length, 'Contacts', '');
-  h += '</div></div>';
-
-  h += '<div class="a360-header-actions"><div class="a360-qa-row">';
-  h += a360QA('contacts','Contact',true) + a360QA('opportunities','Opportunity',true) + a360QA('quotes','Quote') + a360QA('activities','Activity') + a360QA('projects','Project');
-  h += '</div></div>';
-  /* Edit / Delete */
-  h += '<div class="a360-header-actions" style="display:flex;gap:7px;padding:0 26px 14px;flex-wrap:wrap">';
-  h += crmActionButtons('a360', 'accounts', accId);
-  h += '</div>';
-  h += '</div>';
-
-  // KPIs dark
-  h += '<div class="a360-kpi-grid">';
-  h += a360Kpi(pipeStr, 'Pipeline Value', 'opportunities', opps.length+' opportunities', 'neutral');
-  h += a360Kpi(opps.length, 'Open Opportunities', 'opportunities', '+1 this month', 'positive');
-  h += a360Kpi(projects.length, 'Active Projects', 'projects', projects.length>0?'On track':'No projects', 'neutral');
-  h += a360Kpi(contacts.length, 'Key Contacts', 'contacts', contacts.length>0?'Updated':'Add contacts', 'neutral');
-  h += a360Kpi(upcoming.length, 'Activities', 'activities', upcoming.length>0?'Last: recently':'No activity', upcoming.length>0?'neutral':'warning');
-  h += '</div>';
-
-  // 2 columns
-  h += '<div class="a360-grid2"><div class="a360-col">';
-
-  // Opps
-  h += a360SectionOpen('Opportunities', 'opportunities', opps.length);
-  if (!opps.length) h += '<div class="a360-empty">No opportunities</div>';
-  else opps.forEach(function(o,i) {
-    var st = (STAGES.opportunities||[]).find(function(s){return s.key===o.stage;});
-    var amtStr = typeof fmtAmount==='function' ? fmtAmount(o.amount||0) : ((o.amount||0)/1000000).toFixed(1)+'M€';
-    h += '<div class="a360-row'+(i===opps.length-1?' a360-row-last':'')+'" data-nav-obj="opportunities" data-nav-id="'+o.id+'">';
-    h += '<div class="a360-row-left"><div class="a360-row-title">'+o.name+'</div>';
-    h += '<div class="a360-row-sub">Close '+fmtDate(o.close)+' · Prob '+(o.prob||0)+'%</div></div>';
-    h += '<div class="a360-row-right"><div class="a360-row-amount">'+amtStr+'</div>';
-    if(st) h+='<span class="stage-badge" style="color:'+st.color+'"><span class="dot" style="background:'+st.color+'"></span>'+st.label+'</span>';
-    h += '</div></div>';
-    h += a360StageDots(o.stage);
-  });
-  h += '</div>';
-
-  // Projects
-  h += a360SectionOpen('Projects', 'projects', projects.length);
-  if (!projects.length) h += '<div class="a360-empty">No projects</div>';
-  else projects.forEach(function(p,i) {
-    var ph = (STAGES.projects||[]).find(function(s){return s.key===p.phase;});
-    var budStr = typeof fmtAmount==='function' ? fmtAmount(p.budget||0) : ((p.budget||0)/1000000).toFixed(1)+'M€';
-    h += '<div class="a360-row'+(i===projects.length-1?' a360-row-last':'')+'" data-nav-obj="projects" data-nav-id="'+p.id+'">';
-    h += '<div class="a360-row-left"><div class="a360-row-title">'+p.name+'</div>';
-    h += '<div class="a360-row-sub">'+(ph?ph.label:'—')+'</div></div>';
-    h += '<div class="a360-row-right"><div class="a360-row-amount">'+budStr+'</div>';
-    if(ph) h+='<span class="stage-badge" style="color:'+ph.color+'"><span class="dot" style="background:'+ph.color+'"></span>'+ph.label+'</span>';
-    h += '</div></div>';
-  });
-  h += '</div>';
-
-  // Products (related via quotes/claims for this account)
-  var accProducts = _a360GetRelatedProducts(accId);
-  h += a360SectionOpen('Products', 'products', accProducts.length);
-  if (!accProducts.length) h += '<div class="a360-empty">No products linked</div>';
-  else accProducts.forEach(function(pr,i) {
-    var catColors = {Glazing:'#3b82f6',Insulation:'#f59e0b','Mortars & Concrete':'#8b5cf6',Coatings:'#10b981',Structural:'#ef4444'};
-    var pc = catColors[pr.category] || 'var(--text-muted)';
-    h += '<div class="a360-row'+(i===accProducts.length-1?' a360-row-last':'')+'" data-nav-obj="products" data-nav-id="'+pr.id+'">';
-    h += '<div class="a360-row-left"><div class="a360-row-title">'+pr.name+'</div>';
-    h += '<div class="a360-row-sub">'+(pr.category||'—')+' · '+(pr.sku||'')+'</div></div>';
-    h += '<div class="a360-row-right">';
-    h += '<span class="stage-badge" style="color:'+pc+'"><span class="dot" style="background:'+pc+'"></span>'+(pr.category||'—')+'</span>';
-    h += '</div></div>';
-  });
-  h += '</div>';
-
-  // Details
-  h += crmDetailsSection('a360', 'accounts', rec);
-
-  h += '</div><div class="a360-col">';
-
-  // Contacts
-  h += a360SectionOpen('Key Contacts', 'contacts', contacts.length);
-  if (!contacts.length) h += '<div class="a360-empty">No contacts</div>';
-  else contacts.forEach(function(c,i) {
-    var ci = c.name?c.name.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase():'?';
-    h += '<div class="a360-row'+(i===contacts.length-1?' a360-row-last':'')+'" data-nav-obj="contacts" data-nav-id="'+c.id+'">';
-    h += '<div class="a360-contact-avatar">'+ci+'</div>';
-    h += '<div class="a360-row-left" style="flex:1;min-width:0"><div class="a360-row-title">'+c.name+'</div>';
-    h += '<div class="a360-row-sub">'+(c.role||'—')+'</div></div>';
-    h += '<div class="a360-contact-actions">';
-    h += '<div class="a360-contact-btn" title="Call">'+svgIcon('phone',12,'var(--text-light)')+'</div>';
-    h += '<div class="a360-contact-btn" title="Email">'+svgIcon('mail',12,'var(--text-light)')+'</div>';
-    h += '</div></div>';
-  });
-  h += '</div>';
-
-  // Timeline
-  h += a360SectionOpen('Recent Activities', 'activities', upcoming.length);
-  if (!upcoming.length) h += '<div class="a360-empty">No activities</div>';
-  else {
-    h += '<div class="a360-timeline">';
-    upcoming.forEach(function(a,i) {
-      var isLast = i===upcoming.length-1;
-      var typeColors = {phone:'#3b82f6',users:'#8b5cf6',mail:'#10b981',mapPin:'#ef4444'};
-      var tc = typeColors[a.icon] || 'var(--text-light)';
-      var iconKey = a.icon || 'activities';
-      h += '<div class="a360-tl-item">';
-      if(!isLast) h += '<div class="a360-tl-line"></div>';
-      h += '<div class="a360-tl-icon" style="background:'+tc+'14;border-color:'+tc+'40">'+svgIcon(iconKey,11,tc)+'</div>';
-      h += '<div class="a360-tl-body">';
-      h += '<div class="a360-tl-top"><span class="a360-tl-subject">'+a.name+'</span><span class="a360-tl-date">'+(a.date||'')+'</span></div>';
-      h += '<div class="a360-tl-meta">'+(a.contact||'')+(a.time?' · '+a.time:'')+'</div>';
-      h += '</div></div>';
-    });
-    h += '</div>';
-  }
-  h += '</div>';
-
-  h += '</div></div></div>';
-
-  container.innerHTML = h;
-  container.scrollTop = 0;
-
-  // Bind events
-  document.getElementById('a360-back').addEventListener('click', function(){ navigate('accounts'); });
-
-  // Photo: overlay click = upload, avatar click = preview
-  var a360PhotoWrap = document.getElementById('a360-photo-wrap');
-  var a360PhotoInput = document.getElementById('a360-photo-input');
-  if (a360PhotoWrap && a360PhotoInput) {
-    // Overlay "+" triggers file picker
-    var a360Overlay = a360PhotoWrap.querySelector('.a360-photo-overlay');
-    if (a360Overlay) {
-      a360Overlay.addEventListener('click', function(e){ e.stopPropagation(); a360PhotoInput.click(); });
-    }
-    // Avatar click = preview if photo exists, else upload
-    var a360AvatarEl = document.getElementById('a360-avatar');
-    if (a360AvatarEl) {
-      a360AvatarEl.addEventListener('click', function(e){
-        e.stopPropagation();
-        var currentUrl = rec.photoURL || rec.photo || '';
-        if (currentUrl && typeof fbShowPhotoPreview === 'function') {
-          fbShowPhotoPreview(currentUrl, accName);
-        } else {
-          a360PhotoInput.click();
-        }
-      });
-    }
-    a360PhotoInput.addEventListener('change', function(e) {
-      var file = e.target.files && e.target.files[0];
-      if (!file) return;
-      var avatar = document.getElementById('a360-avatar');
-      if (avatar) {
-        avatar.classList.add('a360-avatar-loading');
-        avatar.innerHTML = '<div class="a360-spinner"></div>';
-      }
-      if (typeof fbCompressAndSavePhoto === 'function') {
-        fbCompressAndSavePhoto(file, 'accounts', accId).then(function(url) {
-          if (avatar) {
-            avatar.classList.remove('a360-avatar-loading');
-            avatar.className = 'a360-avatar a360-avatar-img';
-            avatar.innerHTML = '<img src="'+url+'" alt="'+accName+'" />';
-          }
-          fbShowStatus('Photo uploaded');
-        }).catch(function(err) {
-          console.error('[A360] Photo error:', err);
-          if (avatar) {
-            avatar.classList.remove('a360-avatar-loading');
-            avatar.innerHTML = initials;
-          }
-          fbShowStatus('Photo upload failed', true);
-        });
-      } else {
-        var reader = new FileReader();
-        reader.onload = function(ev) {
-          rec.photo = ev.target.result;
-          if (avatar) { avatar.className = 'a360-avatar a360-avatar-img'; avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+accName+'" />'; }
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-  }
-
-  container.querySelectorAll('.a360-row[data-nav-id]').forEach(function(el) {
-    el.addEventListener('click', function(){ navigate('record', el.getAttribute('data-nav-obj'), el.getAttribute('data-nav-id')); });
-  });
-  container.querySelectorAll('.a360-section-link[data-nav]').forEach(function(el) {
-    el.addEventListener('click', function(){ navigate(el.getAttribute('data-nav')); });
-  });
-  container.querySelectorAll('.a360-kpi-card[data-nav]').forEach(function(el) {
-    el.addEventListener('click', function(){ navigate(el.getAttribute('data-nav')); });
-  });
-  bindCrmActionButtons(container);
-  bindDetailsLinks(container);
-}
-
-// ─── Account 360 Helpers ───
-function a360HMetric(v,l,a){var s=a?'color:'+a:'color:var(--text)';return '<div class="a360-hmetric"><div class="a360-hmetric-val" style="'+s+'">'+v+'</div><div class="a360-hmetric-label">'+l+'</div></div>';}
-function a360QA(i,l,primary){var cls=primary?'a360-qa a360-qa-primary':'a360-qa a360-qa-outline';var ic=primary?'#fff':'var(--text-muted)';return '<button class="'+cls+'">'+svgIcon(i,13,ic)+'<span>'+l+'</span></button>';}
-function a360Kpi(v,l,n,ins,t){var c=t==='positive'?'#4ade80':t==='warning'?'#f87171':'#64748b';var vc=n==='opportunities'?'var(--accent)':n==='projects'?'var(--purple)':n==='contacts'?'var(--success)':n==='activities'?'var(--warning)':'var(--text)';return '<div class="a360-kpi-card" data-nav="'+n+'"><div class="a360-kpi-top">'+svgIcon('chart',15,'var(--text-light)')+'<span class="a360-kpi-view">View all</span></div><div class="a360-kpi-value" style="color:'+vc+'">'+v+'</div><div class="a360-kpi-label">'+l+'</div>'+(ins?'<div class="a360-kpi-insight"><span class="a360-kpi-insight-dot" style="background:'+c+'"></span><span style="color:'+c+'">'+ins+'</span></div>':'')+'</div>';}
-function a360SectionOpen(t,n,c){return '<div class="a360-section"><div class="a360-section-head"><span class="a360-section-title">'+t+'</span>'+(c!==undefined?'<span class="a360-section-count">'+c+'</span>':'')+'<span class="a360-section-link" data-nav="'+n+'">View all</span></div>';}
-function a360StageDots(sk){var st=STAGES.opportunities||[];var ks=st.map(function(s){return s.key;});var idx=ks.indexOf(sk);var h='<div class="a360-stage-dots">';ks.forEach(function(k,i){var a=i<=idx;h+='<div class="a360-stage-dot" style="background:'+(a?'var(--accent)':'#e8e8eb')+';opacity:'+(a?(.25+(i/(ks.length-1))*.75):1)+'"></div>';});return h+'</div>';}
-
-/* ── Get products related to an account (via quotes + claims productId) ── */
-function _a360GetRelatedProducts(accId) {
-  var products = window.DATA.products || [];
-  if (!products.length) return [];
-  var quotes = window.DATA.quotes || [];
-  var claims = window.DATA.claims || [];
-  var productIds = {};
-  quotes.forEach(function(q){ if (q.accountId === accId && q.productId) productIds[q.productId] = true; });
-  claims.forEach(function(c){ if (c.accountId === accId && c.productId) productIds[c.productId] = true; });
-  /* Also match by lineItems product name */
-  quotes.forEach(function(q){
-    if (q.accountId !== accId || !q.lineItems) return;
-    q.lineItems.forEach(function(li){
-      var match = products.find(function(p){ return p.name === li.product; });
-      if (match) productIds[match.id] = true;
-    });
-  });
-  return products.filter(function(p){ return productIds[p.id]; });
-}
-
-
-/* ════════════════════════════════════════════════════════
-   CONTACT 360
-   ════════════════════════════════════════════════════════ */
-
-function renderContact360(container, rec) {
-  injectC360Styles();
-  var D = window.DATA;
-  var contactId = rec.id;
-  var contactName = rec.name || 'Unknown';
-  var initials = contactName.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
-
-  // Related data
-  var account = (D.accounts||[]).find(function(a){ return a.id === rec.account; });
-  var accountName = account ? account.name : '—';
-  var opps = (D.opportunities||[]).filter(function(o){ return o.account === rec.account; });
-  var projects = (D.projects||[]).filter(function(p){ return p.account === rec.account; });
-  var quotes = (D.quotes||[]).filter(function(q){ return q.contact === contactId || q.account === rec.account; });
-  var activities = (D.activities||[]).filter(function(a){ return a.contact === contactId || a.contactName === contactName; });
-  if (!activities.length) {
-    activities = (D.upcoming||[]).slice(0, 4).map(function(u, i) {
-      return { id:'act'+i, type:u.icon||'call', subject:u.name, date:u.date, time:u.time, contactName:u.contact };
-    });
-  }
-  var notes = (D.notes||[]).filter(function(n){ return n.contact === contactId; });
-  if (!notes.length) {
-    notes = [
-      {id:'n1', date:'2025-03-08', text:'Discussed scope changes for upcoming tender. Very receptive to premium solutions.'},
-      {id:'n2', date:'2025-02-22', text:'Met at BTP conference. Strong interest in digital tools for site management.'},
-      {id:'n3', date:'2025-02-10', text:'Follow-up call — confirmed budget allocation for Q3 procurement.'}
-    ];
-  }
-  var claims = (D.claims||[]).filter(function(cl){ return cl.contact === contactId || cl.account === rec.account; });
-  if (!claims.length && opps.length > 0) {
-    claims = [
-      {id:'cl1', subject:'Delivery delay — '+opps[0].name, status:'Open', priority:'High', date:'2025-03-01'}
-    ];
-  }
-
-  var h = '<div class="c360">';
-
-  // ─── Back nav ───
-  h += '<div class="c360-back" id="c360-back">' + svgIcon('arrowLeft',14,'var(--text-muted)') + '<span>Contacts</span></div>';
-
-  // ─── Header card ───
-  h += '<div class="c360-header-card">';
-  h += '<div class="c360-header-top">';
-
-  // Photo avatar
-  var photoUrl = rec.photoURL || rec.photo || '';
-  h += '<div class="c360-photo-wrap" id="c360-photo-wrap" title="Click to change photo">';
-  if (photoUrl) {
-    h += '<div class="c360-photo" id="c360-avatar"><img src="'+photoUrl+'" alt="'+contactName+'" /></div>';
-  } else {
-    h += '<div class="c360-photo c360-photo-initials" id="c360-avatar">' + initials + '</div>';
-  }
-  h += '<div class="c360-photo-overlay">' + svgIcon('plus',16,'#fff') + '</div>';
-  h += '<input type="file" id="c360-photo-input" accept="image/*" style="display:none" />';
-  h += '</div>';
-
-  h += '<div class="c360-header-info">';
-  h += '<h1 class="c360-name">' + contactName + '</h1>';
-  h += '<div class="c360-role">' + (rec.role || '—') + '</div>';
-  h += '<div class="c360-company" id="c360-company-link">' + svgIcon('accounts',13,'var(--accent)') + '<span>' + accountName + '</span></div>';
-
-  h += '<div class="c360-details-row">';
-  if (rec.email) h += '<div class="c360-detail-chip">' + svgIcon('mail',12,'var(--text-muted)') + '<span>' + rec.email + '</span></div>';
-  if (rec.phone) h += '<div class="c360-detail-chip">' + svgIcon('phone',12,'var(--text-muted)') + '<span>' + rec.phone + '</span></div>';
-  if (rec.city || (account && account.city)) h += '<div class="c360-detail-chip">' + svgIcon('mapPin',12,'var(--text-muted)') + '<span>' + (rec.city || account.city || '—') + '</span></div>';
-  h += '</div>';
-  h += '</div>';
-
-  // Quick actions
-  h += '<div class="c360-header-actions">';
-  h += '<button class="c360-action-btn c360-action-primary">' + svgIcon('phone',13,'#fff') + '<span>Call</span></button>';
-  h += '<button class="c360-action-btn c360-action-primary">' + svgIcon('mail',13,'#fff') + '<span>Send Email</span></button>';
-  h += '<button class="c360-action-btn c360-action-outline">' + svgIcon('activities',13,'var(--text-muted)') + '<span>Add Activity</span></button>';
-  h += '<button class="c360-action-btn c360-action-outline">' + svgIcon('opportunities',13,'var(--text-muted)') + '<span>Create Opportunity</span></button>';
-  h += crmActionButtons('c360', 'contacts', contactId);
-  h += '</div>';
-
-  h += '</div></div>';
-
-  // ─── KPI Snapshot ───
-  h += '<div class="c360-kpi-row">';
-  h += c360KpiTile(opps.length, 'Opportunities', 'opportunities', 'var(--accent)');
-  h += c360KpiTile(projects.length, 'Projects', 'projects', 'var(--purple)');
-  h += c360KpiTile(quotes.length, 'Quotes', 'quotes', 'var(--warning)');
-  h += c360KpiTile(activities.length, 'Activities', 'activities', 'var(--success)');
-  h += '</div>';
-
-  // ─── 2-Column Grid ───
-  h += '<div class="c360-grid2">';
-
-  // LEFT COLUMN
-  h += '<div class="c360-col">';
-
-  // Opportunities
-  h += c360SectionOpen('Opportunities', 'opportunities', opps.length);
-  if (!opps.length) h += '<div class="c360-empty">No linked opportunities</div>';
-  else opps.forEach(function(o,i) {
-    var st = (STAGES.opportunities||[]).find(function(s){return s.key===o.stage;});
-    var amtStr = typeof fmtAmount==='function' ? fmtAmount(o.amount||0) : ((o.amount||0)/1e6).toFixed(1)+'M€';
-    h += '<div class="c360-row'+(i===opps.length-1?' c360-row-last':'')+'" data-nav-obj="opportunities" data-nav-id="'+o.id+'">';
-    h += '<div class="c360-row-left"><div class="c360-row-title">'+o.name+'</div>';
-    h += '<div class="c360-row-sub">Close '+fmtDate(o.close)+' · Prob '+(o.prob||0)+'%</div></div>';
-    h += '<div class="c360-row-right"><div class="c360-row-amount">'+amtStr+'</div>';
-    if(st) h += '<span class="stage-badge" style="color:'+st.color+'"><span class="dot" style="background:'+st.color+'"></span>'+st.label+'</span>';
-    h += '</div></div>';
-  });
-  h += '</div>';
-
-  // Projects
-  h += c360SectionOpen('Projects', 'projects', projects.length);
-  if (!projects.length) h += '<div class="c360-empty">No linked projects</div>';
-  else projects.forEach(function(p,i) {
-    var ph = (STAGES.projects||[]).find(function(s){return s.key===p.phase;});
-    var budStr = typeof fmtAmount==='function' ? fmtAmount(p.budget||0) : ((p.budget||0)/1e6).toFixed(1)+'M€';
-    h += '<div class="c360-row'+(i===projects.length-1?' c360-row-last':'')+'" data-nav-obj="projects" data-nav-id="'+p.id+'">';
-    h += '<div class="c360-row-left"><div class="c360-row-title">'+p.name+'</div>';
-    h += '<div class="c360-row-sub">'+(ph?ph.label:'—')+' · Budget '+budStr+'</div></div>';
-    h += '<div class="c360-row-right">';
-    if(ph) h += '<span class="stage-badge" style="color:'+ph.color+'"><span class="dot" style="background:'+ph.color+'"></span>'+ph.label+'</span>';
-    h += '</div></div>';
-  });
-  h += '</div>';
-
-  // Quotes
-  h += c360SectionOpen('Quotes', 'quotes', quotes.length);
-  if (!quotes.length) h += '<div class="c360-empty">No linked quotes</div>';
-  else quotes.forEach(function(q,i) {
-    h += '<div class="c360-row'+(i===quotes.length-1?' c360-row-last':'')+'">';
-    h += '<div class="c360-row-left"><div class="c360-row-title">'+(q.name||q.subject||'Quote #'+q.id)+'</div>';
-    h += '<div class="c360-row-sub">'+(q.date||'')+(q.status?' · '+q.status:'')+'</div></div>';
-    h += '<div class="c360-row-right">'+(q.amount?'<div class="c360-row-amount">'+fmtAmount(q.amount)+'</div>':'')+'</div>';
-    h += '</div>';
-  });
-  h += '</div>';
-
-  // Products (related to this contact's account)
-  var c360Products = _a360GetRelatedProducts(rec.account);
-  h += c360SectionOpen('Products', 'products', c360Products.length);
-  if (!c360Products.length) h += '<div class="c360-empty">No products linked</div>';
-  else c360Products.forEach(function(pr,i) {
-    var catColors = {Glazing:'#3b82f6',Insulation:'#f59e0b','Mortars & Concrete':'#8b5cf6',Coatings:'#10b981',Structural:'#ef4444'};
-    var pc = catColors[pr.category] || 'var(--text-muted)';
-    h += '<div class="c360-row'+(i===c360Products.length-1?' c360-row-last':'')+'" data-nav-obj="products" data-nav-id="'+pr.id+'">';
-    h += '<div class="c360-row-left"><div class="c360-row-title">'+pr.name+'</div>';
-    h += '<div class="c360-row-sub">'+(pr.category||'—')+' · '+(pr.sku||'')+'</div></div>';
-    h += '<div class="c360-row-right">';
-    h += '<span class="stage-badge" style="color:'+pc+'"><span class="dot" style="background:'+pc+'"></span>'+(pr.category||'—')+'</span>';
-    h += '</div></div>';
-  });
-  h += '</div>';
-
-  // Account Relationship
-  h += c360SectionOpen('Account Relationship', 'accounts', null);
-  h += '<div class="c360-account-card">';
-  h += '<div class="c360-acct-top">';
-  var accInitials = accountName.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
-  h += '<div class="c360-acct-avatar">' + accInitials + '</div>';
-  h += '<div class="c360-acct-info">';
-  h += '<div class="c360-acct-name" id="c360-acct-nav" data-acct-id="'+(rec.account||'')+'">' + accountName + '</div>';
-  h += '<div class="c360-acct-industry">' + (account ? (account.industry||'') : '') + (account && account.city ? ' · '+account.city : '') + '</div>';
-  h += '</div></div>';
-  h += '<div class="c360-acct-fields">';
-  h += '<div class="c360-acct-field"><span class="c360-acct-field-label">Role</span><span class="c360-acct-field-value">'+(rec.role||'—')+'</span></div>';
-  h += '<div class="c360-acct-field"><span class="c360-acct-field-label">Influence</span><span class="c360-acct-field-value">'+(rec.influence||'Decision Maker')+'</span></div>';
-  h += '<div class="c360-acct-field"><span class="c360-acct-field-label">Account Status</span><span class="c360-acct-field-value">';
-  if (account) {
-    var acs = account.status==='Active' ? 'var(--success)' : 'var(--text-light)';
-    h += '<span class="stage-badge" style="color:'+acs+'"><span class="dot" style="background:'+acs+'"></span>'+account.status+'</span>';
-  } else { h += '—'; }
-  h += '</span></div>';
-  h += '</div></div></div>';
-
-  // Details
-  h += crmDetailsSection('c360', 'contacts', rec);
-
-  h += '</div>';
-
-  // RIGHT COLUMN
-  h += '<div class="c360-col">';
-
-  // Activity Timeline
-  h += c360SectionOpen('Activity Timeline', 'activities', activities.length);
-  if (!activities.length) h += '<div class="c360-empty">No activities recorded</div>';
-  else {
-    h += '<div class="c360-timeline">';
-    activities.forEach(function(a,i) {
-      var isLast = i===activities.length-1;
-      var typeLabel = (a.type||'call').charAt(0).toUpperCase()+(a.type||'call').slice(1);
-      var typeColors = {call:'#3b82f6',meeting:'#8b5cf6',email:'#10b981','site visit':'#ef4444',siteVisit:'#ef4444',phone:'#3b82f6',users:'#8b5cf6',mail:'#10b981',mapPin:'#ef4444'};
-      var tc = typeColors[a.type] || typeColors[a.icon] || 'var(--text-light)';
-      var iconKey = a.icon || (a.type==='call'?'phone':a.type==='meeting'?'users':a.type==='email'?'mail':a.type==='site visit'?'mapPin':'activities');
-      h += '<div class="c360-tl-item">';
-      if(!isLast) h += '<div class="c360-tl-line"></div>';
-      h += '<div class="c360-tl-icon" style="background:'+tc+'14;border-color:'+tc+'40">'+svgIcon(iconKey,11,tc)+'</div>';
-      h += '<div class="c360-tl-body">';
-      h += '<div class="c360-tl-top"><span class="c360-tl-subject">'+(a.subject||a.name||typeLabel)+'</span><span class="c360-tl-type" style="color:'+tc+'">'+typeLabel+'</span></div>';
-      h += '<div class="c360-tl-meta">'+(a.date||'')+((a.time)?' · '+a.time:'')+'</div>';
-      h += '</div></div>';
-    });
-    h += '</div>';
-  }
-  h += '</div>';
-
-  // Notes
-  h += c360SectionOpen('Notes', 'activities', notes.length);
-  if (!notes.length) h += '<div class="c360-empty">No notes</div>';
-  else {
-    notes.forEach(function(n,i) {
-      h += '<div class="c360-note'+(i===notes.length-1?' c360-row-last':'')+'">';
-      h += '<div class="c360-note-date">'+(n.date||'')+'</div>';
-      h += '<div class="c360-note-text">'+(n.text||'')+'</div>';
-      h += '</div>';
-    });
-  }
-  h += '</div>';
-
-  // Claims
-  h += c360SectionOpen('Claims', 'claims', claims.length);
-  if (!claims.length) h += '<div class="c360-empty">No claims linked</div>';
-  else {
-    claims.forEach(function(cl,i) {
-      var priColors = {High:'var(--danger)',Medium:'var(--warning)',Low:'var(--text-light)'};
-      var pc = priColors[cl.priority] || 'var(--text-muted)';
-      var stColors = {Open:'var(--danger)','In Progress':'var(--warning)',Closed:'var(--success)'};
-      var stc = stColors[cl.status] || 'var(--text-muted)';
-      h += '<div class="c360-row'+(i===claims.length-1?' c360-row-last':'')+'">';
-      h += '<div class="c360-row-left"><div class="c360-row-title">'+cl.subject+'</div>';
-      h += '<div class="c360-row-sub">'+(cl.date||'')+'</div></div>';
-      h += '<div class="c360-row-right">';
-      h += '<span class="stage-badge" style="color:'+stc+'"><span class="dot" style="background:'+stc+'"></span>'+cl.status+'</span>';
-      h += '<span class="c360-claim-prio" style="color:'+pc+'">'+cl.priority+'</span>';
-      h += '</div></div>';
-    });
-  }
-  h += '</div>';
-
-  h += '</div></div>';
-  h += '</div>';
-
-  container.innerHTML = h;
-  container.scrollTop = 0;
-
-  // Bind events
-  document.getElementById('c360-back').addEventListener('click', function(){ navigate('contacts'); });
-
-  // Photo: overlay click = upload, avatar click = preview
-  var photoWrap = document.getElementById('c360-photo-wrap');
-  var photoInput = document.getElementById('c360-photo-input');
-  if (photoWrap && photoInput) {
-    var c360Overlay = photoWrap.querySelector('.c360-photo-overlay');
-    if (c360Overlay) {
-      c360Overlay.addEventListener('click', function(e){ e.stopPropagation(); photoInput.click(); });
-    }
-    var c360AvatarEl = document.getElementById('c360-avatar');
-    if (c360AvatarEl) {
-      c360AvatarEl.addEventListener('click', function(e){
-        e.stopPropagation();
-        var currentUrl = rec.photoURL || rec.photo || '';
-        if (currentUrl && typeof fbShowPhotoPreview === 'function') {
-          fbShowPhotoPreview(currentUrl, contactName);
-        } else {
-          photoInput.click();
-        }
-      });
-    }
-    photoInput.addEventListener('change', function(e) {
-      var file = e.target.files && e.target.files[0];
-      if (!file) return;
-      var avatar = document.getElementById('c360-avatar');
-      if (avatar) {
-        avatar.className = 'c360-photo c360-photo-loading';
-        avatar.innerHTML = '<div class="c360-spinner"></div>';
-      }
-      if (typeof fbCompressAndSavePhoto === 'function') {
-        fbCompressAndSavePhoto(file, 'contacts', contactId).then(function(url) {
-          if (avatar) { avatar.className = 'c360-photo'; avatar.innerHTML = '<img src="'+url+'" alt="'+contactName+'" />'; }
-          fbShowStatus('Photo uploaded');
-        }).catch(function(err) {
-          console.error('[C360] Photo error:', err);
-          if (avatar) { avatar.className = 'c360-photo c360-photo-initials'; avatar.innerHTML = initials; }
-          fbShowStatus('Photo upload failed', true);
-        });
-      } else {
-        var reader = new FileReader();
-        reader.onload = function(ev) {
-          rec.photo = ev.target.result;
-          if (avatar) { avatar.className = 'c360-photo'; avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+contactName+'" />'; }
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-  }
-
-  var compLink = document.getElementById('c360-company-link');
-  if (compLink && rec.account) {
-    compLink.addEventListener('click', function(){ navigate('record','accounts',rec.account); });
-  }
-
-  var acctNav = document.getElementById('c360-acct-nav');
-  if (acctNav) {
-    acctNav.addEventListener('click', function(){
-      var aid = acctNav.getAttribute('data-acct-id');
-      if(aid) navigate('record','accounts',aid);
-    });
-  }
-
-  container.querySelectorAll('.c360-row[data-nav-id]').forEach(function(el) {
-    el.addEventListener('click', function(){ navigate('record', el.getAttribute('data-nav-obj'), el.getAttribute('data-nav-id')); });
-  });
-  container.querySelectorAll('.c360-section-link[data-nav]').forEach(function(el) {
-    el.addEventListener('click', function(){ navigate(el.getAttribute('data-nav')); });
-  });
-  bindCrmActionButtons(container);
-  bindDetailsLinks(container);
-}
-
-// ─── Contact 360 Helpers ───
-function c360KpiTile(value, label, navPage, color) {
-  return '<div class="c360-kpi" data-nav="'+navPage+'">' +
-    '<div class="c360-kpi-value" style="color:'+color+'">'+value+'</div>' +
-    '<div class="c360-kpi-label">'+label+'</div></div>';
-}
-
-function c360SectionOpen(title, navKey, count) {
-  return '<div class="c360-section"><div class="c360-section-head">' +
-    '<span class="c360-section-title">'+title+'</span>' +
-    (count!==null&&count!==undefined?'<span class="c360-section-count">'+count+'</span>':'') +
-    '<span class="c360-section-link" data-nav="'+navKey+'">View all</span></div>';
-}
-
-
-/* ════════════════════════════════════════════════════════
-   LEAD 360 — Qualification Cockpit
-   ════════════════════════════════════════════════════════ */
-
-function renderLead360(container, rec) {
-  injectL360Styles();
-  var D = window.DATA;
-
-  /* ── Resolve related data ── */
-  var account = (D.accounts||[]).find(function(a){ return a.id === rec.account; });
-  var accountName = account ? account.name : '—';
-  var accInitials = accountName.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
-
-  /* Contact linked to same account */
-  var contact = (D.contacts||[]).find(function(c){ return c.account === rec.account; });
-  var contactName = contact ? contact.name : rec.name.split(' – ')[0] || rec.name;
-  var contactRole = contact ? contact.role : 'Key Contact';
-  var contactEmail = contact ? contact.email : '';
-  var contactPhone = contact ? contact.phone : '';
-  var contactCity = (contact && contact.city) || (account ? account.city : '');
-
-  var opps = (D.opportunities||[]).filter(function(o){ return o.account === rec.account; });
-
-  /* ── Lead Intelligence (computed/mock) ── */
-  var leadScore = rec.leadScore || l360ComputeScore(rec);
-  var temperature = l360Temperature(leadScore);
-  var engagementLevel = rec.engagement || l360Engagement(rec);
-  var activityCount = rec.activityCount || (Math.floor(Math.random()*8)+2);
-  var quotesSent = rec.quotesSent || (rec.stage==='proposal'||rec.stage==='converted' ? 1 : 0);
-
-  /* Activities mock */
-  var activities = [];
-  var upcoming = (D.upcoming||[]).slice(0,5);
-  if (upcoming.length) {
-    activities = upcoming.map(function(u,i){
-      return {id:'la'+i, type:u.icon||'call', subject:u.name, date:u.date, time:u.time, contactName:u.contact};
-    });
-  } else {
-    activities = [
-      {id:'la0', type:'phone', subject:'Initial outreach call', date:'2025-03-10', time:'14:30'},
-      {id:'la1', type:'mail', subject:'Sent product brochure', date:'2025-03-08', time:'09:15'},
-      {id:'la2', type:'users', subject:'Discovery meeting', date:'2025-03-05', time:'11:00'}
-    ];
-  }
-
-  /* Notes mock */
-  var notes = [
-    {id:'ln1', date:'2025-03-09', text:'Strong interest in facade solutions for new campus project. Budget confirmed for Q3.'},
-    {id:'ln2', date:'2025-02-28', text:'Met at Batimat. Decision expected within 6 weeks. Competing with LafargeHolcim.'}
-  ];
-
-  /* Next action */
-  var nextAction = l360NextAction(rec);
-
-  /* Estimated value */
-  var estValStr = rec.estimatedValue ? (typeof fmtAmount==='function' ? fmtAmount(rec.estimatedValue) : (rec.estimatedValue/1e6).toFixed(1)+'M') : '—';
-
-  /* ── BUILD HTML ── */
-  var h = '<div class="l360">';
-
-  /* Back nav */
-  h += '<div class="l360-back" id="l360-back">' + svgIcon('arrowLeft',14,'var(--text-muted)') + '<span>Leads</span></div>';
-
-  /* ── Header Card ── */
-  h += '<div class="l360-header-card">';
-  h += '<div class="l360-header-top">';
-
-  /* Avatar with photo upload */
-  var initials = contactName.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
-  var l360Photo = rec.photoURL || rec.photo || '';
-  h += '<div class="l360-photo-wrap" id="l360-photo-wrap" title="Click to change photo">';
-  if (l360Photo) {
-    h += '<div class="l360-photo" id="l360-avatar"><img src="'+l360Photo+'" alt="'+rec.name+'" /></div>';
-  } else {
-    h += '<div class="l360-photo l360-photo-initials" id="l360-avatar">' + initials + '</div>';
-  }
-  h += '<div class="l360-photo-overlay">' + svgIcon('plus',16,'#fff') + '</div>';
-  h += '<input type="file" id="l360-photo-input" accept="image/*" style="display:none" />';
-  h += '</div>';
-
-  h += '<div class="l360-header-info">';
-  h += '<div class="l360-name-row">';
-  h += '<h1 class="l360-name">' + rec.name + '</h1>';
-  /* Temperature badge */
-  h += '<span class="l360-temp-badge l360-temp-'+temperature.key+'">' + temperature.icon + ' ' + temperature.label + '</span>';
-  h += '</div>';
-  h += '<div class="l360-role">' + contactRole + '</div>';
-  h += '<div class="l360-company" id="l360-company-link">' + svgIcon('accounts',13,'var(--accent)') + '<span>' + accountName + '</span></div>';
-
-  /* Contact chips */
-  h += '<div class="l360-details-row">';
-  if (contactEmail) h += '<div class="l360-detail-chip">' + svgIcon('mail',12,'var(--text-muted)') + '<span>' + contactEmail + '</span></div>';
-  if (contactPhone) h += '<div class="l360-detail-chip">' + svgIcon('phone',12,'var(--text-muted)') + '<span>' + contactPhone + '</span></div>';
-  if (contactCity) h += '<div class="l360-detail-chip">' + svgIcon('mapPin',12,'var(--text-muted)') + '<span>' + contactCity + '</span></div>';
-  h += '</div>';
-
-  /* Metadata row */
-  h += '<div class="l360-meta-row">';
-  if (rec.source) h += '<div class="l360-meta-tag">Source: <strong>' + rec.source + '</strong></div>';
-  h += '<div class="l360-meta-tag">Owner: <strong>Me</strong></div>';
-  h += '<div class="l360-meta-tag">Created: <strong>Feb 2025</strong></div>';
-  h += '</div>';
-
-  h += '</div>'; /* header-info */
-
-  /* Header right metrics */
-  h += '<div class="l360-header-metrics">';
-  h += '<div class="l360-hmetric"><div class="l360-hmetric-val" style="color:var(--accent)">' + estValStr + '</div><div class="l360-hmetric-label">Est. Value</div></div>';
-  h += '<div class="l360-hmetric"><div class="l360-hmetric-val" style="color:'+temperature.color+'">' + leadScore + '</div><div class="l360-hmetric-label">Lead Score</div></div>';
-  h += '</div>';
-
-  h += '</div>'; /* header-top */
-
-  /* Quick Actions */
-  h += '<div class="l360-actions">';
-  h += '<button class="l360-action-btn l360-action-primary">' + svgIcon('phone',13,'#fff') + '<span>Call</span></button>';
-  h += '<button class="l360-action-btn l360-action-primary">' + svgIcon('mail',13,'#fff') + '<span>Send Email</span></button>';
-  h += '<button class="l360-action-btn l360-action-outline">' + svgIcon('activities',13,'var(--text-muted)') + '<span>Add Activity</span></button>';
-  h += '<button class="l360-action-btn l360-action-convert" id="l360-convert">' + svgIcon('opportunities',13,'#fff') + '<span>Convert to Opportunity</span></button>';
-  h += crmActionButtons('l360', 'leads', rec.id);
-  h += '</div>';
-
-  h += '</div>'; /* header-card */
-
-  /* ── KPI Cards ── */
-  h += '<div class="l360-kpi-row">';
-  h += l360KpiCard(leadScore, 'Lead Score', temperature.color, temperature.icon + ' ' + temperature.label + ' Lead', temperature.color);
-  h += l360KpiCard(engagementLevel, 'Engagement', engagementLevel==='High'?'var(--success)':engagementLevel==='Medium'?'var(--warning)':'var(--text-light)', activityCount+' touchpoints', 'var(--text-muted)');
-  h += l360KpiCard(activityCount, 'Activities', 'var(--accent)', 'Last: 2 days ago', 'var(--text-muted)');
-  h += l360KpiCard(quotesSent, 'Quotes Sent', 'var(--warning)', quotesSent>0?'Pending review':'None yet', 'var(--text-muted)');
-  h += '</div>';
-
-  /* ── Qualification Funnel ── */
-  h += '<div class="l360-funnel-card">';
-  h += '<div class="l360-funnel-title">Qualification Funnel</div>';
-  h += '<div class="l360-funnel">';
-  var stages = STAGES.leads || [];
-  stages.forEach(function(st, i) {
-    var isCurrent = st.key === rec.stage;
-    var isPast = false;
-    var currentIdx = stages.findIndex(function(s){return s.key===rec.stage;});
-    if (i < currentIdx) isPast = true;
-    var cls = isCurrent ? 'l360-funnel-step l360-funnel-current' : (isPast ? 'l360-funnel-step l360-funnel-done' : 'l360-funnel-step');
-    h += '<div class="'+cls+'" data-stage="'+st.key+'">';
-    h += '<div class="l360-funnel-dot" style="background:'+(isCurrent||isPast?st.color:'#e2e8f0')+'">';
-    if (isPast) h += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>';
-    if (isCurrent) h += '<div class="l360-funnel-pulse"></div>';
-    h += '</div>';
-    h += '<div class="l360-funnel-label">' + st.label + '</div>';
-    if (i < stages.length - 1) h += '<div class="l360-funnel-line" style="background:'+(isPast?st.color:'#e2e8f0')+'"></div>';
-    h += '</div>';
-  });
-  h += '</div></div>';
-
-  /* ── 2-Column Grid ── */
-  h += '<div class="l360-grid2">';
-
-  /* LEFT COLUMN */
-  h += '<div class="l360-col">';
-
-  /* Lead Insights */
-  h += l360SectionOpen('Lead Insights', 'leads');
-  h += '<div class="l360-insights">';
-  h += '<div class="l360-insight-row"><span class="l360-insight-label">Lead Name</span><span class="l360-insight-value">' + rec.name + '</span></div>';
-  h += '<div class="l360-insight-row"><span class="l360-insight-label">Source</span><span class="l360-insight-value">' + (rec.source||'—') + '</span></div>';
-  h += '<div class="l360-insight-row"><span class="l360-insight-label">Priority</span><span class="l360-insight-value">';
-  if (rec.priority) {
-    var pc = {High:'var(--danger)',Medium:'var(--warning)',Low:'var(--text-light)'};
-    h += '<span class="stage-badge" style="color:'+(pc[rec.priority]||'var(--text-muted)')+'"><span class="dot" style="background:'+(pc[rec.priority]||'var(--text-muted)')+'"></span>'+rec.priority+'</span>';
-  } else { h += '—'; }
-  h += '</span></div>';
-  h += '<div class="l360-insight-row"><span class="l360-insight-label">Estimated Value</span><span class="l360-insight-value" style="font-weight:800;color:var(--text)">' + estValStr + '</span></div>';
-  h += '<div class="l360-insight-row"><span class="l360-insight-label">Stage</span><span class="l360-insight-value">';
-  var stObj = stages.find(function(s){return s.key===rec.stage;});
-  if (stObj) h += '<span class="stage-badge" style="color:'+stObj.color+'"><span class="dot" style="background:'+stObj.color+'"></span>'+stObj.label+'</span>';
-  else h += rec.stage||'—';
-  h += '</span></div>';
-  h += '</div></div>';
-
-  /* Company Information */
-  h += l360SectionOpen('Company Information', 'accounts');
-  h += '<div class="l360-company-card">';
-  h += '<div class="l360-co-top">';
-  h += '<div class="l360-co-avatar">' + accInitials + '</div>';
-  h += '<div class="l360-co-info">';
-  h += '<div class="l360-co-name" id="l360-acct-nav" data-acct-id="'+(rec.account||'')+'">' + accountName + '</div>';
-  h += '<div class="l360-co-industry">' + (account ? (account.industry||'') : '') + (account && account.city ? ' · '+account.city : '') + '</div>';
-  h += '</div></div>';
-  if (account) {
-    var accPipe = account.pipeline ? (typeof fmtAmount==='function' ? fmtAmount(account.pipeline) : (account.pipeline/1e6).toFixed(1)+'M') : '—';
-    h += '<div class="l360-co-fields">';
-    h += '<div class="l360-co-field"><span class="l360-co-field-label">Pipeline</span><span class="l360-co-field-value">' + accPipe + '</span></div>';
-    h += '<div class="l360-co-field"><span class="l360-co-field-label">Open Opps</span><span class="l360-co-field-value">' + (account.opps||0) + '</span></div>';
-    h += '<div class="l360-co-field"><span class="l360-co-field-label">Status</span><span class="l360-co-field-value">';
-    var asc = account.status==='Active'?'var(--success)':'var(--text-light)';
-    h += '<span class="stage-badge" style="color:'+asc+'"><span class="dot" style="background:'+asc+'"></span>'+account.status+'</span>';
-    h += '</span></div>';
-    h += '</div>';
-  }
-  h += '</div></div>';
-
-  /* Related Opportunities */
-  h += l360SectionOpen('Related Opportunities', 'opportunities');
-  if (!opps.length) h += '<div class="l360-empty">No opportunities linked to this account</div>';
-  else opps.forEach(function(o,i) {
-    var st = (STAGES.opportunities||[]).find(function(s){return s.key===o.stage;});
-    var amtStr = typeof fmtAmount==='function' ? fmtAmount(o.amount||0) : ((o.amount||0)/1e6).toFixed(1)+'M';
-    h += '<div class="l360-row'+(i===opps.length-1?' l360-row-last':'')+'" data-nav-obj="opportunities" data-nav-id="'+o.id+'">';
-    h += '<div class="l360-row-left"><div class="l360-row-title">'+o.name+'</div>';
-    h += '<div class="l360-row-sub">Close '+fmtDate(o.close)+' · Prob '+(o.prob||0)+'%</div></div>';
-    h += '<div class="l360-row-right"><div class="l360-row-amount">'+amtStr+'</div>';
-    if(st) h += '<span class="stage-badge" style="color:'+st.color+'"><span class="dot" style="background:'+st.color+'"></span>'+st.label+'</span>';
-    h += '</div></div>';
-  });
-  h += '</div>';
-
-  /* Details */
-  h += crmDetailsSection('l360', 'leads', rec);
-
-  h += '</div>'; /* l360-col left */
-
-  /* RIGHT COLUMN */
-  h += '<div class="l360-col">';
-
-  /* Next Recommended Action */
-  h += '<div class="l360-next-action">';
-  h += '<div class="l360-na-icon" style="background:'+nextAction.color+'14;border-color:'+nextAction.color+'40">'+svgIcon(nextAction.icon,14,nextAction.color)+'</div>';
-  h += '<div class="l360-na-body">';
-  h += '<div class="l360-na-label">Next Recommended Action</div>';
-  h += '<div class="l360-na-text">' + nextAction.text + '</div>';
-  h += '</div></div>';
-
-  /* Activity Timeline */
-  h += l360SectionOpen('Activity Timeline', 'activities');
-  if (!activities.length) h += '<div class="l360-empty">No activities recorded</div>';
-  else {
-    h += '<div class="l360-timeline">';
-    activities.forEach(function(a,i) {
-      var isLast = i===activities.length-1;
-      var typeLabel = (a.type||'call').charAt(0).toUpperCase()+(a.type||'call').slice(1);
-      var typeColors = {call:'#3b82f6',meeting:'#8b5cf6',email:'#10b981','site visit':'#ef4444',phone:'#3b82f6',users:'#8b5cf6',mail:'#10b981',mapPin:'#ef4444'};
-      var tc = typeColors[a.type] || typeColors[a.icon] || 'var(--text-light)';
-      var iconKey = a.icon || (a.type==='call'||a.type==='phone'?'phone':a.type==='meeting'||a.type==='users'?'users':a.type==='email'||a.type==='mail'?'mail':'activities');
-      h += '<div class="l360-tl-item">';
-      if(!isLast) h += '<div class="l360-tl-line"></div>';
-      h += '<div class="l360-tl-icon" style="background:'+tc+'14;border-color:'+tc+'40">'+svgIcon(iconKey,11,tc)+'</div>';
-      h += '<div class="l360-tl-body">';
-      h += '<div class="l360-tl-top"><span class="l360-tl-subject">'+(a.subject||a.name||typeLabel)+'</span><span class="l360-tl-type" style="color:'+tc+'">'+typeLabel+'</span></div>';
-      h += '<div class="l360-tl-meta">'+(a.date||'')+((a.time)?' · '+a.time:'')+'</div>';
-      h += '</div></div>';
-    });
-    h += '</div>';
-  }
-  h += '</div>';
-
-  /* Notes */
-  h += l360SectionOpen('Notes', 'activities');
-  if (!notes.length) h += '<div class="l360-empty">No notes</div>';
-  else {
-    notes.forEach(function(n,i) {
-      h += '<div class="l360-note'+(i===notes.length-1?' l360-row-last':'')+'">';
-      h += '<div class="l360-note-date">'+(n.date||'')+'</div>';
-      h += '<div class="l360-note-text">'+(n.text||'')+'</div>';
-      h += '</div>';
-    });
-  }
-  h += '</div>';
-
-  h += '</div>'; /* l360-col right */
-  h += '</div>'; /* l360-grid2 */
-  h += '</div>'; /* l360 */
-
-  container.innerHTML = h;
-  container.scrollTop = 0;
-
-  /* ── Bind Events ── */
-  document.getElementById('l360-back').addEventListener('click', function(){ navigate('leads'); });
-
-  /* Photo: overlay click = upload, avatar click = preview */
-  var l360PhotoWrap = document.getElementById('l360-photo-wrap');
-  var l360PhotoInput = document.getElementById('l360-photo-input');
-  if (l360PhotoWrap && l360PhotoInput) {
-    var l360Overlay = l360PhotoWrap.querySelector('.l360-photo-overlay');
-    if (l360Overlay) {
-      l360Overlay.addEventListener('click', function(e){ e.stopPropagation(); l360PhotoInput.click(); });
-    }
-    var l360AvatarEl = document.getElementById('l360-avatar');
-    if (l360AvatarEl) {
-      l360AvatarEl.addEventListener('click', function(e){
-        e.stopPropagation();
-        var currentUrl = rec.photoURL || rec.photo || '';
-        if (currentUrl && typeof fbShowPhotoPreview === 'function') {
-          fbShowPhotoPreview(currentUrl, rec.name);
-        } else {
-          l360PhotoInput.click();
-        }
-      });
-    }
-    l360PhotoInput.addEventListener('change', function(e) {
-      var file = e.target.files && e.target.files[0];
-      if (!file) return;
-      var avatar = document.getElementById('l360-avatar');
-      if (avatar) {
-        avatar.className = 'l360-photo l360-photo-loading';
-        avatar.innerHTML = '<div class="l360-spinner"></div>';
-      }
-      if (typeof fbCompressAndSavePhoto === 'function') {
-        fbCompressAndSavePhoto(file, 'leads', rec.id).then(function(url) {
-          if (avatar) { avatar.className = 'l360-photo'; avatar.innerHTML = '<img src="'+url+'" alt="'+rec.name+'" />'; }
-          fbShowStatus('Photo uploaded');
-        }).catch(function(err) {
-          console.error('[L360] Photo error:', err);
-          if (avatar) { avatar.className = 'l360-photo l360-photo-initials'; avatar.innerHTML = initials; }
-          fbShowStatus('Photo upload failed', true);
-        });
-      } else {
-        var reader = new FileReader();
-        reader.onload = function(ev) {
-          rec.photo = ev.target.result;
-          if (avatar) { avatar.className = 'l360-photo'; avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+rec.name+'" />'; }
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-  }
-
-  var compLink = document.getElementById('l360-company-link');
-  if (compLink && rec.account) {
-    compLink.addEventListener('click', function(){ navigate('record','accounts',rec.account); });
-  }
-
-  var acctNav = document.getElementById('l360-acct-nav');
-  if (acctNav) {
-    acctNav.addEventListener('click', function(){
-      var aid = acctNav.getAttribute('data-acct-id');
-      if(aid) navigate('record','accounts',aid);
-    });
-  }
-
-  /* Convert button */
-  var convertBtn = document.getElementById('l360-convert');
-  if (convertBtn) {
-    convertBtn.addEventListener('click', function(){
-      rec.stage = 'converted';
-      renderLead360(container, rec);
-      showDragToast && showDragToast(rec.name, 'converted', 'leads');
-    });
-  }
-
-  /* Funnel step click to change stage */
-  container.querySelectorAll('.l360-funnel-step[data-stage]').forEach(function(step) {
-    step.style.cursor = 'pointer';
-    step.addEventListener('click', function(){
-      var ns = step.getAttribute('data-stage');
-      if (ns && ns !== rec.stage) {
-        rec.stage = ns;
-        renderLead360(container, rec);
-        showDragToast && showDragToast(rec.name, ns, 'leads');
-      }
-    });
-  });
-
-  container.querySelectorAll('.l360-row[data-nav-id]').forEach(function(el) {
-    el.addEventListener('click', function(){ navigate('record', el.getAttribute('data-nav-obj'), el.getAttribute('data-nav-id')); });
-  });
-  container.querySelectorAll('.l360-section-link[data-nav]').forEach(function(el) {
-    el.addEventListener('click', function(){ navigate(el.getAttribute('data-nav')); });
-  });
-  bindCrmActionButtons(container);
-  bindDetailsLinks(container);
-}
-
-/* ─── Lead 360 Helpers ─── */
-
-function l360ComputeScore(rec) {
-  var score = 30;
-  if (rec.priority === 'High') score += 30;
-  else if (rec.priority === 'Medium') score += 15;
-  if (rec.source === 'Referral') score += 15;
-  else if (rec.source === 'Trade Show') score += 10;
-  else if (rec.source === 'Website') score += 5;
-  if (rec.stage === 'qualified') score += 12;
-  else if (rec.stage === 'contacted') score += 6;
-  else if (rec.stage === 'proposal') score += 18;
-  else if (rec.stage === 'converted') score += 25;
-  if (rec.estimatedValue && rec.estimatedValue >= 20000000) score += 10;
-  return Math.min(score, 100);
-}
-
-function l360Temperature(score) {
-  if (score >= 70) return {key:'hot',   label:'Hot Lead',  icon:'\uD83D\uDD25', color:'var(--danger)'};
-  if (score >= 40) return {key:'warm',  label:'Warm Lead', icon:'\u26C5',       color:'var(--warning)'};
-  return                  {key:'cold',  label:'Cold Lead', icon:'\u2744\uFE0F', color:'var(--text-light)'};
-}
-
-function l360Engagement(rec) {
-  if (rec.stage === 'qualified' || rec.stage === 'proposal' || rec.stage === 'converted') return 'High';
-  if (rec.stage === 'contacted') return 'Medium';
-  return 'Low';
-}
-
-function l360NextAction(rec) {
-  if (rec.stage === 'new') return {icon:'phone', color:'#3b82f6', text:'Schedule an initial discovery call to qualify this lead.'};
-  if (rec.stage === 'contacted') return {icon:'users', color:'#8b5cf6', text:'Book a face-to-face meeting to assess project scope and budget.'};
-  if (rec.stage === 'qualified') return {icon:'quotes', color:'#f59e0b', text:'Prepare and send a tailored proposal with pricing.'};
-  if (rec.stage === 'proposal') return {icon:'opportunities', color:'#10b981', text:'Follow up on proposal and negotiate to close.'};
-  return {icon:'chart', color:'#10b981', text:'Lead converted. Create opportunity and assign project team.'};
-}
-
-function l360KpiCard(value, label, color, insight, insightColor) {
-  return '<div class="l360-kpi">' +
-    '<div class="l360-kpi-value" style="color:'+color+'">' + value + '</div>' +
-    '<div class="l360-kpi-label">' + label + '</div>' +
-    (insight ? '<div class="l360-kpi-insight" style="color:'+(insightColor||'var(--text-muted)')+'">' + insight + '</div>' : '') +
-    '</div>';
-}
-
-function l360SectionOpen(title, navKey) {
-  return '<div class="l360-section"><div class="l360-section-head">' +
-    '<span class="l360-section-title">' + title + '</span>' +
-    '<span class="l360-section-link" data-nav="' + navKey + '">View all</span></div>';
-}
-
-
-/* ════════════════════════════════════════════════════════
-   OPPORTUNITY 360 — Deal Command Center
-   ════════════════════════════════════════════════════════ */
-
-function renderOpp360(container, rec) {
-  injectO360Styles();
-  var D = window.DATA;
-  var oppId = rec.id;
-
-  /* ── Resolve related data ── */
-  var account = (D.accounts||[]).find(function(a){ return a.id === rec.account; });
-  var accountName = account ? account.name : '—';
-
-  var contacts = (D.contacts||[]).filter(function(c){ return c.account === rec.account; });
-  var quotes = (D.quotes||[]).filter(function(q){ return q.opportunity === oppId || q.account === rec.account; });
-
-  /* Activities */
-  var activities = (D.activities||[]).filter(function(a){ return a.opportunity === oppId; });
-  if (!activities.length) {
-    activities = (D.upcoming||[]).slice(0,4).map(function(u,i){
-      return {id:'oa'+i, type:u.icon||'call', subject:u.name, date:u.date, time:u.time, contact:u.contact};
-    });
-  }
-
-  var tasks = (D.tasks||[]).slice(0,3);
-
-  /* Computed */
-  var amtStr = typeof fmtAmount==='function' ? fmtAmount(rec.amount||0) : ((rec.amount||0)/1e6).toFixed(1)+'M€';
-  var weighted = (rec.amount||0) * ((rec.prob||0)/100);
-  var weightedStr = typeof fmtAmount==='function' ? fmtAmount(weighted) : (weighted/1e6).toFixed(1)+'M€';
-  var closeStr = rec.close ? fmtDate(rec.close) : '—';
-  var stages = STAGES.opportunities||[];
-  var currentIdx = stages.map(function(s){return s.key;}).indexOf(rec.stage);
-  var stObj = stages[currentIdx] || {};
-  var nextAction = o360NextAction(rec);
-  var probColor = (rec.prob||0) >= 60 ? 'var(--success)' : (rec.prob||0) >= 30 ? 'var(--warning)' : 'var(--text-light)';
-
-  /* Initials for avatar fallback */
-  var initials = rec.name ? rec.name.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase() : 'OP';
-
-  /* ── BUILD HTML ── */
-  var h = '<div class="o360">';
-
-  /* Back */
-  h += '<div class="o360-back" id="o360-back">' + svgIcon('arrowLeft',14,'var(--text-muted)') + '<span>Opportunities</span></div>';
-
-  /* ── Header Card (Lead-style) ── */
-  h += '<div class="o360-header-card">';
-  h += '<div class="o360-header-top">';
-
-  /* Photo/Avatar with upload */
-  var photoUrl = rec.photoURL || rec.photo || '';
-  h += '<div class="o360-photo-wrap" id="o360-photo-wrap" title="Click to change photo">';
-  if (photoUrl) {
-    h += '<div class="o360-photo" id="o360-avatar"><img src="'+photoUrl+'" alt="'+rec.name+'" /></div>';
-  } else {
-    h += '<div class="o360-photo o360-photo-initials" id="o360-avatar">' + svgIcon('opportunities',24,'#fff') + '</div>';
-  }
-  h += '<div class="o360-photo-overlay">' + svgIcon('plus',16,'#fff') + '</div>';
-  h += '<input type="file" id="o360-photo-input" accept="image/*" style="display:none" />';
-  h += '</div>';
-
-  h += '<div class="o360-header-info">';
-  h += '<div class="o360-name-row"><h1 class="o360-name">' + rec.name + '</h1></div>';
-  h += '<div class="o360-company" id="o360-acct-link" data-acct-id="'+(rec.account||'')+'">' + svgIcon('accounts',13,'var(--accent)') + '<span>' + accountName + '</span></div>';
-
-  /* Detail chips */
-  h += '<div class="o360-details-row">';
-  h += '<div class="o360-detail-chip"><span class="dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:'+stObj.color+';margin-right:3px"></span>' + stObj.label + '</div>';
-  h += '<div class="o360-detail-chip">' + svgIcon('activities',12,'var(--text-muted)') + '<span>Close ' + closeStr + '</span></div>';
-  h += '</div>';
-
-  /* Meta row */
-  h += '<div class="o360-meta-row">';
-  h += '<div class="o360-meta-tag">Owner: <strong>'+(rec.owner||'Me')+'</strong></div>';
-  if (rec.createdDate) h += '<div class="o360-meta-tag">Created: <strong>'+fmtDate(rec.createdDate)+'</strong></div>';
-  h += '</div>';
-
-  h += '</div>'; /* header-info */
-
-  /* Header right metrics */
-  h += '<div class="o360-header-metrics">';
-  h += '<div class="o360-hmetric"><div class="o360-hmetric-val" style="color:var(--accent)">' + amtStr + '</div><div class="o360-hmetric-label">Deal Value</div></div>';
-  h += '<div class="o360-hmetric"><div class="o360-hmetric-val" style="color:'+probColor+'">' + (rec.prob||0) + '%</div><div class="o360-hmetric-label">Probability</div></div>';
-  h += '</div>';
-
-  h += '</div>'; /* header-top */
-
-  /* Quick Actions */
-  h += '<div class="o360-actions">';
-  h += '<button class="o360-action-btn o360-action-primary">' + svgIcon('phone',13,'#fff') + '<span>Call</span></button>';
-  h += '<button class="o360-action-btn o360-action-primary">' + svgIcon('mail',13,'#fff') + '<span>Send Email</span></button>';
-  h += '<button class="o360-action-btn o360-action-outline">' + svgIcon('activities',13,'var(--text-muted)') + '<span>Add Activity</span></button>';
-  h += '<button class="o360-action-btn o360-action-outline">' + svgIcon('quotes',13,'var(--text-muted)') + '<span>Create Quote</span></button>';
-  h += '<button class="o360-action-btn o360-action-success" id="o360-advance">' + svgIcon('check',13,'#fff') + '<span>Mark Stage Complete</span></button>';
-  h += crmActionButtons('o360', 'opportunities', oppId);
-  h += '</div></div>';
-
-  /* ── 4 KPI Cards (like Lead) ── */
-  h += '<div class="o360-kpi-row">';
-  h += o360KpiCard(amtStr, 'Deal Value', 'var(--accent)', 'Weighted: '+weightedStr, 'var(--success)');
-  h += o360KpiCard((rec.prob||0)+'%', 'Probability', probColor, 'Stage: '+stObj.label, 'var(--text-muted)');
-  h += o360KpiCard(activities.length, 'Activities', 'var(--purple)', 'Last: recently', 'var(--text-muted)');
-  h += o360KpiCard(quotes.length, 'Quotes', 'var(--warning)', quotes.length>0?'Latest active':'None yet', 'var(--text-muted)');
-  h += '</div>';
-
-  /* ── Pipeline Progression ── */
-  h += '<div class="o360-funnel-card">';
-  h += '<div class="o360-funnel-title">Pipeline Progression</div>';
-  h += '<div class="o360-funnel">';
-  stages.forEach(function(st, i) {
-    var isCurrent = st.key === rec.stage;
-    var isPast = i < currentIdx;
-    var cls = isCurrent ? 'o360-funnel-step o360-funnel-current' : (isPast ? 'o360-funnel-step o360-funnel-done' : 'o360-funnel-step');
-    h += '<div class="'+cls+'" data-stage="'+st.key+'">';
-    h += '<div class="o360-funnel-dot" style="background:'+(isCurrent||isPast?st.color:'#e2e8f0')+'">';
-    if (isPast) h += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>';
-    if (isCurrent) h += '<div class="o360-funnel-pulse"></div>';
-    h += '</div>';
-    h += '<div class="o360-funnel-label">' + st.label + '</div>';
-    if (i < stages.length - 1) h += '<div class="o360-funnel-line" style="background:'+(isPast?st.color:'#e2e8f0')+'"></div>';
-    h += '</div>';
-  });
-  h += '</div></div>';
-
-  /* ── 2-Column Layout ── */
-  h += '<div class="o360-grid2">';
-
-  /* LEFT — Business Context */
-  h += '<div class="o360-col">';
-
-  /* Quotes */
-  h += o360SectionOpen('Quotes', 'quotes', quotes.length);
-  if (!quotes.length) h += '<div class="o360-empty">No quotes linked</div>';
-  else quotes.forEach(function(q,i) {
-    var qAmt = typeof fmtAmount==='function' ? fmtAmount(q.amount||0) : ((q.amount||0)/1e6).toFixed(1)+'M€';
-    var stColor = q.status==='Sent'?'var(--accent)':q.status==='Accepted'?'var(--success)':'var(--text-light)';
-    h += '<div class="o360-row'+(i===quotes.length-1?' o360-row-last':'')+'">';
-    h += '<div class="o360-row-left"><div class="o360-row-title">'+(q.name||'Quote #'+q.id)+'</div>';
-    h += '<div class="o360-row-sub">'+(q.date||'')+(q.status?' · '+q.status:'')+'</div></div>';
-    h += '<div class="o360-row-right">';
-    if(q.amount) h += '<span class="o360-row-amount">'+qAmt+'</span>';
-    h += '<span class="stage-badge" style="color:'+stColor+'"><span class="dot" style="background:'+stColor+'"></span>'+(q.status||'Draft')+'</span>';
-    h += '</div></div>';
-  });
-  h += '</div>';
-
-  /* Contacts */
-  h += o360SectionOpen('Contacts Involved', 'contacts', contacts.length);
-  if (!contacts.length) h += '<div class="o360-empty">No contacts linked</div>';
-  else contacts.forEach(function(c,i) {
-    var ci = c.name ? c.name.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase() : '?';
-    h += '<div class="o360-row'+(i===contacts.length-1?' o360-row-last':'')+'" data-nav-obj="contacts" data-nav-id="'+c.id+'">';
-    h += '<div class="o360-contact-avatar">'+ci+'</div>';
-    h += '<div class="o360-row-left"><div class="o360-row-title">'+c.name+'</div><div class="o360-row-sub">'+(c.role||'—')+'</div></div>';
-    h += '<div style="display:flex;gap:4px">';
-    h += '<div class="o360-contact-btn" title="Call">'+svgIcon('phone',11,'var(--text-light)')+'</div>';
-    h += '<div class="o360-contact-btn" title="Email">'+svgIcon('mail',11,'var(--text-light)')+'</div>';
-    h += '</div></div>';
-  });
-  h += '</div>';
-
-  /* Tasks (moved to left for balance) */
-  h += o360SectionOpen('Tasks', 'activities', tasks.length);
-  if (!tasks.length) h += '<div class="o360-empty">No tasks</div>';
-  else tasks.forEach(function(t,i) {
-    var pc = {High:'var(--danger)',Medium:'var(--warning)',Low:'var(--text-light)'};
-    h += '<div class="o360-row'+(i===tasks.length-1?' o360-row-last':'')+'">';
-    h += '<div style="display:flex;align-items:flex-start;gap:7px;flex:1;min-width:0"><span class="o360-task-dot" style="background:'+(pc[t.priority]||'var(--text-light)')+'"></span>';
-    h += '<div style="flex:1;min-width:0"><div class="o360-row-title">'+t.name+'</div><div class="o360-row-sub">'+(t.ref||'')+(t.status?' · '+t.status:'')+'</div></div></div>';
-    h += '<span style="font-size:10px;font-weight:500;color:'+(t.status==='In Progress'?'var(--accent)':'var(--text-muted)')+'">'+t.status+'</span>';
-    h += '</div>';
-  });
-  h += '</div>';
-
-  /* Details */
-  h += crmDetailsSection('o360', 'opportunities', rec);
-
-  h += '</div>'; /* end left col */
-
-  /* RIGHT — Sales Action */
-  h += '<div class="o360-col">';
-
-  /* Next Action */
-  h += '<div class="o360-next-action">';
-  h += '<div class="o360-na-icon" style="background:'+nextAction.color+'14;border-color:'+nextAction.color+'40">'+svgIcon(nextAction.icon,14,nextAction.color)+'</div>';
-  h += '<div class="o360-na-body">';
-  h += '<div class="o360-na-label">Next Recommended Action</div>';
-  h += '<div class="o360-na-text">' + nextAction.text + '</div>';
-  h += '</div></div>';
-
-  /* Activity Timeline */
-  h += o360SectionOpen('Activity Timeline', 'activities', activities.length);
-  if (!activities.length) h += '<div class="o360-empty">No activities recorded</div>';
-  else {
-    h += '<div class="o360-timeline">';
-    activities.forEach(function(a,i) {
-      var isLast = i===activities.length-1;
-      var typeColors = {call:'#3b82f6',phone:'#3b82f6',meeting:'#8b5cf6',users:'#8b5cf6',email:'#10b981',mail:'#10b981','site visit':'#ef4444',mapPin:'#ef4444'};
-      var tc = typeColors[a.type] || typeColors[a.icon] || 'var(--text-light)';
-      var iconKey = a.icon || (a.type==='call'||a.type==='phone'?'phone':a.type==='meeting'||a.type==='users'?'users':a.type==='email'||a.type==='mail'?'mail':'activities');
-      var typeLabels = {phone:'Call',call:'Call',users:'Meeting',meeting:'Meeting',mail:'Email',email:'Email',mapPin:'Site Visit','site visit':'Site Visit'};
-      var tl = typeLabels[a.type] || typeLabels[a.icon] || 'Activity';
-      h += '<div class="o360-tl-item">';
-      if(!isLast) h += '<div class="o360-tl-line"></div>';
-      h += '<div class="o360-tl-icon" style="background:'+tc+'14;border-color:'+tc+'40">'+svgIcon(iconKey,11,tc)+'</div>';
-      h += '<div class="o360-tl-body">';
-      h += '<div class="o360-tl-top"><span class="o360-tl-subject">'+(a.subject||a.name||tl)+'</span><span class="o360-tl-type" style="color:'+tc+'">'+tl+'</span></div>';
-      h += '<div class="o360-tl-meta">'+(a.contact||'')+(a.date?' · '+a.date:'')+'</div>';
-      h += '</div></div>';
-    });
-    h += '</div>';
-  }
-  h += '</div>';
-
-  h += '</div>'; /* end right col */
-  h += '</div>'; /* end grid */
-  h += '</div>'; /* end o360 */
-
-  container.innerHTML = h;
-  container.scrollTop = 0;
-
-  /* ── Bind Events ── */
-  document.getElementById('o360-back').addEventListener('click', function(){ navigate('opportunities'); });
-
-  /* Photo: overlay click = upload, avatar click = preview */
-  var photoWrap = document.getElementById('o360-photo-wrap');
-  var photoInput = document.getElementById('o360-photo-input');
-  if (photoWrap && photoInput) {
-    var o360Overlay = photoWrap.querySelector('.o360-photo-overlay');
-    if (o360Overlay) {
-      o360Overlay.addEventListener('click', function(e){ e.stopPropagation(); photoInput.click(); });
-    }
-    var o360AvatarEl = document.getElementById('o360-avatar');
-    if (o360AvatarEl) {
-      o360AvatarEl.addEventListener('click', function(e){
-        e.stopPropagation();
-        var currentUrl = rec.photoURL || rec.photo || '';
-        if (currentUrl && typeof fbShowPhotoPreview === 'function') {
-          fbShowPhotoPreview(currentUrl, rec.name);
-        } else {
-          photoInput.click();
-        }
-      });
-    }
-    photoInput.addEventListener('change', function(e) {
-      var file = e.target.files && e.target.files[0];
-      if (!file) return;
-      var avatar = document.getElementById('o360-avatar');
-      if (avatar) {
-        avatar.className = 'o360-photo o360-photo-loading';
-        avatar.innerHTML = '<div class="o360-spinner"></div>';
-      }
-      if (typeof fbCompressAndSavePhoto === 'function') {
-        fbCompressAndSavePhoto(file, 'opportunities', oppId).then(function(url) {
-          if (avatar) { avatar.className = 'o360-photo'; avatar.innerHTML = '<img src="'+url+'" alt="'+rec.name+'" />'; }
-          fbShowStatus('Photo uploaded');
-        }).catch(function(err) {
-          console.error('[O360] Photo error:', err);
-          if (avatar) { avatar.className = 'o360-photo o360-photo-initials'; avatar.innerHTML = svgIcon('opportunities',24,'#fff'); }
-          fbShowStatus('Photo upload failed', true);
-        });
-      } else {
-        var reader = new FileReader();
-        reader.onload = function(ev) {
-          rec.photo = ev.target.result;
-          if (avatar) { avatar.className = 'o360-photo'; avatar.innerHTML = '<img src="'+ev.target.result+'" alt="'+rec.name+'" />'; }
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-  }
-
-  /* Account link */
-  var acctLink = document.getElementById('o360-acct-link');
-  if (acctLink && rec.account) {
-    acctLink.addEventListener('click', function(){ navigate('record','accounts',rec.account); });
-  }
-
-  /* Mark Stage Complete */
-  var advBtn = document.getElementById('o360-advance');
-  if (advBtn) {
-    advBtn.addEventListener('click', function(){
-      var ks = stages.map(function(s){return s.key;});
-      var idx = ks.indexOf(rec.stage);
-      if (idx < ks.length - 1) {
-        rec.stage = ks[idx + 1];
-        renderOpp360(container, rec);
-        if (typeof showDragToast === 'function') showDragToast(rec.name, rec.stage, 'opportunities');
-      }
-    });
-  }
-
-  /* Pipeline step click */
-  container.querySelectorAll('.o360-funnel-step[data-stage]').forEach(function(step) {
-    step.addEventListener('click', function(){
-      var ns = step.getAttribute('data-stage');
-      if (ns && ns !== rec.stage) {
-        rec.stage = ns;
-        renderOpp360(container, rec);
-        if (typeof showDragToast === 'function') showDragToast(rec.name, ns, 'opportunities');
-      }
-    });
-  });
-
-  /* Row navigation */
-  container.querySelectorAll('.o360-row[data-nav-id]').forEach(function(el) {
-    el.addEventListener('click', function(){ navigate('record', el.getAttribute('data-nav-obj'), el.getAttribute('data-nav-id')); });
-  });
-  container.querySelectorAll('.o360-section-link[data-nav]').forEach(function(el) {
-    el.addEventListener('click', function(){ navigate(el.getAttribute('data-nav')); });
-  });
-  bindCrmActionButtons(container);
-  bindDetailsLinks(container);
-}
-
-/* ─── Opp 360 Helpers ─── */
-
-function o360SectionOpen(title, navKey, count) {
-  return '<div class="o360-section"><div class="o360-section-head">' +
-    '<span class="o360-section-title">'+title+'</span>' +
-    (count!==null&&count!==undefined?'<span class="o360-section-count">'+count+'</span>':'') +
-    '<span class="o360-section-link" data-nav="'+navKey+'">View all</span></div>';
-}
-
-function o360KpiCard(value, label, color, insight, insightColor) {
-  return '<div class="o360-kpi">' +
-    '<div class="o360-kpi-value" style="color:'+color+'">' + value + '</div>' +
-    '<div class="o360-kpi-label">' + label + '</div>' +
-    (insight ? '<div class="o360-kpi-insight" style="color:'+(insightColor||'var(--text-muted)')+'">' + insight + '</div>' : '') +
-    '</div>';
-}
-
-function o360NextAction(rec) {
-  if (rec.stage === 'lead') return {icon:'phone', color:'#3b82f6', text:'Schedule a discovery call to qualify this opportunity.'};
-  if (rec.stage === 'study') return {icon:'users', color:'#8b5cf6', text:'Arrange a technical meeting to define project scope and requirements.'};
-  if (rec.stage === 'tender') return {icon:'quotes', color:'#f59e0b', text:'Prepare and submit tender documentation before deadline.'};
-  if (rec.stage === 'proposal') return {icon:'mail', color:'#10b981', text:'Send the commercial proposal and follow up with the decision maker.'};
-  if (rec.stage === 'negotiation') return {icon:'phone', color:'#3b82f6', text:'Follow up on revised pricing to close negotiations.'};
-  if (rec.stage === 'closed_won') return {icon:'projects', color:'#10b981', text:'Initiate project kickoff and assign delivery team.'};
-  return {icon:'chart', color:'#6366f1', text:'Project launched — monitor delivery and client satisfaction.'};
-}
-
-
-/* ═══════════════════════════════════════════
-   OPP 360 — CSS INJECTION
-   ═══════════════════════════════════════════ */
-
-function injectO360Styles() {
-  if (document.getElementById('o360-css')) return;
-  var s = document.createElement('style'); s.id = 'o360-css';
+/* ═══════════════════════════════════════════════════════
+   COMMAND CENTER — Shared Infrastructure
+   Premium tab system, KPI boxes, related tables
+   ═══════════════════════════════════════════════════════ */
+
+function ccInjectStyles() {
+  if (document.getElementById('cc-css')) return;
+  var s = document.createElement('style'); s.id = 'cc-css';
   s.textContent = '\
-.o360{padding:14px 20px 36px;max-width:1280px;margin:0 auto}\
-.o360-back{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);cursor:pointer;margin-bottom:8px;font-weight:500}\
-.o360-back:hover{color:var(--text)}\
+/* Command Center — Shared Styles */\n\
+.cc-wrap{max-width:1200px;margin:0 auto;padding:16px 24px 48px}\
+.cc-back{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer;padding:4px 0;margin-bottom:10px;transition:color .12s}\
+.cc-back:hover{color:var(--accent)}\
 \
-/* Header Card — Lead style */\
-.o360-header-card{background:var(--card);border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);border:1px solid var(--border);margin-bottom:14px;overflow:hidden}\
-.o360-header-top{padding:22px 26px 18px;display:flex;gap:20px;align-items:flex-start}\
+/* Header Card */\
+.cc-header{background:var(--card);border-radius:14px;border:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,.04);margin-bottom:14px;padding:24px 28px}\
+.cc-header-top{display:flex;gap:18px;align-items:center}\
+.cc-avatar{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:1px solid #E6E8EC;box-shadow:0 2px 8px rgba(0,0,0,.06);transition:transform .18s}\
+.cc-avatar-initials{background:linear-gradient(135deg,#e0e7ff,#dbeafe);font-size:22px;font-weight:800;color:var(--accent);letter-spacing:-.5px}\
+.cc-avatar-img img{width:100%;height:100%;object-fit:cover}\
+.cc-photo-wrap{position:relative;cursor:pointer;flex-shrink:0}\
+.cc-photo-wrap:hover .cc-avatar{transform:scale(1.05)}\
+.cc-photo-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}\
+.cc-photo-wrap:hover .cc-photo-overlay{opacity:1}\
+.cc-header-info{flex:1;min-width:0}\
+.cc-name{font-size:24px;font-weight:700;color:var(--text);letter-spacing:-.4px;margin:0;line-height:1.15}\
+.cc-badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid #d0d5dd;color:var(--text-muted);margin-left:10px}\
+.cc-badge-green{border-color:#a7f3d0;color:#059669;background:#ecfdf5}\
+.cc-badge-blue{border-color:#bfdbfe;color:#2563eb;background:#eff6ff}\
+.cc-badge-orange{border-color:#fde68a;color:#d97706;background:#fffbeb}\
+.cc-badge-red{border-color:#fecaca;color:#dc2626;background:#fef2f2}\
+.cc-subtitle{display:flex;gap:14px;font-size:13px;color:var(--text-muted);margin-top:5px;flex-wrap:wrap}\
+.cc-subtitle a,.cc-subtitle .cc-link{color:var(--accent);cursor:pointer;font-weight:500}\
+.cc-subtitle .cc-link:hover{text-decoration:underline}\
+.cc-summary-pills{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}\
+.cc-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:8px;background:#f0f4ff;font-size:11.5px;color:#3b5998;font-weight:500}\
+.cc-header-actions{display:flex;gap:6px;flex-shrink:0;align-items:center}\
 \
-/* Photo/Avatar */\
-.o360-photo{width:92px;height:92px;border-radius:50%;flex-shrink:0;overflow:hidden;border:1px solid #E6E8EC;box-shadow:0 2px 8px rgba(0,0,0,.06);background:#fff;transition:transform .18s ease,box-shadow .18s ease}\
-.o360-photo img{width:100%;height:100%;object-fit:cover}\
-.o360-photo.o360-photo-initials{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent),var(--accent-hover));font-size:28px;font-weight:800;color:#fff;letter-spacing:-.5px}\
-.o360-photo-wrap{position:relative;cursor:pointer;flex-shrink:0}\
-.o360-photo-wrap:hover .o360-photo{transform:scale(1.05);box-shadow:0 6px 20px rgba(0,0,0,.12)}\
-.o360-photo-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}\
-.o360-photo-wrap:hover .o360-photo-overlay{opacity:1}\
-.o360-photo-loading{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent),var(--accent-hover))}\
-.o360-spinner{width:22px;height:22px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:o360spin .6s linear infinite}\
-@keyframes o360spin{to{transform:rotate(360deg)}}\
+/* Outline Button (unified) */\
+.cc-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer;font-family:inherit;transition:all .12s}\
+.cc-btn:hover{background:#f9fafb;border-color:#c8cad0}\
+.cc-btn:active{transform:scale(.97)}\
+.cc-btn-sq{width:38px;height:36px;padding:0;justify-content:center}\
+.cc-btn-danger{color:#ef4444;border-color:#fecaca}\
+.cc-btn-danger:hover{background:#fef2f2;border-color:#ef4444}\
+.cc-btn-primary{background:var(--accent);color:#fff;border:none}\
+.cc-btn-primary:hover{background:var(--accent-hover)}\
 \
-.o360-header-info{flex:1;min-width:0}\
-.o360-name-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:2px}\
-.o360-name{font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.3px;line-height:1.2;margin:0}\
-.o360-company{display:flex;align-items:center;gap:5px;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px}\
-.o360-company:hover{text-decoration:underline}\
-.o360-details-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}\
-.o360-detail-chip{display:inline-flex;align-items:center;gap:5px;background:#f8f9fb;border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-size:11px;color:var(--text-muted);font-weight:500}\
-.o360-meta-row{display:flex;flex-wrap:wrap;gap:8px}\
-.o360-meta-tag{font-size:10px;color:var(--text-light);font-weight:500}\
-.o360-meta-tag strong{color:var(--text-muted);font-weight:600}\
+/* KPI Object Boxes */\
+.cc-kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}\
+.cc-kpi-box{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:16px 18px;cursor:pointer;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.03)}\
+.cc-kpi-box:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);transform:translateY(-1px);border-color:#c8cad0}\
+.cc-kpi-box.cc-kpi-active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 4px 12px rgba(37,99,235,.08)}\
+.cc-kpi-head{display:flex;align-items:center;gap:7px;margin-bottom:10px}\
+.cc-kpi-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}\
+.cc-kpi-label{font-size:12px;font-weight:500;color:var(--text-muted)}\
+.cc-kpi-active .cc-kpi-label{color:var(--accent)}\
+.cc-kpi-val{font-size:26px;font-weight:700;color:var(--text);line-height:1;letter-spacing:-.5px}\
+.cc-kpi-trend{font-size:11px;font-weight:600;margin-top:5px;display:flex;align-items:center;gap:4px}\
+.cc-kpi-sub{font-size:11px;color:var(--text-light);margin-top:4px}\
 \
-/* Header metrics */\
-.o360-header-metrics{display:flex;flex-direction:column;gap:12px;flex-shrink:0;align-items:center;padding-left:20px;border-left:1px solid var(--border)}\
-.o360-hmetric{display:flex;flex-direction:column;align-items:center}\
-.o360-hmetric-val{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1;font-variant-numeric:tabular-nums}\
-.o360-hmetric-label{font-size:9px;color:var(--text-light);font-weight:500;margin-top:2px;text-transform:uppercase;letter-spacing:.3px}\
+/* Tab Bar */\
+.cc-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);padding-left:6px;overflow-x:auto;background:var(--card);border-radius:14px 14px 0 0}\
+.cc-tab{padding:12px 20px;font-size:13px;cursor:pointer;white-space:nowrap;font-weight:400;color:var(--text-muted);border-bottom:2.5px solid transparent;margin-bottom:-2px;transition:all .1s;display:flex;align-items:center;gap:7px}\
+.cc-tab:hover{color:var(--text)}\
+.cc-tab.cc-tab-active{font-weight:600;color:var(--accent);border-bottom-color:var(--accent)}\
+.cc-tab-count{font-size:10px;font-weight:500;padding:1px 7px;border-radius:10px;background:#f3f4f6;color:var(--text-light)}\
+.cc-tab.cc-tab-active .cc-tab-count{background:#dbeafe;color:var(--accent)}\
+.cc-tab-content{background:var(--card);border-radius:0 0 14px 14px;border:1px solid var(--border);border-top:none;padding:24px 28px;min-height:280px}\
+.cc-section{display:none}\
+.cc-section.cc-visible{display:block}\
 \
-/* Actions */\
-.o360-actions{display:flex;gap:7px;padding:12px 26px 14px;border-top:1px solid var(--border);flex-wrap:wrap}\
-.o360-action-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;transition:all .12s}\
-.o360-action-primary{background:var(--accent);color:#fff}\
-.o360-action-primary:hover{background:var(--accent-hover)}\
-.o360-action-outline{background:transparent;border:1px solid var(--border);color:var(--text-muted)}\
-.o360-action-outline:hover{border-color:#bbb;color:var(--text);background:#f8f9fb}\
-.o360-action-success{background:var(--success);color:#fff}\
-.o360-action-success:hover{background:#059669}\
+/* Related Table */\
+.cc-rel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}\
+.cc-rel-title{font-size:15px;font-weight:600;color:var(--text)}\
+.cc-rel-count{font-weight:400;color:var(--text-light)}\
+.cc-rel-th{display:grid;padding:8px 0;border-bottom:2px solid var(--border)}\
+.cc-rel-th span{font-size:11px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.3px}\
+.cc-rel-row{display:grid;padding:11px 0;border-bottom:1px solid #f3f4f6;cursor:pointer;transition:background .08s}\
+.cc-rel-row:hover{background:#fafbfc}\
+.cc-rel-row span{font-size:12.5px;color:var(--text-muted);display:flex;align-items:center}\
+.cc-rel-row .cc-rel-primary{font-weight:500;color:var(--text)}\
+.cc-rel-row .cc-rel-bold{font-weight:600;color:var(--text)}\
+.cc-rel-row .cc-rel-link{color:var(--accent)}\
+.cc-rel-badge{display:inline-block;padding:2px 10px;border-radius:6px;font-size:11px;font-weight:500}\
+.cc-rel-empty{padding:24px;text-align:center;color:var(--text-light);font-size:12px}\
 \
-/* KPI Row — 4 cards like Lead */\
-.o360-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}\
-.o360-kpi{background:var(--card);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);padding:16px 18px;text-align:center;transition:all .15s}\
-.o360-kpi:hover{box-shadow:0 4px 14px rgba(0,0,0,.08);transform:translateY(-2px)}\
-.o360-kpi-value{font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1;margin-bottom:3px;font-variant-numeric:tabular-nums}\
-.o360-kpi-label{font-size:10.5px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px}\
-.o360-kpi-insight{font-size:9.5px;font-weight:600;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}\
+/* Details — 2-col layout */\
+.cc-details-grid{display:grid;grid-template-columns:32% 68%;gap:18px;align-items:start}\
+.cc-details-card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:20px 22px;box-shadow:0 1px 3px rgba(0,0,0,.03);transition:box-shadow .15s}\
+.cc-details-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.05)}\
+.cc-details-card-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px}\
+.cc-field{padding:10px 0;border-bottom:1px solid #f3f4f6}\
+.cc-field:last-child{border-bottom:none}\
+.cc-field-label{font-size:10.5px;font-weight:600;color:var(--text-light);letter-spacing:.6px;text-transform:uppercase;margin-bottom:3px}\
+.cc-field-value{font-size:13.5px;color:var(--text)}\
+.cc-field-link{color:var(--accent);font-weight:500;cursor:pointer}\
+.cc-field-link:hover{text-decoration:underline}\
 \
-/* Funnel card */\
-.o360-funnel-card{background:var(--card);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);padding:18px 24px;margin-bottom:14px}\
-.o360-funnel-title{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}\
-.o360-funnel{display:flex;align-items:center;gap:0;width:100%;padding-bottom:38px}\
-.o360-funnel-step{display:flex;align-items:center;flex:1;position:relative;cursor:pointer}\
-.o360-funnel-step:last-child{flex:0 0 auto}\
-.o360-funnel-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;z-index:1;transition:all .2s}\
-.o360-funnel-dot:hover{transform:scale(1.1)}\
-.o360-funnel-current .o360-funnel-dot{box-shadow:0 0 0 4px rgba(37,99,235,.15)}\
-.o360-funnel-pulse{width:10px;height:10px;border-radius:50%;background:#fff;animation:o360pulse 1.5s ease-in-out infinite}\
-@keyframes o360pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.7)}}\
-.o360-funnel-label{position:absolute;top:40px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:600;color:var(--text-muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}\
-.o360-funnel-current .o360-funnel-label{color:var(--accent);font-weight:700}\
-.o360-funnel-done .o360-funnel-label{color:var(--success)}\
-.o360-funnel-line{flex:1;height:3px;border-radius:2px;margin:0 6px;transition:background .2s}\
+/* Insight cards */\
+.cc-insights-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}\
+.cc-insight-card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:20px 22px;box-shadow:0 1px 3px rgba(0,0,0,.03);transition:box-shadow .15s}\
+.cc-insight-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.05)}\
+.cc-progress{height:7px;background:#e5e7eb;border-radius:4px;overflow:hidden;margin-bottom:8px}\
+.cc-progress-fill{height:100%;border-radius:4px;background:var(--accent);transition:width .6s ease}\
+.cc-mini-chart{display:flex;align-items:flex-end;gap:3px;height:48px;margin-top:12px}\
+.cc-mini-bar{flex:1;border-radius:3px;transition:height .3s}\
 \
-/* 2-Column Grid */\
-.o360-grid2{display:grid;grid-template-columns:1.12fr 1fr;gap:14px;align-items:start}\
-.o360-col{display:flex;flex-direction:column;gap:12px}\
+/* Next Best Action */\
+.cc-nba{border-radius:14px;padding:22px 26px;background:linear-gradient(135deg,#f0f4ff 0%,#e8f0fe 100%);border:1px solid #d6e4ff;margin-top:14px;display:flex;align-items:flex-start;gap:20px}\
+.cc-nba-body{flex:1}\
+.cc-nba-tag{font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}\
+.cc-nba-title{font-size:17px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:4px}\
+.cc-nba-desc{font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5}\
+.cc-nba-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}\
+.cc-nba-urgency{font-size:11px;font-weight:500;padding:3px 10px;border-radius:6px;background:#fef2f2;color:#dc2626}\
+.cc-nba-due{font-size:12px;color:var(--text-muted)}\
 \
-/* Sections */\
-.o360-section{background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid var(--border);overflow:hidden}\
-.o360-section-head{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px}\
-.o360-section-title{font-size:11.5px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.5px}\
-.o360-section-count{font-size:10px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:1px 7px;border-radius:8px}\
-.o360-section-link{margin-left:auto;font-size:10px;font-weight:500;color:var(--text-light);cursor:pointer;transition:color .12s}\
-.o360-section-link:hover{color:var(--accent)}\
+/* Owner card */\
+.cc-owner-card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:16px 22px;display:flex;align-items:center;gap:14px;box-shadow:0 1px 3px rgba(0,0,0,.03)}\
+.cc-owner-avatar{width:40px;height:40px;border-radius:50%;background:#475467;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#fff;flex-shrink:0}\
 \
-/* Rows */\
-.o360-row{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .08s;display:flex;align-items:center;gap:10px}\
-.o360-row:hover{background:#fafbfc}\
-.o360-row-last{border-bottom:none}\
-.o360-row-left{flex:1;min-width:0}\
-.o360-row-right{display:flex;align-items:center;gap:8px;flex-shrink:0}\
-.o360-row-title{font-size:12.5px;font-weight:700;color:var(--text);line-height:1.2}\
-.o360-row-sub{font-size:10px;color:var(--text-light);margin-top:2px}\
-.o360-row-amount{font-size:15px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.3px;margin-right:4px}\
-.o360-empty{padding:20px 16px;text-align:center;color:var(--text-light);font-size:11px}\
+/* Activity Timeline */\
+.cc-timeline{padding:4px 0}\
+.cc-tl-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f3f4f6}\
+.cc-tl-item:last-child{border-bottom:none}\
+.cc-tl-icon{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}\
+.cc-tl-body{flex:1;min-width:0}\
+.cc-tl-title{font-size:13px;font-weight:500;color:var(--text)}\
+.cc-tl-date{font-size:11px;color:var(--text-light);margin-top:2px}\
+.cc-tl-desc{font-size:12px;color:var(--text-muted);margin-top:4px;line-height:1.5}\
 \
-/* Contact */\
-.o360-contact-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent-light),#bfdbfe);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0}\
-.o360-contact-btn{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s}\
-.o360-contact-btn:hover{background:#f1f5f9;border-color:#d1d5db}\
-.o360-task-dot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0}\
+/* Pipeline/Funnel Bar */\
+.cc-funnel{display:flex;gap:3px;margin-top:18px;margin-bottom:4px}\
+.cc-funnel-seg{flex:1;height:5px;border-radius:3px;transition:background .3s}\
+.cc-funnel-labels{display:flex;margin-top:5px}\
+.cc-funnel-labels span{flex:1;font-size:9.5px;text-align:center;color:var(--text-light)}\
+.cc-funnel-labels .cc-funnel-current{color:var(--accent);font-weight:700}\
 \
-/* Next Action */\
-.o360-next-action{background:var(--card);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);padding:16px 18px;display:flex;gap:14px;align-items:center}\
-.o360-na-icon{width:36px;height:36px;border-radius:10px;border:1.5px solid;display:flex;align-items:center;justify-content:center;flex-shrink:0}\
-.o360-na-body{flex:1;min-width:0}\
-.o360-na-label{font-size:9px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}\
-.o360-na-text{font-size:12.5px;font-weight:600;color:var(--text);line-height:1.4}\
+/* Contact avatar in tables */\
+.cc-contact-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff;flex-shrink:0}\
 \
-/* Timeline */\
-.o360-timeline{padding:12px 16px}\
-.o360-tl-item{display:flex;gap:10px;position:relative;padding-bottom:16px}\
-.o360-tl-item:last-child{padding-bottom:0}\
-.o360-tl-line{position:absolute;left:13px;top:28px;bottom:0;width:1.5px;background:var(--border);border-radius:1px}\
-.o360-tl-item:last-child .o360-tl-line{display:none}\
-.o360-tl-icon{width:26px;height:26px;border-radius:8px;border:1.5px solid;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1;background:var(--card)}\
-.o360-tl-body{flex:1;min-width:0;padding-top:2px}\
-.o360-tl-top{display:flex;justify-content:space-between;align-items:baseline}\
-.o360-tl-subject{font-size:12px;font-weight:600;color:var(--text);line-height:1.2}\
-.o360-tl-type{font-size:10px;font-weight:600;flex-shrink:0;margin-left:8px}\
-.o360-tl-meta{font-size:10px;color:var(--text-light);margin-top:2px}\
-\
+/* Responsive */\
 @media(max-width:1100px){\
-  .o360-grid2{grid-template-columns:1fr}\
-  .o360-kpi-row{grid-template-columns:repeat(2,1fr)}\
-  .o360-header-top{flex-wrap:wrap}\
-  .o360-header-metrics{border-left:none;padding-left:0;flex-direction:row;gap:20px;margin-top:10px}\
+  .cc-kpi-grid{grid-template-columns:repeat(3,1fr)}\
+  .cc-details-grid{grid-template-columns:1fr}\
+  .cc-insights-grid{grid-template-columns:1fr}\
+  .cc-header-top{flex-wrap:wrap}\
 }\
 @media(max-width:768px){\
-  .o360-kpi-row{grid-template-columns:repeat(2,1fr)}\
-  .o360-actions{flex-wrap:wrap}\
-  .o360-funnel{flex-wrap:wrap;gap:8px;padding-bottom:10px}\
-  .o360-funnel-line{display:none}\
-  .o360-funnel-label{position:static;transform:none;margin-top:4px}\
-  .o360-funnel-step{flex-direction:column;align-items:center;flex:0 0 auto}\
+  .cc-kpi-grid{grid-template-columns:repeat(2,1fr)}\
+  .cc-tabs{padding-left:2px}\
+  .cc-tab{padding:10px 14px;font-size:12px}\
+  .cc-tab-content{padding:16px 14px}\
 }\
 @media(max-width:640px){\
-  .o360{padding:10px 10px 32px}\
-  .o360-header-top{padding:16px 14px 12px;gap:12px}\
-  .o360-photo{width:64px;height:64px;font-size:20px}\
-  .o360-name{font-size:17px}\
-  .o360-kpi-value{font-size:22px}\
-  .o360-actions{padding:10px 14px}\
-  .o360-action-btn{padding:6px 10px;font-size:11px}\
-  .o360-funnel-card{padding:14px 12px}\
-  .o360-funnel-dot{width:22px;height:22px}\
+  .cc-wrap{padding:10px 10px 32px}\
+  .cc-header{padding:16px 14px}\
+  .cc-name{font-size:18px}\
+  .cc-avatar{width:48px;height:48px;font-size:16px}\
+  .cc-kpi-val{font-size:20px}\
+  .cc-kpi-grid{grid-template-columns:1fr 1fr}\
 }\
 ';
   document.head.appendChild(s);
 }
 
 
+/* ─── Command Center Helpers ─── */
+
+/* KPI Box HTML */
+function ccKpiBox(icon, iconBg, label, valueHtml, subHtml, tabId) {
+  return '<div class="cc-kpi-box" data-cc-tab="' + tabId + '">' +
+    '<div class="cc-kpi-head">' +
+    '<div class="cc-kpi-icon" style="background:' + iconBg + '">' + svgIcon(icon, 15, iconBg.replace(/14$/, '').replace('#f0f4ff', '#2563eb').replace('#ecfdf5', '#059669').replace('#fef7ec', '#d97706').replace('#fef3f2', '#dc2626').replace('#f3f0ff', '#7c3aed')) + '</div>' +
+    '<span class="cc-kpi-label">' + label + '</span>' +
+    '</div>' +
+    '<div>' + valueHtml + '</div>' +
+    (subHtml ? '<div class="cc-kpi-sub">' + subHtml + '</div>' : '') +
+    '</div>';
+}
+
+/* Tab HTML */
+function ccTab(id, label, icon, count) {
+  return '<div class="cc-tab" data-cc-tab="' + id + '">' +
+    svgIcon(icon, 14, 'currentColor') + ' ' + label +
+    (count !== undefined && count !== null ? ' <span class="cc-tab-count">' + count + '</span>' : '') +
+    '</div>';
+}
+
+/* Related Table Header + Rows */
+function ccRelatedTable(title, count, newLabel, gridCols, headers, rows) {
+  var h = '<div class="cc-rel-header">';
+  h += '<span class="cc-rel-title">' + title + ' <span class="cc-rel-count">(' + count + ')</span></span>';
+  h += '<button class="cc-btn" onclick="event.stopPropagation()">' + svgIcon('plus', 13, 'var(--text-light)') + ' ' + newLabel + '</button>';
+  h += '</div>';
+  h += '<div class="cc-rel-th" style="grid-template-columns:' + gridCols + '">';
+  headers.forEach(function(hd) {
+    h += '<span' + (hd.right ? ' style="text-align:right"' : '') + '>' + hd.label + '</span>';
+  });
+  h += '</div>';
+  rows.forEach(function(row) {
+    h += '<div class="cc-rel-row" style="grid-template-columns:' + gridCols + '"' +
+      (row._navObj && row._navId ? ' data-nav-obj="' + row._navObj + '" data-nav-id="' + row._navId + '"' : '') + '>';
+    row.cells.forEach(function(cell) {
+      h += '<span class="' + (cell.cls || '') + '"' + (cell.style ? ' style="' + cell.style + '"' : '') + '>' + cell.html + '</span>';
+    });
+    h += '</div>';
+  });
+  if (!rows.length) {
+    h += '<div class="cc-rel-empty">No records found</div>';
+  }
+  return h;
+}
+
+/* Stage badge helper */
+function ccStageBadge(value) {
+  var m = {
+    'Active': { bg: '#ecfdf5', c: '#059669' }, 'Customer': { bg: '#ecfdf5', c: '#059669' },
+    'Partner': { bg: '#eff6ff', c: '#2563eb' }, 'Prospect': { bg: '#fffbeb', c: '#d97706' },
+    'Inactive': { bg: '#f3f4f6', c: '#6b7280' },
+    'Closed Won': { bg: '#ecfdf5', c: '#059669' }, 'closed_won': { bg: '#ecfdf5', c: '#059669' },
+    'Negotiation': { bg: '#eff6ff', c: '#2563eb' }, 'negotiation': { bg: '#eff6ff', c: '#2563eb' },
+    'Proposal': { bg: '#eff6ff', c: '#2563eb' }, 'proposal': { bg: '#eff6ff', c: '#2563eb' },
+    'Study': { bg: '#fffbeb', c: '#d97706' }, 'study': { bg: '#fffbeb', c: '#d97706' },
+    'Lead': { bg: '#fffbeb', c: '#d97706' }, 'lead': { bg: '#fffbeb', c: '#d97706' },
+    'Tender': { bg: '#f3f0ff', c: '#7c3aed' }, 'tender': { bg: '#f3f0ff', c: '#7c3aed' },
+    'launched': { bg: '#ecfdf5', c: '#059669' },
+    'Sent': { bg: '#ecfdf5', c: '#059669' }, 'Draft': { bg: '#fffbeb', c: '#d97706' },
+    'Won': { bg: '#ecfdf5', c: '#059669' }, 'Accepted': { bg: '#ecfdf5', c: '#059669' },
+    'Lost': { bg: '#fef2f2', c: '#dc2626' }, 'Expired': { bg: '#f3f4f6', c: '#6b7280' },
+    'Open': { bg: '#fef2f2', c: '#dc2626' }, 'In Progress': { bg: '#eff6ff', c: '#2563eb' },
+    'Investigation': { bg: '#fffbeb', c: '#d97706' }, 'Resolved': { bg: '#ecfdf5', c: '#059669' },
+    'Closed': { bg: '#f3f4f6', c: '#6b7280' },
+    'High': { bg: '#fef2f2', c: '#dc2626' }, 'Critical': { bg: '#fef2f2', c: '#dc2626' },
+    'Medium': { bg: '#fffbeb', c: '#d97706' }, 'Low': { bg: '#f3f4f6', c: '#6b7280' },
+    'new': { bg: '#eff6ff', c: '#2563eb' }, 'contacted': { bg: '#fffbeb', c: '#d97706' },
+    'qualified': { bg: '#ecfdf5', c: '#059669' }, 'converted': { bg: '#ecfdf5', c: '#059669' },
+    'Healthy': { bg: '#ecfdf5', c: '#059669' }, 'Attention': { bg: '#fffbeb', c: '#d97706' }, 'At Risk': { bg: '#fef2f2', c: '#dc2626' },
+  };
+  var s = m[value] || { bg: '#f3f4f6', c: '#6b7280' };
+  return '<span class="cc-rel-badge" style="background:' + s.bg + ';color:' + s.c + '">' + value + '</span>';
+}
+
+/* Timeline item */
+function ccTimelineItem(icon, color, title, date, desc) {
+  return '<div class="cc-tl-item">' +
+    '<div class="cc-tl-icon" style="background:' + color + '14">' + svgIcon(icon, 14, color) + '</div>' +
+    '<div class="cc-tl-body">' +
+    '<div class="cc-tl-title">' + title + '</div>' +
+    '<div class="cc-tl-date">' + date + '</div>' +
+    (desc ? '<div class="cc-tl-desc">' + desc + '</div>' : '') +
+    '</div></div>';
+}
+
+/* Bind tab switching + KPI box clicks + row navigation */
+function ccBindTabs(container, prefix) {
+  var activeTab = 'details';
+
+  function switchTo(tabId) {
+    activeTab = tabId;
+    container.querySelectorAll('.cc-section').forEach(function(s) { s.classList.remove('cc-visible'); });
+    container.querySelectorAll('.cc-tab').forEach(function(t) { t.classList.remove('cc-tab-active'); });
+    container.querySelectorAll('.cc-kpi-box').forEach(function(k) { k.classList.remove('cc-kpi-active'); });
+    var sec = container.querySelector('#' + prefix + '-sec-' + tabId);
+    if (sec) sec.classList.add('cc-visible');
+    container.querySelectorAll('.cc-tab[data-cc-tab="' + tabId + '"]').forEach(function(t) { t.classList.add('cc-tab-active'); });
+    container.querySelectorAll('.cc-kpi-box[data-cc-tab="' + tabId + '"]').forEach(function(k) { k.classList.add('cc-kpi-active'); });
+  }
+
+  container.querySelectorAll('.cc-tab').forEach(function(t) {
+    t.addEventListener('click', function() { switchTo(t.getAttribute('data-cc-tab')); });
+  });
+  container.querySelectorAll('.cc-kpi-box').forEach(function(k) {
+    k.addEventListener('click', function() { switchTo(k.getAttribute('data-cc-tab')); });
+  });
+
+  /* Set initial active */
+  switchTo('details');
+
+  /* Row navigation */
+  container.querySelectorAll('.cc-rel-row[data-nav-id]').forEach(function(el) {
+    el.addEventListener('click', function() { navigate('record', el.getAttribute('data-nav-obj'), el.getAttribute('data-nav-id')); });
+  });
+}
+
+
+/* ════════════════════════════════════════════════════════
+   ACCOUNT 360 — Command Center Standard
+   ════════════════════════════════════════════════════════ */
+
+function renderAccount360(container, rec) {
+  ccInjectStyles();
+  var D = window.DATA;
+  var accId = rec.id;
+  var accName = rec.name;
+  var initials = accName.split(' ').map(function(w) { return w[0]; }).join('').substring(0, 2).toUpperCase();
+
+  /* Related data */
+  var contacts = (D.contacts || []).filter(function(c) { return c.account === accId; });
+  var opps = (D.opportunities || []).filter(function(o) { return o.account === accId; });
+  var projects = (D.projects || []).filter(function(p) { return p.account === accId; });
+  var quotes = (D.quotes || []).filter(function(q) { return q.account === accId || q.accountId === accId; });
+  var claims = (D.claims || []).filter(function(cl) { return cl.account === accId || cl.accountId === accId; });
+  var activities = (D.upcoming || []).slice(0, 6);
+  var totalPipe = opps.reduce(function(s, o) { return s + (o.amount || 0); }, 0);
+  var pipeStr = typeof fmtAmount === 'function' ? fmtAmount(totalPipe) : (totalPipe / 1e6).toFixed(1) + 'M€';
+  var accProducts = typeof _a360GetRelatedProducts === 'function' ? _a360GetRelatedProducts(accId) : [];
+
+  /* Status badge class */
+  var badgeCls = rec.status === 'Active' ? 'cc-badge-green' : rec.status === 'Prospect' ? 'cc-badge-orange' : '';
+
+  /* Photo */
+  var photoUrl = rec.photoURL || rec.photo || '';
+
+  var h = '<div class="cc-wrap">';
+
+  /* Back nav */
+  h += '<div class="cc-back" id="cc-back">' + svgIcon('arrowLeft', 14, 'var(--text-muted)') + ' <span>Accounts</span></div>';
+
+  /* ── HEADER ── */
+  h += '<div class="cc-header"><div class="cc-header-top">';
+  h += '<div class="cc-photo-wrap" id="cc-photo-wrap">';
+  if (photoUrl) {
+    h += '<div class="cc-avatar cc-avatar-img" id="cc-avatar"><img src="' + photoUrl + '" alt="' + accName + '" /></div>';
+  } else {
+    h += '<div class="cc-avatar cc-avatar-initials" id="cc-avatar">' + initials + '</div>';
+  }
+  h += '<div class="cc-photo-overlay">' + svgIcon('plus', 16, '#fff') + '</div>';
+  h += '<input type="file" id="cc-photo-input" accept="image/*" style="display:none" />';
+  h += '</div>';
+
+  h += '<div class="cc-header-info">';
+  h += '<div style="display:flex;align-items:center">';
+  h += '<h1 class="cc-name">' + accName + '</h1>';
+  h += '<span class="cc-badge ' + badgeCls + '">' + (rec.status || 'Active') + '</span>';
+  h += '</div>';
+  h += '<div class="cc-subtitle">';
+  h += '<span>' + (rec.industry || '—') + '</span>';
+  if (rec.city) h += '<span>' + rec.city + '</span>';
+  if (rec.website) h += '<span class="cc-link">' + rec.website + '</span>';
+  h += '</div>';
+  h += '<div class="cc-summary-pills">';
+  h += '<span class="cc-pill">Pipeline: <strong>' + pipeStr + '</strong></span>';
+  h += '<span class="cc-pill">Contacts: <strong>' + contacts.length + '</strong></span>';
+  h += '<span class="cc-pill">Active deals: <strong>' + opps.length + '</strong></span>';
+  h += '</div>';
+  h += '</div>';
+
+  h += '<div class="cc-header-actions">';
+  h += '<button class="cc-btn crm-edit-btn" data-obj="accounts" data-rec="' + accId + '">' + svgIcon('edit', 14, 'var(--text-light)') + ' Edit</button>';
+  h += '<button class="cc-btn cc-btn-danger crm-delete-btn" data-obj="accounts" data-rec="' + accId + '">' + svgIcon('trash', 14, '#ef4444') + ' Delete</button>';
+  h += '</div>';
+  h += '</div></div>';
+
+  /* ── KPI BOXES ── */
+  h += '<div class="cc-kpi-grid">';
+  h += ccKpiBox('contacts', '#f0f4ff', 'Contacts', '<div class="cc-kpi-val">' + contacts.length + '</div>', contacts.length + ' key contacts', 'contacts');
+  h += ccKpiBox('opportunities', '#ecfdf5', 'Opportunities', '<div class="cc-kpi-val">' + pipeStr + '</div><div class="cc-kpi-trend" style="color:#059669">\u2191 ' + opps.length + ' deals</div>', '', 'opportunities');
+  h += ccKpiBox('quotes', '#f0f4ff', 'Quotes', '<div class="cc-kpi-val">' + quotes.length + '</div>', quotes.length > 0 ? 'Latest: active' : 'None yet', 'quotes');
+  h += ccKpiBox('claims', '#fef3f2', 'Claims', '<div class="cc-kpi-val">' + claims.length + '</div>', claims.length > 0 ? claims.length + ' open' : 'No claims', 'claims');
+  h += ccKpiBox('projects', '#f3f0ff', 'Projects', '<div class="cc-kpi-val">' + projects.length + '</div>', projects.length > 0 ? 'On track' : 'No projects', 'projects');
+  h += '</div>';
+
+  /* ── TAB BAR ── */
+  h += '<div class="cc-tabs">';
+  h += ccTab('details', 'Details', 'list', null);
+  h += ccTab('contacts', 'Contacts', 'contacts', contacts.length);
+  h += ccTab('opportunities', 'Opportunities', 'opportunities', opps.length);
+  h += ccTab('quotes', 'Quotes', 'quotes', quotes.length);
+  h += ccTab('claims', 'Claims', 'claims', claims.length);
+  h += ccTab('projects', 'Projects', 'projects', projects.length);
+  h += ccTab('activity', 'Activity', 'activities', activities.length);
+  h += '</div>';
+
+  /* ── TAB CONTENT ── */
+  h += '<div class="cc-tab-content">';
+
+  /* === DETAILS TAB === */
+  h += '<div id="a360-sec-details" class="cc-section cc-visible">';
+  h += '<div class="cc-details-grid">';
+
+  /* Left: Account Information */
+  h += '<div class="cc-details-card">';
+  h += '<div class="cc-details-card-title">Account information</div>';
+  var fields = [
+    ['Account name', accName], ['Industry', rec.industry || '—'], ['Phone', rec.phone || '—'],
+    ['City', rec.city || '—'], ['Website', rec.website || '—', true], ['Address', rec.address || '—'],
+    ['Status', rec.status || '—'], ['Pipeline', pipeStr], ['Owner', rec.owner || '—'], ['Created', rec.created || '—']
+  ];
+  fields.forEach(function(f) {
+    h += '<div class="cc-field"><div class="cc-field-label">' + f[0] + '</div>';
+    h += '<div class="cc-field-value' + (f[2] ? ' cc-field-link' : '') + '">' + f[1] + '</div></div>';
+  });
+  h += '</div>';
+
+  /* Right: Insights + NBA */
+  h += '<div style="display:flex;flex-direction:column;gap:14px">';
+
+  /* Insight cards row */
+  h += '<div class="cc-insights-grid">';
+
+  /* Account Health */
+  var healthScore = Math.min(100, 40 + contacts.length * 8 + opps.length * 10 + (rec.status === 'Active' ? 12 : 0));
+  h += '<div class="cc-insight-card">';
+  h += '<div style="display:flex;justify-content:space-between;margin-bottom:14px">';
+  h += '<span class="cc-details-card-title">Account health</span>';
+  h += '</div>';
+  h += '<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:10px">';
+  h += '<span style="font-size:32px;font-weight:700;color:var(--text);letter-spacing:-1px">' + healthScore + '</span>';
+  h += '<span style="font-size:14px;color:var(--text-light)">/100</span>';
+  h += '</div>';
+  h += '<div class="cc-progress"><div class="cc-progress-fill" style="width:' + healthScore + '%"></div></div>';
+  h += '<div style="display:flex;justify-content:space-between;font-size:12px">';
+  h += '<span style="color:' + (healthScore >= 60 ? '#059669' : healthScore >= 40 ? '#d97706' : '#dc2626') + ';font-weight:600">' + (healthScore >= 60 ? 'Healthy' : healthScore >= 40 ? 'Attention' : 'At Risk') + '</span>';
+  h += '<span style="color:var(--text-light)">' + opps.length + ' active deals</span>';
+  h += '</div></div>';
+
+  /* Pipeline card */
+  h += '<div class="cc-insight-card">';
+  h += '<div class="cc-details-card-title">Pipeline</div>';
+  h += '<div style="font-size:32px;font-weight:700;color:var(--text);letter-spacing:-1px">' + pipeStr + '</div>';
+  h += '<div style="font-size:12px;color:var(--text-light);margin-bottom:4px">' + opps.length + ' active deals</div>';
+  h += '<div class="cc-mini-chart">';
+  [35, 55, 80, 45, 70, 92, 60].forEach(function(v, i) {
+    h += '<div class="cc-mini-bar" style="height:' + v + '%;background:' + (i === 5 ? 'var(--accent)' : 'var(--accent)30') + '"></div>';
+  });
+  h += '</div></div>';
+  h += '</div>'; /* end insights-grid */
+
+  /* Next Best Action */
+  var nbaOpp = opps.find(function(o) { return o.stage === 'negotiation' || o.stage === 'proposal'; }) || opps[0];
+  var nbaText = nbaOpp ? 'Follow up on ' + (typeof fmtAmount === 'function' ? fmtAmount(nbaOpp.amount || 0) : '') + ' deal' : 'Add opportunities to build pipeline';
+  var nbaDesc = nbaOpp ? (nbaOpp.name + ' — ' + (nbaOpp.stage || '') + ' stage. Close: ' + (nbaOpp.close ? fmtDate(nbaOpp.close) : '—')) : 'No active deals in pipeline.';
+  h += '<div class="cc-nba"><div class="cc-nba-body">';
+  h += '<div class="cc-nba-tag">Next best action</div>';
+  h += '<div class="cc-nba-title">' + nbaText + '</div>';
+  h += '<div class="cc-nba-desc">' + nbaDesc + '</div>';
+  h += '<button class="cc-btn cc-btn-primary">Follow up \u2192</button>';
+  h += '</div>';
+  if (nbaOpp) {
+    h += '<div class="cc-nba-right">';
+    h += '<span class="cc-nba-urgency">Priority</span>';
+    h += '<span class="cc-nba-due">Close: ' + (nbaOpp.close ? fmtDate(nbaOpp.close) : '—') + '</span>';
+    h += '</div>';
+  }
+  h += '</div>';
+
+  /* Owner + Last Activity row */
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:0">';
+  h += '<div class="cc-owner-card">';
+  var ownerInit = (rec.owner || 'MR').split(' ').map(function(w) { return w[0]; }).join('').substring(0, 2).toUpperCase();
+  h += '<div class="cc-owner-avatar">' + ownerInit + '</div>';
+  h += '<div><div style="font-size:11px;color:var(--text-light)">Owner</div>';
+  h += '<div style="font-size:15px;font-weight:600;color:var(--text)">' + (rec.owner || '—') + '</div>';
+  h += '<div style="font-size:11px;color:var(--text-light);margin-top:1px">' + (rec.created || '—') + '</div></div></div>';
+  h += '<div class="cc-owner-card">';
+  h += '<div style="flex:1"><div style="font-size:11px;color:var(--text-light)">Last activity</div>';
+  if (activities.length) {
+    h += '<div style="font-size:14px;font-weight:600;color:var(--text)">' + (activities[0].name || 'Recent activity') + '</div>';
+    h += '<div style="font-size:11px;color:var(--text-light);margin-top:1px">' + (activities[0].date || '') + '</div>';
+  } else {
+    h += '<div style="font-size:14px;font-weight:600;color:var(--text-light)">No activities</div>';
+  }
+  h += '</div></div>';
+  h += '</div>';
+
+  h += '</div>'; /* end right col */
+  h += '</div>'; /* end details-grid */
+  h += '</div>'; /* end details section */
+
+  /* === CONTACTS TAB === */
+  h += '<div id="a360-sec-contacts" class="cc-section">';
+  var contactRows = contacts.map(function(c) {
+    var ci = c.name ? c.name.split(' ').map(function(w) { return w[0]; }).join('').substring(0, 2).toUpperCase() : '?';
+    return {
+      _navObj: 'contacts', _navId: c.id,
+      cells: [
+        { html: '<span class="cc-contact-av" style="background:#7c3aed">' + ci + '</span> ' + c.name, cls: 'cc-rel-primary' },
+        { html: c.role || '—' },
+        { html: c.email || '—', cls: 'cc-rel-link' },
+        { html: c.phone || '—' },
+      ]
+    };
+  });
+  h += ccRelatedTable('Contacts', contacts.length, 'New contact', '2fr 1.2fr 1.5fr 1fr', [
+    { label: 'Name' }, { label: 'Role' }, { label: 'Email' }, { label: 'Phone' }
+  ], contactRows);
+  h += '</div>';
+
+  /* === OPPORTUNITIES TAB === */
+  h += '<div id="a360-sec-opportunities" class="cc-section">';
+  var oppRows = opps.map(function(o) {
+    var st = (STAGES.opportunities || []).find(function(s) { return s.key === o.stage; });
+    var amtStr = typeof fmtAmount === 'function' ? fmtAmount(o.amount || 0) : ((o.amount || 0) / 1e6).toFixed(1) + 'M\u20ac';
+    return {
+      _navObj: 'opportunities', _navId: o.id,
+      cells: [
+        { html: o.name, cls: 'cc-rel-primary' },
+        { html: ccStageBadge(st ? st.label : o.stage || '—') },
+        { html: (o.prob || 0) + '%' },
+        { html: o.close ? fmtDate(o.close) : '—' },
+        { html: amtStr, cls: 'cc-rel-bold', style: 'text-align:right;justify-content:flex-end' },
+      ]
+    };
+  });
+  h += ccRelatedTable('Opportunities', opps.length, 'New opportunity', '2.5fr 120px 70px 100px 100px', [
+    { label: 'Name' }, { label: 'Stage' }, { label: 'Prob.' }, { label: 'Close' }, { label: 'Amount', right: true }
+  ], oppRows);
+  h += '</div>';
+
+  /* === QUOTES TAB === */
+  h += '<div id="a360-sec-quotes" class="cc-section">';
+  var quoteRows = quotes.map(function(q) {
+    var qAmt = typeof fmtAmount === 'function' ? fmtAmount(q.value || q.amount || 0) : '—';
+    return {
+      _navObj: 'quotes', _navId: q.id,
+      cells: [
+        { html: q.name || 'Quote #' + q.id, cls: 'cc-rel-primary' },
+        { html: ccStageBadge(q.stage || q.status || 'Draft') },
+        { html: q.validUntil ? fmtDate(q.validUntil) : (q.date || '—') },
+        { html: qAmt, cls: 'cc-rel-bold', style: 'text-align:right;justify-content:flex-end' },
+      ]
+    };
+  });
+  h += ccRelatedTable('Quotes', quotes.length, 'New quote', '2.5fr 100px 120px 100px', [
+    { label: 'Quote' }, { label: 'Status' }, { label: 'Date' }, { label: 'Amount', right: true }
+  ], quoteRows);
+  h += '</div>';
+
+  /* === CLAIMS TAB === */
+  h += '<div id="a360-sec-claims" class="cc-section">';
+  var claimRows = claims.map(function(cl) {
+    return {
+      _navObj: 'claims', _navId: cl.id,
+      cells: [
+        { html: cl.title || cl.name || cl.subject || 'Claim #' + cl.id, cls: 'cc-rel-primary' },
+        { html: ccStageBadge(cl.priority || 'Medium') },
+        { html: ccStageBadge(cl.status || 'Open') },
+        { html: cl.reportedDate ? fmtDate(cl.reportedDate) : (cl.date || '—') },
+      ]
+    };
+  });
+  h += ccRelatedTable('Claims', claims.length, 'New claim', '2.5fr 100px 100px 120px', [
+    { label: 'Claim' }, { label: 'Priority' }, { label: 'Status' }, { label: 'Date' }
+  ], claimRows);
+  h += '</div>';
+
+  /* === PROJECTS TAB === */
+  h += '<div id="a360-sec-projects" class="cc-section">';
+  var projRows = projects.map(function(p) {
+    var ph = (STAGES.projects || []).find(function(s) { return s.key === p.phase; });
+    var budStr = typeof fmtAmount === 'function' ? fmtAmount(p.budget || 0) : ((p.budget || 0) / 1e6).toFixed(1) + 'M\u20ac';
+    return {
+      _navObj: 'projects', _navId: p.id,
+      cells: [
+        { html: p.name, cls: 'cc-rel-primary' },
+        { html: ccStageBadge(ph ? ph.label : p.phase || '—') },
+        { html: ccStageBadge(p.health || 'Healthy') },
+        { html: budStr, cls: 'cc-rel-bold', style: 'text-align:right;justify-content:flex-end' },
+      ]
+    };
+  });
+  h += ccRelatedTable('Projects', projects.length, 'New project', '2.5fr 120px 100px 100px', [
+    { label: 'Project' }, { label: 'Phase' }, { label: 'Health' }, { label: 'Budget', right: true }
+  ], projRows);
+  h += '</div>';
+
+  /* === ACTIVITY TAB === */
+  h += '<div id="a360-sec-activity" class="cc-section">';
+  h += '<div class="cc-rel-header">';
+  h += '<span class="cc-rel-title">Activity <span class="cc-rel-count">(' + activities.length + ')</span></span>';
+  h += '<div style="display:flex;gap:6px">';
+  h += '<button class="cc-btn">' + svgIcon('phone', 13, 'var(--text-light)') + ' Log call</button>';
+  h += '<button class="cc-btn">' + svgIcon('mail', 13, 'var(--text-light)') + ' Log email</button>';
+  h += '</div></div>';
+  h += '<div class="cc-timeline">';
+  var typeColors = { phone: '#3b82f6', users: '#8b5cf6', mail: '#10b981', mapPin: '#ef4444' };
+  activities.forEach(function(a) {
+    var tc = typeColors[a.icon] || '#6b7280';
+    var iconKey = a.icon || 'activities';
+    h += ccTimelineItem(iconKey, tc, a.name || 'Activity', (a.date || '') + (a.time ? ' · ' + a.time : ''), a.contact || '');
+  });
+  if (!activities.length) h += '<div class="cc-rel-empty">No activities recorded</div>';
+  h += '</div></div>';
+
+  h += '</div>'; /* end tab-content */
+  h += '</div>'; /* end cc-wrap */
+
+  container.innerHTML = h;
+  container.scrollTop = 0;
+
+  /* ── Bind Events ── */
+  document.getElementById('cc-back').addEventListener('click', function() { navigate('accounts'); });
+
+  /* Photo upload */
+  var photoWrap = document.getElementById('cc-photo-wrap');
+  var photoInput = document.getElementById('cc-photo-input');
+  if (photoWrap && photoInput) {
+    var overlay = photoWrap.querySelector('.cc-photo-overlay');
+    if (overlay) overlay.addEventListener('click', function(e) { e.stopPropagation(); photoInput.click(); });
+    var avatarEl = document.getElementById('cc-avatar');
+    if (avatarEl) {
+      avatarEl.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var url = rec.photoURL || rec.photo || '';
+        if (url && typeof fbShowPhotoPreview === 'function') { fbShowPhotoPreview(url, accName); }
+        else { photoInput.click(); }
+      });
+    }
+    photoInput.addEventListener('change', function(e) {
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+      var avatar = document.getElementById('cc-avatar');
+      if (avatar) { avatar.innerHTML = '<div style="width:22px;height:22px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite"></div>'; }
+      if (typeof fbCompressAndSavePhoto === 'function') {
+        fbCompressAndSavePhoto(file, 'accounts', accId).then(function(url) {
+          if (avatar) { avatar.className = 'cc-avatar cc-avatar-img'; avatar.innerHTML = '<img src="' + url + '" alt="' + accName + '" />'; }
+          fbShowStatus('Photo uploaded');
+        }).catch(function(err) {
+          console.error('[A360] Photo error:', err);
+          if (avatar) { avatar.className = 'cc-avatar cc-avatar-initials'; avatar.innerHTML = initials; }
+          fbShowStatus('Photo upload failed', true);
+        });
+      }
+    });
+  }
+
+  /* Tab system */
+  ccBindTabs(container, 'a360');
+
+  /* Edit/Delete */
+  bindCrmActionButtons(container);
+  bindDetailsLinks(container);
+}
+
+/* ── Get products related to an account (via quotes + claims productId) ── */
+function _a360GetRelatedProducts(accId) {
+  var products = window.DATA.products || [];
+  if (!products.length) return [];
+  var pIds = {};
+  (window.DATA.quotes || []).forEach(function(q) {
+    if (q.account !== accId && q.accountId !== accId) return;
+    if (q.productId) pIds[q.productId] = true;
+    if (q.productIds && Array.isArray(q.productIds)) q.productIds.forEach(function(pid) { pIds[pid] = true; });
+    if (q.lineItems && Array.isArray(q.lineItems)) {
+      q.lineItems.forEach(function(li) {
+        var found = products.find(function(p) { return p.name === li.product; });
+        if (found) pIds[found.id] = true;
+      });
+    }
+  });
+  (window.DATA.claims || []).forEach(function(cl) {
+    if (cl.account !== accId && cl.accountId !== accId) return;
+    if (cl.productId) pIds[cl.productId] = true;
+    if (cl.productIds && Array.isArray(cl.productIds)) cl.productIds.forEach(function(pid) { pIds[pid] = true; });
+  });
+  return products.filter(function(p) { return pIds[p.id]; });
+}
+/* ════════════════════════════════════════════════════════
+   CONTACT 360 — Command Center Standard
+   ════════════════════════════════════════════════════════ */
+
+function renderContact360(container, rec) {
+  ccInjectStyles();
+  var D = window.DATA;
+  var contactId = rec.id;
+  var contactName = rec.name || 'Unknown';
+  var initials = contactName.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
+
+  var account = (D.accounts||[]).find(function(a){ return a.id === rec.account; });
+  var accountName = account ? account.name : '—';
+  var opps = (D.opportunities||[]).filter(function(o){ return o.account === rec.account; });
+  var projects = (D.projects||[]).filter(function(p){ return p.account === rec.account; });
+  var quotes = (D.quotes||[]).filter(function(q){ return q.contact === contactId || q.account === rec.account; });
+  var claims = (D.claims||[]).filter(function(cl){ return cl.contact === contactId || cl.account === rec.account || cl.accountId === rec.account; });
+  var activities = (D.activities||[]).filter(function(a){ return a.contact === contactId || a.contactName === contactName; });
+  if (!activities.length) {
+    activities = (D.upcoming||[]).slice(0,4).map(function(u,i){
+      return {id:'act'+i, type:u.icon||'call', subject:u.name, date:u.date, time:u.time, contactName:u.contact, icon:u.icon};
+    });
+  }
+  var notes = (D.notes||[]).filter(function(n){ return n.contact === contactId; });
+  if (!notes.length) {
+    notes = [
+      {id:'n1', date:'2025-03-08', text:'Discussed scope changes for upcoming tender. Very receptive to premium solutions.'},
+      {id:'n2', date:'2025-02-22', text:'Met at BTP conference. Strong interest in digital tools for site management.'}
+    ];
+  }
+
+  var totalPipe = opps.reduce(function(s,o){ return s+(o.amount||0); },0);
+  var pipeStr = typeof fmtAmount==='function' ? fmtAmount(totalPipe) : (totalPipe/1e6).toFixed(1)+'M€';
+  var photoUrl = rec.photoURL || rec.photo || '';
+
+  var h = '<div class="cc-wrap">';
+  h += '<div class="cc-back" id="cc-back">'+svgIcon('arrowLeft',14,'var(--text-muted)')+' <span>Contacts</span></div>';
+
+  /* ── HEADER ── */
+  h += '<div class="cc-header"><div class="cc-header-top">';
+  h += '<div class="cc-photo-wrap" id="cc-photo-wrap">';
+  if (photoUrl) {
+    h += '<div class="cc-avatar cc-avatar-img" id="cc-avatar"><img src="'+photoUrl+'" alt="'+contactName+'" /></div>';
+  } else {
+    h += '<div class="cc-avatar" id="cc-avatar" style="background:linear-gradient(135deg,#ede9fe,#ddd6fe);color:#7c3aed;font-size:22px;font-weight:800;letter-spacing:-.5px">'+initials+'</div>';
+  }
+  h += '<div class="cc-photo-overlay">'+svgIcon('plus',16,'#fff')+'</div>';
+  h += '<input type="file" id="cc-photo-input" accept="image/*" style="display:none" />';
+  h += '</div>';
+
+  h += '<div class="cc-header-info">';
+  h += '<div style="display:flex;align-items:center"><h1 class="cc-name">'+contactName+'</h1></div>';
+  h += '<div class="cc-subtitle">';
+  h += '<span>'+(rec.role||'—')+'</span>';
+  h += '<span class="cc-link" id="cc-acct-link" data-acct-id="'+(rec.account||'')+'">'+accountName+'</span>';
+  if (rec.email) h += '<span>'+rec.email+'</span>';
+  if (rec.phone) h += '<span>'+rec.phone+'</span>';
+  h += '</div>';
+  h += '<div class="cc-summary-pills">';
+  h += '<span class="cc-pill">Pipeline: <strong>'+pipeStr+'</strong></span>';
+  h += '<span class="cc-pill">Opps: <strong>'+opps.length+'</strong></span>';
+  h += '<span class="cc-pill">Quotes: <strong>'+quotes.length+'</strong></span>';
+  h += '</div></div>';
+
+  h += '<div class="cc-header-actions">';
+  h += '<button class="cc-btn">'+svgIcon('phone',14,'var(--text-light)')+' Call</button>';
+  h += '<button class="cc-btn">'+svgIcon('mail',14,'var(--text-light)')+' Email</button>';
+  h += '<button class="cc-btn crm-edit-btn" data-obj="contacts" data-rec="'+contactId+'">'+svgIcon('edit',14,'var(--text-light)')+' Edit</button>';
+  h += '<button class="cc-btn cc-btn-danger crm-delete-btn" data-obj="contacts" data-rec="'+contactId+'">'+svgIcon('trash',14,'#ef4444')+' Delete</button>';
+  h += '</div></div></div>';
+
+  /* ── KPI BOXES ── */
+  h += '<div class="cc-kpi-grid" style="grid-template-columns:repeat(4,1fr)">';
+  h += ccKpiBox('opportunities','#ecfdf5','Opportunities','<div class="cc-kpi-val">'+opps.length+'</div>',pipeStr+' pipeline','opportunities');
+  h += ccKpiBox('projects','#f3f0ff','Projects','<div class="cc-kpi-val">'+projects.length+'</div>',projects.length>0?'Active':'None','projects');
+  h += ccKpiBox('quotes','#f0f4ff','Quotes','<div class="cc-kpi-val">'+quotes.length+'</div>',quotes.length>0?'Latest active':'None yet','quotes');
+  h += ccKpiBox('activities','#fef7ec','Activities','<div class="cc-kpi-val">'+activities.length+'</div>','Last: recently','activity');
+  h += '</div>';
+
+  /* ── TAB BAR ── */
+  h += '<div class="cc-tabs">';
+  h += ccTab('details','Details','list',null);
+  h += ccTab('opportunities','Opportunities','opportunities',opps.length);
+  h += ccTab('quotes','Quotes','quotes',quotes.length);
+  h += ccTab('claims','Claims','claims',claims.length);
+  h += ccTab('notes','Notes','edit',notes.length);
+  h += ccTab('activity','Activity','activities',activities.length);
+  h += '</div>';
+
+  h += '<div class="cc-tab-content">';
+
+  /* === DETAILS === */
+  h += '<div id="c360-sec-details" class="cc-section cc-visible">';
+  h += '<div class="cc-details-grid">';
+  h += '<div class="cc-details-card">';
+  h += '<div class="cc-details-card-title">Contact information</div>';
+  [['Name',contactName],['Role',rec.role||'—'],['Account',accountName,true],['Email',rec.email||'—'],['Phone',rec.phone||'—'],['City',rec.city||(account?account.city:'')||'—'],['Influence',rec.influence||'—']].forEach(function(f){
+    h += '<div class="cc-field"><div class="cc-field-label">'+f[0]+'</div><div class="cc-field-value'+(f[2]?' cc-field-link':'')+'">'+f[1]+'</div></div>';
+  });
+  h += '</div>';
+
+  h += '<div style="display:flex;flex-direction:column;gap:14px">';
+  /* Account card */
+  h += '<div class="cc-details-card" style="cursor:pointer" id="cc-acct-card" data-acct-id="'+(rec.account||'')+'">';
+  h += '<div class="cc-details-card-title">Account relationship</div>';
+  var accInit = accountName.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
+  h += '<div style="display:flex;align-items:center;gap:12px">';
+  h += '<div class="cc-contact-av" style="background:var(--accent);width:36px;height:36px;font-size:13px;border-radius:8px">'+accInit+'</div>';
+  h += '<div><div style="font-size:14px;font-weight:600;color:var(--accent)">'+accountName+'</div>';
+  h += '<div style="font-size:11px;color:var(--text-light)">'+(account?(account.industry||'')+(account.city?' · '+account.city:''):'')+'</div></div></div>';
+  if (account) {
+    var accPipe = account.pipeline ? (typeof fmtAmount==='function' ? fmtAmount(account.pipeline) : '') : '—';
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">';
+    h += '<div><div class="cc-field-label">Pipeline</div><div class="cc-field-value" style="font-weight:600">'+accPipe+'</div></div>';
+    h += '<div><div class="cc-field-label">Status</div><div class="cc-field-value">'+ccStageBadge(account.status||'Active')+'</div></div>';
+    h += '</div>';
+  }
+  h += '</div>';
+
+  /* NBA */
+  var nbaOpp = opps.find(function(o){return o.stage==='negotiation'||o.stage==='proposal';}) || opps[0];
+  if (nbaOpp) {
+    h += '<div class="cc-nba"><div class="cc-nba-body">';
+    h += '<div class="cc-nba-tag">Next best action</div>';
+    h += '<div class="cc-nba-title">Follow up on '+nbaOpp.name+'</div>';
+    h += '<div class="cc-nba-desc">'+(typeof fmtAmount==='function'?fmtAmount(nbaOpp.amount||0):'')+' · '+(nbaOpp.stage||'')+' stage</div>';
+    h += '<button class="cc-btn cc-btn-primary">Follow up \u2192</button>';
+    h += '</div></div>';
+  }
+  h += '</div></div></div>';
+
+  /* === OPPORTUNITIES === */
+  h += '<div id="c360-sec-opportunities" class="cc-section">';
+  var oppRows = opps.map(function(o){
+    var st = (STAGES.opportunities||[]).find(function(s){return s.key===o.stage;});
+    var amtStr = typeof fmtAmount==='function' ? fmtAmount(o.amount||0) : ((o.amount||0)/1e6).toFixed(1)+'M€';
+    return { _navObj:'opportunities', _navId:o.id, cells:[
+      {html:o.name,cls:'cc-rel-primary'},{html:ccStageBadge(st?st.label:o.stage||'—')},
+      {html:(o.prob||0)+'%'},{html:o.close?fmtDate(o.close):'—'},
+      {html:amtStr,cls:'cc-rel-bold',style:'text-align:right;justify-content:flex-end'}
+    ]};
+  });
+  h += ccRelatedTable('Opportunities',opps.length,'New opportunity','2.5fr 120px 70px 100px 100px',[{label:'Name'},{label:'Stage'},{label:'Prob.'},{label:'Close'},{label:'Amount',right:true}],oppRows);
+  h += '</div>';
+
+  /* === QUOTES === */
+  h += '<div id="c360-sec-quotes" class="cc-section">';
+  var qRows = quotes.map(function(q){
+    var qAmt = typeof fmtAmount==='function' ? fmtAmount(q.value||q.amount||0) : '—';
+    return { _navObj:'quotes', _navId:q.id, cells:[
+      {html:q.name||'Quote #'+q.id,cls:'cc-rel-primary'},{html:ccStageBadge(q.stage||q.status||'Draft')},
+      {html:q.validUntil?fmtDate(q.validUntil):(q.date||'—')},{html:qAmt,cls:'cc-rel-bold',style:'text-align:right;justify-content:flex-end'}
+    ]};
+  });
+  h += ccRelatedTable('Quotes',quotes.length,'New quote','2.5fr 100px 120px 100px',[{label:'Quote'},{label:'Status'},{label:'Date'},{label:'Amount',right:true}],qRows);
+  h += '</div>';
+
+  /* === CLAIMS === */
+  h += '<div id="c360-sec-claims" class="cc-section">';
+  var clRows = claims.map(function(cl){
+    return { _navObj:'claims', _navId:cl.id, cells:[
+      {html:cl.title||cl.name||cl.subject||'Claim #'+cl.id,cls:'cc-rel-primary'},
+      {html:ccStageBadge(cl.priority||'Medium')},{html:ccStageBadge(cl.status||'Open')},
+      {html:cl.reportedDate?fmtDate(cl.reportedDate):(cl.date||'—')}
+    ]};
+  });
+  h += ccRelatedTable('Claims',claims.length,'New claim','2.5fr 100px 100px 120px',[{label:'Claim'},{label:'Priority'},{label:'Status'},{label:'Date'}],clRows);
+  h += '</div>';
+
+  /* === NOTES === */
+  h += '<div id="c360-sec-notes" class="cc-section">';
+  h += '<div class="cc-rel-header"><span class="cc-rel-title">Notes <span class="cc-rel-count">('+notes.length+')</span></span>';
+  h += '<button class="cc-btn">'+svgIcon('plus',13,'var(--text-light)')+' New note</button></div>';
+  notes.forEach(function(n){
+    h += '<div style="padding:14px 0;border-bottom:1px solid #f3f4f6">';
+    h += '<div style="font-size:10px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">'+(n.date||'')+'</div>';
+    h += '<div style="font-size:12.5px;color:var(--text);line-height:1.55">'+(n.text||'')+'</div></div>';
+  });
+  if (!notes.length) h += '<div class="cc-rel-empty">No notes</div>';
+  h += '</div>';
+
+  /* === ACTIVITY === */
+  h += '<div id="c360-sec-activity" class="cc-section">';
+  h += '<div class="cc-rel-header"><span class="cc-rel-title">Activity <span class="cc-rel-count">('+activities.length+')</span></span>';
+  h += '<div style="display:flex;gap:6px"><button class="cc-btn">'+svgIcon('phone',13,'var(--text-light)')+' Log call</button>';
+  h += '<button class="cc-btn">'+svgIcon('mail',13,'var(--text-light)')+' Log email</button></div></div>';
+  h += '<div class="cc-timeline">';
+  var typeColors = {call:'#3b82f6',phone:'#3b82f6',meeting:'#8b5cf6',users:'#8b5cf6',email:'#10b981',mail:'#10b981','site visit':'#ef4444',mapPin:'#ef4444'};
+  activities.forEach(function(a){
+    var tc = typeColors[a.type]||typeColors[a.icon]||'#6b7280';
+    var ik = a.icon||(a.type==='call'||a.type==='phone'?'phone':a.type==='meeting'||a.type==='users'?'users':a.type==='email'||a.type==='mail'?'mail':'activities');
+    h += ccTimelineItem(ik,tc,a.subject||a.name||'Activity',(a.date||'')+(a.time?' · '+a.time:''),a.contactName||'');
+  });
+  if (!activities.length) h += '<div class="cc-rel-empty">No activities recorded</div>';
+  h += '</div></div>';
+
+  h += '</div></div>';
+  container.innerHTML = h;
+  container.scrollTop = 0;
+
+  /* Bind */
+  document.getElementById('cc-back').addEventListener('click',function(){navigate('contacts');});
+  _ccBindPhoto(container, rec, 'contacts', contactId, contactName, initials);
+  ccBindTabs(container,'c360');
+  bindCrmActionButtons(container);
+  bindDetailsLinks(container);
+
+  /* Account links */
+  var acctLink = document.getElementById('cc-acct-link');
+  if (acctLink && rec.account) acctLink.addEventListener('click',function(){navigate('record','accounts',rec.account);});
+  var acctCard = document.getElementById('cc-acct-card');
+  if (acctCard && rec.account) acctCard.addEventListener('click',function(){navigate('record','accounts',rec.account);});
+}
+
+
+/* ════════════════════════════════════════════════════════
+   LEAD 360 — Command Center Standard + Qualification Funnel
+   ════════════════════════════════════════════════════════ */
+
+function renderLead360(container, rec) {
+  ccInjectStyles();
+  var D = window.DATA;
+
+  var account = (D.accounts||[]).find(function(a){return a.id===rec.account;});
+  var accountName = account ? account.name : '—';
+  var contact = (D.contacts||[]).find(function(c){return c.account===rec.account;});
+  var contactName = contact ? contact.name : rec.name.split(' – ')[0] || rec.name;
+  var contactRole = contact ? contact.role : 'Key Contact';
+  var contactEmail = contact ? contact.email : '';
+  var contactPhone = contact ? contact.phone : '';
+  var opps = (D.opportunities||[]).filter(function(o){return o.account===rec.account;});
+
+  var leadScore = rec.leadScore || l360ComputeScore(rec);
+  var temperature = l360Temperature(leadScore);
+  var engagementLevel = rec.engagement || l360Engagement(rec);
+  var activityCount = rec.activityCount || (Math.floor(Math.random()*8)+2);
+  var nextAction = l360NextAction(rec);
+  var estValStr = rec.estimatedValue ? (typeof fmtAmount==='function' ? fmtAmount(rec.estimatedValue) : (rec.estimatedValue/1e6).toFixed(1)+'M') : '—';
+
+  var activities = (D.upcoming||[]).slice(0,5).map(function(u,i){
+    return {id:'la'+i, type:u.icon||'call', subject:u.name, date:u.date, time:u.time, icon:u.icon};
+  });
+  if (!activities.length) {
+    activities = [{id:'la0',type:'phone',subject:'Initial outreach call',date:'2025-03-10',time:'14:30',icon:'phone'}];
+  }
+
+  var notes = [
+    {id:'ln1',date:'2025-03-09',text:'Strong interest in facade solutions for new campus project. Budget confirmed for Q3.'},
+    {id:'ln2',date:'2025-02-28',text:'Met at Batimat. Decision expected within 6 weeks.'}
+  ];
+
+  var initials = contactName.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
+  var photoUrl = rec.photoURL || rec.photo || '';
+
+  var h = '<div class="cc-wrap">';
+  h += '<div class="cc-back" id="cc-back">'+svgIcon('arrowLeft',14,'var(--text-muted)')+' <span>Leads</span></div>';
+
+  /* ── HEADER ── */
+  h += '<div class="cc-header"><div class="cc-header-top">';
+  h += '<div class="cc-photo-wrap" id="cc-photo-wrap">';
+  if (photoUrl) {
+    h += '<div class="cc-avatar cc-avatar-img" id="cc-avatar"><img src="'+photoUrl+'" alt="'+rec.name+'" /></div>';
+  } else {
+    h += '<div class="cc-avatar" id="cc-avatar" style="background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;font-size:22px;font-weight:800;letter-spacing:-.5px">'+initials+'</div>';
+  }
+  h += '<div class="cc-photo-overlay">'+svgIcon('plus',16,'#fff')+'</div>';
+  h += '<input type="file" id="cc-photo-input" accept="image/*" style="display:none" />';
+  h += '</div>';
+
+  h += '<div class="cc-header-info">';
+  h += '<div style="display:flex;align-items:center"><h1 class="cc-name">'+rec.name+'</h1>';
+  h += '<span class="cc-badge" style="border-color:'+temperature.color+';color:'+temperature.color+'">'+temperature.label+'</span></div>';
+  h += '<div class="cc-subtitle">';
+  h += '<span>'+contactRole+'</span>';
+  h += '<span class="cc-link" id="cc-acct-link" data-acct-id="'+(rec.account||'')+'">'+accountName+'</span>';
+  if (contactEmail) h += '<span>'+contactEmail+'</span>';
+  h += '</div>';
+  h += '<div class="cc-summary-pills">';
+  h += '<span class="cc-pill">Score: <strong>'+leadScore+'</strong></span>';
+  h += '<span class="cc-pill">Est. Value: <strong>'+estValStr+'</strong></span>';
+  if (rec.source) h += '<span class="cc-pill">Source: <strong>'+rec.source+'</strong></span>';
+  h += '</div></div>';
+
+  h += '<div class="cc-header-actions">';
+  h += '<button class="cc-btn">'+svgIcon('phone',14,'var(--text-light)')+' Call</button>';
+  h += '<button class="cc-btn">'+svgIcon('mail',14,'var(--text-light)')+' Email</button>';
+  h += '<button class="cc-btn cc-btn-primary" id="cc-convert">'+svgIcon('opportunities',14,'#fff')+' Convert</button>';
+  h += '<button class="cc-btn crm-edit-btn" data-obj="leads" data-rec="'+rec.id+'">'+svgIcon('edit',14,'var(--text-light)')+' Edit</button>';
+  h += '<button class="cc-btn cc-btn-danger crm-delete-btn" data-obj="leads" data-rec="'+rec.id+'">'+svgIcon('trash',14,'#ef4444')+'</button>';
+  h += '</div></div>';
+
+  /* Qualification Funnel inside header */
+  var stages = STAGES.leads || [];
+  var currentIdx = stages.findIndex(function(s){return s.key===rec.stage;});
+  h += '<div style="padding:0 28px 20px">';
+  h += '<div class="cc-funnel">';
+  stages.forEach(function(st,i){
+    var done = i < currentIdx;
+    var current = i === currentIdx;
+    h += '<div class="cc-funnel-seg" data-stage="'+st.key+'" style="background:'+(done||current?st.color:'#e5e7eb')+';opacity:'+(current?1:done?(.3+i/(stages.length-1)*.7):1)+';cursor:pointer;border-radius:3px"></div>';
+  });
+  h += '</div>';
+  h += '<div class="cc-funnel-labels">';
+  stages.forEach(function(st,i){
+    h += '<span class="'+(i===currentIdx?'cc-funnel-current':'')+'">'+st.label+'</span>';
+  });
+  h += '</div></div>';
+  h += '</div>';
+
+  /* ── KPI BOXES ── */
+  h += '<div class="cc-kpi-grid" style="grid-template-columns:repeat(4,1fr)">';
+  h += ccKpiBox('chart','#fef3f2','Lead Score','<div class="cc-kpi-val" style="color:'+temperature.color+'">'+leadScore+'</div>',temperature.label,'details');
+  h += ccKpiBox('activities','#f0f4ff','Engagement','<div class="cc-kpi-val">'+engagementLevel+'</div>',activityCount+' touchpoints','activity');
+  h += ccKpiBox('trending','#ecfdf5','Est. Value','<div class="cc-kpi-val">'+estValStr+'</div>','','details');
+  h += ccKpiBox('opportunities','#fef7ec','Related Opps','<div class="cc-kpi-val">'+opps.length+'</div>',opps.length>0?'Active pipeline':'None yet','opportunities');
+  h += '</div>';
+
+  /* ── TAB BAR ── */
+  h += '<div class="cc-tabs">';
+  h += ccTab('details','Details','list',null);
+  h += ccTab('opportunities','Opportunities','opportunities',opps.length);
+  h += ccTab('notes','Notes','edit',notes.length);
+  h += ccTab('activity','Activity','activities',activities.length);
+  h += '</div>';
+
+  h += '<div class="cc-tab-content">';
+
+  /* === DETAILS === */
+  h += '<div id="l360-sec-details" class="cc-section cc-visible">';
+  h += '<div class="cc-details-grid">';
+  h += '<div class="cc-details-card">';
+  h += '<div class="cc-details-card-title">Lead information</div>';
+  [['Lead name',rec.name],['Source',rec.source||'—'],['Priority',rec.priority||'—'],['Stage',(function(){var st=stages.find(function(s){return s.key===rec.stage;});return st?st.label:rec.stage||'—';})()],['Est. Value',estValStr],['Owner','Me'],['Created','Feb 2025']].forEach(function(f){
+    h += '<div class="cc-field"><div class="cc-field-label">'+f[0]+'</div><div class="cc-field-value">'+f[1]+'</div></div>';
+  });
+  h += '</div>';
+
+  h += '<div style="display:flex;flex-direction:column;gap:14px">';
+  /* Company card */
+  if (account) {
+    h += '<div class="cc-details-card" style="cursor:pointer" id="cc-acct-card" data-acct-id="'+rec.account+'">';
+    h += '<div class="cc-details-card-title">Company</div>';
+    var acci = accountName.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
+    h += '<div style="display:flex;align-items:center;gap:12px">';
+    h += '<div class="cc-contact-av" style="background:var(--accent);width:36px;height:36px;font-size:13px;border-radius:8px">'+acci+'</div>';
+    h += '<div><div style="font-size:14px;font-weight:600;color:var(--accent)">'+accountName+'</div>';
+    h += '<div style="font-size:11px;color:var(--text-light)">'+(account.industry||'')+(account.city?' · '+account.city:'')+'</div></div></div>';
+    h += '</div>';
+  }
+
+  /* Next Action */
+  h += '<div class="cc-nba"><div class="cc-nba-body">';
+  h += '<div class="cc-nba-tag">Next recommended action</div>';
+  h += '<div class="cc-nba-title">'+nextAction.text+'</div>';
+  h += '<button class="cc-btn cc-btn-primary" style="margin-top:8px">Take action \u2192</button>';
+  h += '</div></div>';
+
+  /* Insights */
+  h += '<div class="cc-insights-grid">';
+  h += '<div class="cc-insight-card"><div class="cc-details-card-title">Lead Score</div>';
+  h += '<div style="font-size:32px;font-weight:700;color:'+temperature.color+';letter-spacing:-1px">'+leadScore+'<span style="font-size:14px;color:var(--text-light)">/100</span></div>';
+  h += '<div class="cc-progress"><div class="cc-progress-fill" style="width:'+leadScore+'%;background:'+temperature.color+'"></div></div></div>';
+  h += '<div class="cc-insight-card"><div class="cc-details-card-title">Engagement</div>';
+  h += '<div style="font-size:32px;font-weight:700;color:var(--text);letter-spacing:-1px">'+engagementLevel+'</div>';
+  h += '<div style="font-size:12px;color:var(--text-light);margin-top:4px">'+activityCount+' touchpoints logged</div></div>';
+  h += '</div>';
+  h += '</div></div></div>';
+
+  /* === OPPORTUNITIES === */
+  h += '<div id="l360-sec-opportunities" class="cc-section">';
+  var oppRows = opps.map(function(o){
+    var st=(STAGES.opportunities||[]).find(function(s){return s.key===o.stage;});
+    var amtStr=typeof fmtAmount==='function'?fmtAmount(o.amount||0):((o.amount||0)/1e6).toFixed(1)+'M€';
+    return{_navObj:'opportunities',_navId:o.id,cells:[
+      {html:o.name,cls:'cc-rel-primary'},{html:ccStageBadge(st?st.label:o.stage||'—')},
+      {html:(o.prob||0)+'%'},{html:amtStr,cls:'cc-rel-bold',style:'text-align:right;justify-content:flex-end'}
+    ]};
+  });
+  h += ccRelatedTable('Opportunities',opps.length,'New opportunity','2.5fr 120px 70px 100px',[{label:'Name'},{label:'Stage'},{label:'Prob.'},{label:'Amount',right:true}],oppRows);
+  h += '</div>';
+
+  /* === NOTES === */
+  h += '<div id="l360-sec-notes" class="cc-section">';
+  h += '<div class="cc-rel-header"><span class="cc-rel-title">Notes <span class="cc-rel-count">('+notes.length+')</span></span></div>';
+  notes.forEach(function(n){
+    h += '<div style="padding:14px 0;border-bottom:1px solid #f3f4f6">';
+    h += '<div style="font-size:10px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">'+(n.date||'')+'</div>';
+    h += '<div style="font-size:12.5px;color:var(--text);line-height:1.55">'+(n.text||'')+'</div></div>';
+  });
+  h += '</div>';
+
+  /* === ACTIVITY === */
+  h += '<div id="l360-sec-activity" class="cc-section">';
+  h += '<div class="cc-rel-header"><span class="cc-rel-title">Activity <span class="cc-rel-count">('+activities.length+')</span></span></div>';
+  h += '<div class="cc-timeline">';
+  activities.forEach(function(a){
+    var tc = {phone:'#3b82f6',users:'#8b5cf6',mail:'#10b981',mapPin:'#ef4444'}[a.icon]||'#6b7280';
+    h += ccTimelineItem(a.icon||'activities',tc,a.subject||a.name||'Activity',(a.date||'')+(a.time?' · '+a.time:''),'');
+  });
+  h += '</div></div>';
+
+  h += '</div></div>';
+  container.innerHTML = h;
+  container.scrollTop = 0;
+
+  /* Bind */
+  document.getElementById('cc-back').addEventListener('click',function(){navigate('leads');});
+  _ccBindPhoto(container, rec, 'leads', rec.id, rec.name, initials);
+  ccBindTabs(container,'l360');
+  bindCrmActionButtons(container);
+
+  var acctLink = document.getElementById('cc-acct-link');
+  if (acctLink && rec.account) acctLink.addEventListener('click',function(){navigate('record','accounts',rec.account);});
+  var acctCard = document.getElementById('cc-acct-card');
+  if (acctCard && rec.account) acctCard.addEventListener('click',function(){navigate('record','accounts',rec.account);});
+
+  /* Convert button */
+  var convertBtn = document.getElementById('cc-convert');
+  if (convertBtn) {
+    convertBtn.addEventListener('click',function(){
+      rec.stage = 'converted';
+      renderLead360(container, rec);
+      if (typeof showDragToast === 'function') showDragToast(rec.name,'converted','leads');
+    });
+  }
+
+  /* Funnel step click */
+  container.querySelectorAll('.cc-funnel-seg[data-stage]').forEach(function(seg){
+    seg.addEventListener('click',function(){
+      var ns = seg.getAttribute('data-stage');
+      if (ns && ns !== rec.stage) { rec.stage = ns; renderLead360(container, rec); if(typeof showDragToast==='function') showDragToast(rec.name,ns,'leads'); }
+    });
+  });
+}
+
+/* Lead helpers (preserved) */
+function l360ComputeScore(rec){var s=30;if(rec.priority==='High')s+=30;else if(rec.priority==='Medium')s+=15;if(rec.source==='Referral')s+=15;else if(rec.source==='Trade Show')s+=10;else if(rec.source==='Website')s+=5;if(rec.stage==='qualified')s+=12;else if(rec.stage==='contacted')s+=6;else if(rec.stage==='proposal')s+=18;else if(rec.stage==='converted')s+=25;if(rec.estimatedValue&&rec.estimatedValue>=20000000)s+=10;return Math.min(s,100);}
+function l360Temperature(score){if(score>=70)return{key:'hot',label:'Hot Lead',icon:'',color:'var(--danger)'};if(score>=40)return{key:'warm',label:'Warm Lead',icon:'',color:'var(--warning)'};return{key:'cold',label:'Cold Lead',icon:'',color:'var(--text-light)'};}
+function l360Engagement(rec){if(rec.stage==='qualified'||rec.stage==='proposal'||rec.stage==='converted')return'High';if(rec.stage==='contacted')return'Medium';return'Low';}
+function l360NextAction(rec){if(rec.stage==='new')return{icon:'phone',color:'#3b82f6',text:'Schedule an initial discovery call to qualify this lead.'};if(rec.stage==='contacted')return{icon:'users',color:'#8b5cf6',text:'Book a face-to-face meeting to assess project scope and budget.'};if(rec.stage==='qualified')return{icon:'quotes',color:'#f59e0b',text:'Prepare and send a tailored proposal with pricing.'};if(rec.stage==='proposal')return{icon:'opportunities',color:'#10b981',text:'Follow up on proposal and negotiate to close.'};return{icon:'chart',color:'#10b981',text:'Lead converted. Create opportunity and assign project team.'};}
+
+
+/* ════════════════════════════════════════════════════════
+   OPPORTUNITY 360 — Command Center Standard + Pipeline Stages
+   ════════════════════════════════════════════════════════ */
+
+function renderOpp360(container, rec) {
+  ccInjectStyles();
+  var D = window.DATA;
+  var oppId = rec.id;
+
+  var account = (D.accounts||[]).find(function(a){return a.id===rec.account;});
+  var accountName = account ? account.name : '—';
+  var contacts = (D.contacts||[]).filter(function(c){return c.account===rec.account;});
+  var quotes = (D.quotes||[]).filter(function(q){return q.opportunity===oppId || q.account===rec.account;});
+  var activities = (D.activities||[]).filter(function(a){return a.opportunity===oppId;});
+  if (!activities.length) {
+    activities = (D.upcoming||[]).slice(0,4).map(function(u,i){
+      return {id:'oa'+i, type:u.icon||'call', subject:u.name, date:u.date, time:u.time, contact:u.contact, icon:u.icon};
+    });
+  }
+  var tasks = (D.tasks||[]).slice(0,3);
+
+  var amtStr = typeof fmtAmount==='function' ? fmtAmount(rec.amount||0) : ((rec.amount||0)/1e6).toFixed(1)+'M€';
+  var weighted = (rec.amount||0)*((rec.prob||0)/100);
+  var weightedStr = typeof fmtAmount==='function' ? fmtAmount(weighted) : (weighted/1e6).toFixed(1)+'M€';
+  var closeStr = rec.close ? fmtDate(rec.close) : '—';
+  var stages = STAGES.opportunities||[];
+  var currentIdx = stages.map(function(s){return s.key;}).indexOf(rec.stage);
+  var stObj = stages[currentIdx] || {};
+  var nextAction = o360NextAction(rec);
+  var initials = rec.name ? rec.name.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase() : 'OP';
+  var photoUrl = rec.photoURL || rec.photo || '';
+
+  var h = '<div class="cc-wrap">';
+  h += '<div class="cc-back" id="cc-back">'+svgIcon('arrowLeft',14,'var(--text-muted)')+' <span>Opportunities</span></div>';
+
+  /* ── HEADER ── */
+  h += '<div class="cc-header"><div class="cc-header-top">';
+  h += '<div class="cc-photo-wrap" id="cc-photo-wrap">';
+  if (photoUrl) {
+    h += '<div class="cc-avatar cc-avatar-img" id="cc-avatar"><img src="'+photoUrl+'" alt="'+rec.name+'" /></div>';
+  } else {
+    h += '<div class="cc-avatar" id="cc-avatar" style="background:linear-gradient(135deg,var(--accent),var(--accent-hover));font-size:20px;font-weight:800;color:#fff">'+svgIcon('opportunities',24,'#fff')+'</div>';
+  }
+  h += '<div class="cc-photo-overlay">'+svgIcon('plus',16,'#fff')+'</div>';
+  h += '<input type="file" id="cc-photo-input" accept="image/*" style="display:none" />';
+  h += '</div>';
+
+  h += '<div class="cc-header-info">';
+  h += '<div style="display:flex;align-items:center"><h1 class="cc-name">'+rec.name+'</h1>';
+  h += '<span class="cc-badge" style="border-color:'+(stObj.color||'#d0d5dd')+';color:'+(stObj.color||'var(--text-muted)')+'">'+( stObj.label||rec.stage||'—')+'</span></div>';
+  h += '<div class="cc-subtitle">';
+  h += '<span class="cc-link" id="cc-acct-link" data-acct-id="'+(rec.account||'')+'">'+accountName+'</span>';
+  h += '<span>Close '+closeStr+'</span>';
+  h += '<span>Owner: '+(rec.owner||'Me')+'</span>';
+  h += '</div>';
+  h += '<div class="cc-summary-pills">';
+  h += '<span class="cc-pill">Amount: <strong>'+amtStr+'</strong></span>';
+  h += '<span class="cc-pill">Prob: <strong>'+(rec.prob||0)+'%</strong></span>';
+  h += '<span class="cc-pill">Weighted: <strong>'+weightedStr+'</strong></span>';
+  h += '</div></div>';
+
+  h += '<div class="cc-header-actions">';
+  h += '<button class="cc-btn crm-edit-btn" data-obj="opportunities" data-rec="'+oppId+'">'+svgIcon('edit',14,'var(--text-light)')+' Edit</button>';
+  h += '<button class="cc-btn cc-btn-danger crm-delete-btn" data-obj="opportunities" data-rec="'+oppId+'">'+svgIcon('trash',14,'#ef4444')+' Delete</button>';
+  h += '</div></div>';
+
+  /* Pipeline stages inside header */
+  h += '<div style="padding:0 28px 20px">';
+  h += '<div class="cc-funnel">';
+  stages.forEach(function(st,i){
+    var done = i<currentIdx; var current = i===currentIdx;
+    h += '<div class="cc-funnel-seg" data-stage="'+st.key+'" style="background:'+(done||current?st.color:'#e5e7eb')+';opacity:'+(current?1:done?(.3+i/(stages.length-1)*.7):1)+';cursor:pointer;border-radius:3px"></div>';
+  });
+  h += '</div>';
+  h += '<div class="cc-funnel-labels">';
+  stages.forEach(function(st,i){
+    h += '<span class="'+(i===currentIdx?'cc-funnel-current':'')+'">'+st.label+'</span>';
+  });
+  h += '</div></div>';
+  h += '</div>';
+
+  /* ── KPI BOXES ── */
+  h += '<div class="cc-kpi-grid" style="grid-template-columns:repeat(4,1fr)">';
+  h += ccKpiBox('trending','#ecfdf5','Deal Value','<div class="cc-kpi-val">'+amtStr+'</div>','','details');
+  h += ccKpiBox('chart','#f0f4ff','Probability','<div class="cc-kpi-val">'+(rec.prob||0)+'%</div>','Weighted: '+weightedStr,'details');
+  h += ccKpiBox('contacts','#f3f0ff','Contacts','<div class="cc-kpi-val">'+contacts.length+'</div>','Involved in deal','contacts');
+  h += ccKpiBox('quotes','#fef7ec','Quotes','<div class="cc-kpi-val">'+quotes.length+'</div>',quotes.length>0?'Latest active':'None yet','quotes');
+  h += '</div>';
+
+  /* ── TAB BAR ── */
+  h += '<div class="cc-tabs">';
+  h += ccTab('details','Details','list',null);
+  h += ccTab('contacts','Contacts','contacts',contacts.length);
+  h += ccTab('quotes','Quotes','quotes',quotes.length);
+  h += ccTab('activity','Activity','activities',activities.length);
+  h += '</div>';
+
+  h += '<div class="cc-tab-content">';
+
+  /* === DETAILS === */
+  h += '<div id="o360-sec-details" class="cc-section cc-visible">';
+  h += '<div class="cc-details-grid">';
+  h += '<div class="cc-details-card">';
+  h += '<div class="cc-details-card-title">Opportunity details</div>';
+  [['Opportunity',rec.name],['Account',accountName,true],['Stage',stObj.label||rec.stage||'—'],['Amount',amtStr],['Probability',(rec.prob||0)+'%'],['Close date',closeStr],['Owner',rec.owner||'—']].forEach(function(f){
+    h += '<div class="cc-field"><div class="cc-field-label">'+f[0]+'</div><div class="cc-field-value'+(f[2]?' cc-field-link':'')+'">'+f[1]+'</div></div>';
+  });
+  h += '</div>';
+
+  h += '<div style="display:flex;flex-direction:column;gap:14px">';
+  /* Insights */
+  h += '<div class="cc-insights-grid">';
+  h += '<div class="cc-insight-card"><div class="cc-details-card-title">Deal value</div>';
+  h += '<div style="font-size:32px;font-weight:700;color:var(--text);letter-spacing:-1px">'+amtStr+'</div>';
+  h += '<div style="font-size:12px;color:var(--text-light);margin-top:4px">Weighted: '+weightedStr+'</div></div>';
+  h += '<div class="cc-insight-card"><div class="cc-details-card-title">Win probability</div>';
+  var probColor = (rec.prob||0)>=60?'#059669':(rec.prob||0)>=30?'#d97706':'#dc2626';
+  h += '<div style="font-size:32px;font-weight:700;color:'+probColor+';letter-spacing:-1px">'+(rec.prob||0)+'%</div>';
+  h += '<div class="cc-progress" style="margin-top:8px"><div class="cc-progress-fill" style="width:'+(rec.prob||0)+'%;background:'+probColor+'"></div></div></div>';
+  h += '</div>';
+
+  /* NBA */
+  h += '<div class="cc-nba"><div class="cc-nba-body">';
+  h += '<div class="cc-nba-tag">Next recommended action</div>';
+  h += '<div class="cc-nba-title">'+nextAction.text+'</div>';
+  h += '<button class="cc-btn cc-btn-primary" style="margin-top:8px">Take action \u2192</button>';
+  h += '</div>';
+  h += '<div class="cc-nba-right"><span class="cc-nba-due">Close: '+closeStr+'</span></div>';
+  h += '</div>';
+
+  /* Tasks */
+  if (tasks.length) {
+    h += '<div class="cc-details-card">';
+    h += '<div class="cc-details-card-title">Tasks</div>';
+    tasks.forEach(function(t){
+      var pc = {High:'#dc2626',Medium:'#d97706',Low:'var(--text-light)'};
+      h += '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f3f4f6">';
+      h += '<div style="width:6px;height:6px;border-radius:50%;background:'+(pc[t.priority]||'var(--text-light)')+'"></div>';
+      h += '<div style="flex:1"><div style="font-size:12.5px;font-weight:500;color:var(--text)">'+t.name+'</div>';
+      h += '<div style="font-size:10px;color:var(--text-light)">'+(t.ref||'')+' · '+(t.status||'')+'</div></div></div>';
+    });
+    h += '</div>';
+  }
+  h += '</div></div></div>';
+
+  /* === CONTACTS === */
+  h += '<div id="o360-sec-contacts" class="cc-section">';
+  var cRows = contacts.map(function(c){
+    var ci = c.name?c.name.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase():'?';
+    return{_navObj:'contacts',_navId:c.id,cells:[
+      {html:'<span class="cc-contact-av" style="background:#7c3aed">'+ci+'</span> '+c.name,cls:'cc-rel-primary'},
+      {html:c.role||'—'},{html:c.email||'—',cls:'cc-rel-link'},{html:c.phone||'—'}
+    ]};
+  });
+  h += ccRelatedTable('Contacts',contacts.length,'New contact','2fr 1.2fr 1.5fr 1fr',[{label:'Name'},{label:'Role'},{label:'Email'},{label:'Phone'}],cRows);
+  h += '</div>';
+
+  /* === QUOTES === */
+  h += '<div id="o360-sec-quotes" class="cc-section">';
+  var qRows = quotes.map(function(q){
+    var qAmt = typeof fmtAmount==='function'?fmtAmount(q.value||q.amount||0):'—';
+    return{_navObj:'quotes',_navId:q.id,cells:[
+      {html:q.name||'Quote #'+q.id,cls:'cc-rel-primary'},{html:ccStageBadge(q.stage||q.status||'Draft')},
+      {html:q.validUntil?fmtDate(q.validUntil):(q.date||'—')},{html:qAmt,cls:'cc-rel-bold',style:'text-align:right;justify-content:flex-end'}
+    ]};
+  });
+  h += ccRelatedTable('Quotes',quotes.length,'New quote','2.5fr 100px 120px 100px',[{label:'Quote'},{label:'Status'},{label:'Date'},{label:'Amount',right:true}],qRows);
+  h += '</div>';
+
+  /* === ACTIVITY === */
+  h += '<div id="o360-sec-activity" class="cc-section">';
+  h += '<div class="cc-rel-header"><span class="cc-rel-title">Activity <span class="cc-rel-count">('+activities.length+')</span></span></div>';
+  h += '<div class="cc-timeline">';
+  activities.forEach(function(a){
+    var tc = {phone:'#3b82f6',users:'#8b5cf6',mail:'#10b981',mapPin:'#ef4444'}[a.icon||a.type]||'#6b7280';
+    var ik = a.icon||(a.type==='call'||a.type==='phone'?'phone':a.type==='meeting'||a.type==='users'?'users':a.type==='email'||a.type==='mail'?'mail':'activities');
+    h += ccTimelineItem(ik,tc,a.subject||a.name||'Activity',(a.contact||'')+(a.date?' · '+a.date:''),'');
+  });
+  if (!activities.length) h += '<div class="cc-rel-empty">No activities recorded</div>';
+  h += '</div></div>';
+
+  h += '</div></div>';
+  container.innerHTML = h;
+  container.scrollTop = 0;
+
+  /* Bind */
+  document.getElementById('cc-back').addEventListener('click',function(){navigate('opportunities');});
+  _ccBindPhoto(container, rec, 'opportunities', oppId, rec.name, initials);
+  ccBindTabs(container,'o360');
+  bindCrmActionButtons(container);
+
+  var acctLink = document.getElementById('cc-acct-link');
+  if (acctLink && rec.account) acctLink.addEventListener('click',function(){navigate('record','accounts',rec.account);});
+
+  /* Funnel step click */
+  container.querySelectorAll('.cc-funnel-seg[data-stage]').forEach(function(seg){
+    seg.addEventListener('click',function(){
+      var ns = seg.getAttribute('data-stage');
+      if (ns && ns !== rec.stage) { rec.stage = ns; renderOpp360(container, rec); if(typeof showDragToast==='function') showDragToast(rec.name,ns,'opportunities'); }
+    });
+  });
+}
+
+function o360NextAction(rec){if(rec.stage==='lead')return{icon:'phone',color:'#3b82f6',text:'Schedule a discovery call to qualify this opportunity.'};if(rec.stage==='study')return{icon:'users',color:'#8b5cf6',text:'Arrange a technical meeting to define project scope.'};if(rec.stage==='tender')return{icon:'quotes',color:'#f59e0b',text:'Prepare and submit tender documentation before deadline.'};if(rec.stage==='proposal')return{icon:'mail',color:'#10b981',text:'Send the commercial proposal and follow up with the decision maker.'};if(rec.stage==='negotiation')return{icon:'phone',color:'#3b82f6',text:'Follow up on revised pricing to close negotiations.'};if(rec.stage==='closed_won')return{icon:'projects',color:'#10b981',text:'Initiate project kickoff and assign delivery team.'};return{icon:'chart',color:'#6366f1',text:'Project launched — monitor delivery and client satisfaction.'};}
+
+
+/* ═══════════════════════════════════════════
+   SHARED PHOTO BIND HELPER
+   ═══════════════════════════════════════════ */
+function _ccBindPhoto(container, rec, objKey, recId, name, initials) {
+  var photoWrap = document.getElementById('cc-photo-wrap');
+  var photoInput = document.getElementById('cc-photo-input');
+  if (!photoWrap || !photoInput) return;
+
+  var overlay = photoWrap.querySelector('.cc-photo-overlay');
+  if (overlay) overlay.addEventListener('click', function(e) { e.stopPropagation(); photoInput.click(); });
+
+  var avatarEl = document.getElementById('cc-avatar');
+  if (avatarEl) {
+    avatarEl.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var url = rec.photoURL || rec.photo || '';
+      if (url && typeof fbShowPhotoPreview === 'function') { fbShowPhotoPreview(url, name); }
+      else { photoInput.click(); }
+    });
+  }
+
+  photoInput.addEventListener('change', function(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var avatar = document.getElementById('cc-avatar');
+    if (avatar) { avatar.innerHTML = '<div style="width:22px;height:22px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite"></div>'; }
+    if (typeof fbCompressAndSavePhoto === 'function') {
+      fbCompressAndSavePhoto(file, objKey, recId).then(function(url) {
+        if (avatar) { avatar.className = 'cc-avatar cc-avatar-img'; avatar.innerHTML = '<img src="' + url + '" alt="' + name + '" />'; }
+        if (typeof fbShowStatus === 'function') fbShowStatus('Photo uploaded');
+      }).catch(function(err) {
+        console.error('[360] Photo error:', err);
+        if (avatar) { avatar.className = 'cc-avatar cc-avatar-initials'; avatar.innerHTML = initials; }
+        if (typeof fbShowStatus === 'function') fbShowStatus('Photo upload failed', true);
+      });
+    }
+  });
+}
 
 /* ════════════════════════════════════════════════════════
    PRODUCT 360
@@ -2635,408 +2405,3 @@ function bindCrmActionButtons(container) {
   });
 }
 
-function injectA360Styles() {
-  if (document.getElementById('a360-css')) return;
-  var s = document.createElement('style'); s.id = 'a360-css';
-  s.textContent = '\
-.a360{max-width:1140px;margin:0 auto;padding:14px 18px 48px}\
-.a360-back{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer;padding:4px 0;margin-bottom:10px;transition:color .12s}\
-.a360-back:hover{color:var(--accent)}\
-.a360-header-card{background:var(--card);border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);border:1px solid var(--border);margin-bottom:14px;overflow:hidden}\
-.a360-header-top{padding:22px 26px 18px;display:flex;gap:22px;align-items:center}\
-.a360-avatar{width:92px;height:92px;border-radius:50%;background:#fff;border:1px solid #E6E8EC;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;transition:transform .18s ease,box-shadow .18s ease}\
-.a360-avatar-initials{background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 100%);font-size:28px;font-weight:800;color:var(--accent);letter-spacing:-.5px}\
-.a360-avatar-img img{width:100%;height:100%;object-fit:cover}\
-.a360-photo-wrap{position:relative;cursor:pointer;flex-shrink:0}\
-.a360-photo-wrap:hover .a360-avatar{transform:scale(1.05);box-shadow:0 6px 20px rgba(0,0,0,.12)}\
-.a360-photo-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}\
-.a360-photo-wrap:hover .a360-photo-overlay{opacity:1}\
-.a360-avatar-loading{background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 100%)}\
-.a360-spinner{width:22px;height:22px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:a360spin .6s linear infinite}\
-@keyframes a360spin{to{transform:rotate(360deg)}}\
-.a360-subtitle{font-size:13px;color:var(--text-muted);font-weight:500;margin-top:2px}\
-.a360-detail-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}\
-.a360-chip{display:inline-flex;align-items:center;gap:5px;background:#f8f9fb;border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-size:11px;color:var(--text-muted);font-weight:500}\
-.a360-header-info{flex:1;min-width:0}\
-.a360-name-row{display:flex;align-items:center;gap:10px;margin-bottom:5px}\
-.a360-name{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.6px;margin:0;line-height:1}\
-.a360-meta{display:flex;gap:14px;font-size:11.5px;color:var(--text-muted);flex-wrap:wrap}\
-.a360-dot{color:var(--text-light)}\
-.a360-header-metrics{display:flex;align-items:center;flex-shrink:0}\
-.a360-hmetric{display:flex;flex-direction:column;align-items:center;padding:0 16px;border-left:1px solid var(--border)}\
-.a360-hmetric-val{font-size:18px;font-weight:800;letter-spacing:-.5px;line-height:1;font-variant-numeric:tabular-nums}\
-.a360-hmetric-label{font-size:9px;color:var(--text-light);font-weight:500;margin-top:2px;text-transform:uppercase;letter-spacing:.3px}\
-.a360-header-actions{padding:12px 26px 14px;border-top:1px solid var(--border);display:flex;align-items:center}\
-.a360-qa-row{display:flex;gap:7px}\
-.a360-qa{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;transition:all .12s}\
-.a360-qa.a360-qa-primary{background:var(--accent);color:#fff;border:none}\
-.a360-qa.a360-qa-primary:hover{background:var(--accent-hover)}\
-.a360-qa.a360-qa-outline{background:transparent;border:1px solid var(--border);color:var(--text-muted)}\
-.a360-qa.a360-qa-outline:hover{border-color:#bbb;color:var(--text);background:#f8f9fb}\
-.a360-kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}\
-.a360-kpi-card{background:var(--card);border-radius:10px;padding:16px 18px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);cursor:pointer;transition:all .15s;text-align:center}\
-.a360-kpi-card:hover{box-shadow:0 4px 14px rgba(0,0,0,.08);transform:translateY(-2px)}\
-.a360-kpi-card:hover .a360-kpi-view{opacity:1}\
-.a360-kpi-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}\
-.a360-kpi-view{font-size:9px;font-weight:500;color:var(--text-light);opacity:0;transition:opacity .15s}\
-.a360-kpi-value{font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1;margin-bottom:3px;font-variant-numeric:tabular-nums}\
-.a360-kpi-label{font-size:10.5px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px}\
-.a360-kpi-insight{display:flex;align-items:center;justify-content:center;gap:5px;padding-top:9px;margin-top:9px;border-top:1px solid var(--border);font-size:9.5px;font-weight:600}\
-.a360-kpi-insight-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}\
-.a360-grid2{display:grid;grid-template-columns:1.12fr 1fr;gap:14px;align-items:start}\
-.a360-col{display:flex;flex-direction:column;gap:12px}\
-.a360-section{background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid var(--border);overflow:hidden}\
-.a360-section-head{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px}\
-.a360-section-title{font-size:11.5px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.5px}\
-.a360-section-count{font-size:9px;color:#fff;font-weight:700;background:var(--dark);border-radius:10px;padding:1px 6px;margin-left:4px}\
-.a360-section-link{margin-left:auto;font-size:10px;font-weight:500;color:var(--text-light);cursor:pointer;transition:color .12s}\
-.a360-section-link:hover{color:var(--accent)}\
-.a360-row{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .08s;display:flex;align-items:center;gap:10px}\
-.a360-row:hover{background:#fafbfc}\
-.a360-row-last{border-bottom:none}\
-.a360-row-left{flex:1;min-width:0}\
-.a360-row-right{display:flex;align-items:center;gap:8px;flex-shrink:0}\
-.a360-row-title{font-size:12.5px;font-weight:700;color:var(--text);line-height:1.2}\
-.a360-row-sub{font-size:10px;color:var(--text-light);margin-top:2px}\
-.a360-row-amount{font-size:15px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.3px;margin-right:4px}\
-.a360-empty{padding:20px 16px;text-align:center;color:var(--text-light);font-size:11px}\
-.a360-stage-dots{display:flex;gap:2px;padding:0 16px 10px}\
-.a360-stage-dot{flex:1;height:3px;border-radius:2px}\
-.a360-contact-avatar{width:34px;height:34px;border-radius:50%;background:#f0f0f2;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text-muted);flex-shrink:0}\
-.a360-contact-actions{display:flex;gap:4px;flex-shrink:0}\
-.a360-contact-btn{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .12s}\
-.a360-contact-btn:hover{border-color:#ccc}\
-.a360-timeline{padding:12px 16px}\
-.a360-tl-item{display:flex;gap:10px;position:relative;padding-bottom:16px}\
-.a360-tl-item:last-child{padding-bottom:0}\
-.a360-tl-line{position:absolute;left:13px;top:28px;bottom:0;width:1.5px;background:var(--border);border-radius:1px}\
-.a360-tl-item:last-child .a360-tl-line{display:none}\
-.a360-tl-icon{width:26px;height:26px;border-radius:8px;border:1.5px solid;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1;background:var(--card)}\
-.a360-tl-body{flex:1;min-width:0;padding-top:2px}\
-.a360-tl-top{display:flex;justify-content:space-between;align-items:baseline}\
-.a360-tl-subject{font-size:12px;font-weight:600;color:var(--text);line-height:1.2}\
-.a360-tl-date{font-size:9.5px;color:var(--text-light);flex-shrink:0;margin-left:8px}\
-.a360-tl-meta{font-size:10px;color:var(--text-light);margin-top:2px}\
-.rec-back-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;border-radius:6px;display:flex;align-items:center;transition:all .12s}\
-.rec-back-btn:hover{background:var(--accent-light);color:var(--accent)}\
-.rec-detail-card{background:var(--card);border-radius:8px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden}\
-.rec-fields{display:grid;grid-template-columns:1fr 1fr;gap:0}\
-.rec-field{padding:12px 16px;border-bottom:1px solid var(--border)}\
-.rec-field:nth-child(odd){border-right:1px solid var(--border)}\
-.rec-field-label{font-size:9px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px}\
-.rec-field-value{font-size:13px;color:var(--text);font-weight:500}\
-@media(max-width:1100px){.a360-grid2{grid-template-columns:1fr}.a360-kpi-grid{grid-template-columns:repeat(3,1fr)}.a360-header-top{flex-wrap:wrap}.a360-header-metrics{margin-top:10px}}\
-@media(max-width:768px){.a360-kpi-grid{grid-template-columns:repeat(2,1fr)}}\
-@media(max-width:640px){.a360{padding:10px 10px 32px}.a360-header-top{padding:16px 14px 12px;gap:12px}.a360-avatar{width:64px;height:64px;font-size:20px}\
-.a360-name{font-size:18px}.a360-kpi-grid{grid-template-columns:1fr 1fr}.a360-kpi-value{font-size:22px}\
-.a360-header-actions{padding:10px 14px}.a360-qa{padding:6px 10px;font-size:11px}\
-.rec-fields{grid-template-columns:1fr}.rec-field:nth-child(odd){border-right:none}}\
-';
-  document.head.appendChild(s);
-}
-
-
-/* ════════════════════════════════════════════════════════
-   CSS INJECTION — CONTACT 360
-   ════════════════════════════════════════════════════════ */
-
-function injectC360Styles() {
-  if (document.getElementById('c360-css')) return;
-  var s = document.createElement('style'); s.id = 'c360-css';
-  s.textContent = '\
-.c360{max-width:1140px;margin:0 auto;padding:14px 18px 48px}\
-.c360-back{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer;padding:4px 0;margin-bottom:10px;transition:color .12s}\
-.c360-back:hover{color:var(--accent)}\
-\
-.c360-header-card{background:var(--card);border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);border:1px solid var(--border);margin-bottom:14px;overflow:hidden}\
-.c360-header-top{padding:22px 26px 18px;display:flex;gap:20px;align-items:flex-start}\
-\
-.c360-photo{width:92px;height:92px;border-radius:50%;flex-shrink:0;overflow:hidden;border:1px solid #E6E8EC;box-shadow:0 2px 8px rgba(0,0,0,.06);background:#fff;transition:transform .18s ease,box-shadow .18s ease}\
-.c360-photo img{width:100%;height:100%;object-fit:cover}\
-.c360-photo.c360-photo-initials{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 100%);font-size:28px;font-weight:800;color:var(--accent);letter-spacing:-.5px}\
-\
-.c360-photo-wrap{position:relative;cursor:pointer;flex-shrink:0}\
-.c360-photo-wrap:hover .c360-photo{transform:scale(1.05);box-shadow:0 6px 20px rgba(0,0,0,.12)}\
-.c360-photo-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}\
-.c360-photo-wrap:hover .c360-photo-overlay{opacity:1}\
-.c360-photo-loading{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 100%)}\
-.c360-spinner{width:22px;height:22px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:c360spin .6s linear infinite}\
-@keyframes c360spin{to{transform:rotate(360deg)}}\
-\
-.c360-header-info{flex:1;min-width:0}\
-.c360-name{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.6px;margin:0 0 2px;line-height:1.1}\
-.c360-role{font-size:13px;color:var(--text-muted);font-weight:500;margin-bottom:4px}\
-.c360-company{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--accent);cursor:pointer;margin-bottom:10px;transition:opacity .12s}\
-.c360-company:hover{opacity:.75}\
-\
-.c360-details-row{display:flex;flex-wrap:wrap;gap:6px}\
-.c360-detail-chip{display:inline-flex;align-items:center;gap:5px;background:#f8f9fb;border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-size:11px;color:var(--text-muted);font-weight:500}\
-\
-.c360-header-actions{display:flex;gap:7px;padding:12px 26px 14px;border-top:1px solid var(--border)}\
-.c360-action-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;transition:all .12s}\
-.c360-action-primary{background:var(--accent);color:#fff}\
-.c360-action-primary:hover{background:var(--accent-hover)}\
-.c360-action-outline{background:transparent;border:1px solid var(--border);color:var(--text-muted)}\
-.c360-action-outline:hover{border-color:#bbb;color:var(--text);background:#f8f9fb}\
-\
-.c360-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}\
-.c360-kpi{background:var(--card);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);padding:16px 18px;cursor:pointer;transition:all .15s;text-align:center}\
-.c360-kpi:hover{box-shadow:0 4px 14px rgba(0,0,0,.08);transform:translateY(-2px)}\
-.c360-kpi-value{font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1;margin-bottom:3px;font-variant-numeric:tabular-nums}\
-.c360-kpi-label{font-size:10.5px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px}\
-\
-.c360-grid2{display:grid;grid-template-columns:1.12fr 1fr;gap:14px;align-items:start}\
-.c360-col{display:flex;flex-direction:column;gap:12px}\
-\
-.c360-section{background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid var(--border);overflow:hidden}\
-.c360-section-head{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px}\
-.c360-section-title{font-size:11.5px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.5px}\
-.c360-section-count{font-size:9px;color:#fff;font-weight:700;background:var(--dark);border-radius:10px;padding:1px 6px;margin-left:4px}\
-.c360-section-link{margin-left:auto;font-size:10px;font-weight:500;color:var(--text-light);cursor:pointer;transition:color .12s}\
-.c360-section-link:hover{color:var(--accent)}\
-\
-.c360-row{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .08s;display:flex;align-items:center;gap:10px}\
-.c360-row:hover{background:#fafbfc}\
-.c360-row-last{border-bottom:none}\
-.c360-row-left{flex:1;min-width:0}\
-.c360-row-right{display:flex;align-items:center;gap:8px;flex-shrink:0}\
-.c360-row-title{font-size:12.5px;font-weight:700;color:var(--text);line-height:1.2}\
-.c360-row-sub{font-size:10px;color:var(--text-light);margin-top:2px}\
-.c360-row-amount{font-size:15px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.3px;margin-right:4px}\
-.c360-empty{padding:20px 16px;text-align:center;color:var(--text-light);font-size:11px}\
-\
-.c360-claim-prio{font-size:10px;font-weight:600;margin-left:4px}\
-\
-.c360-timeline{padding:12px 16px}\
-.c360-tl-item{display:flex;gap:10px;position:relative;padding-bottom:16px}\
-.c360-tl-item:last-child{padding-bottom:0}\
-.c360-tl-line{position:absolute;left:13px;top:28px;bottom:0;width:1.5px;background:var(--border);border-radius:1px}\
-.c360-tl-item:last-child .c360-tl-line{display:none}\
-.c360-tl-icon{width:26px;height:26px;border-radius:8px;border:1.5px solid;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1;background:var(--card)}\
-.c360-tl-body{flex:1;min-width:0;padding-top:2px}\
-.c360-tl-top{display:flex;justify-content:space-between;align-items:baseline}\
-.c360-tl-subject{font-size:12px;font-weight:600;color:var(--text);line-height:1.2}\
-.c360-tl-type{font-size:10px;font-weight:600;flex-shrink:0;margin-left:8px}\
-.c360-tl-meta{font-size:10px;color:var(--text-light);margin-top:2px}\
-\
-.c360-note{padding:12px 16px;border-bottom:1px solid var(--border)}\
-.c360-note:last-child,.c360-note.c360-row-last{border-bottom:none}\
-.c360-note-date{font-size:9px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}\
-.c360-note-text{font-size:12px;color:var(--text);line-height:1.55}\
-\
-.c360-account-card{padding:16px}\
-.c360-acct-top{display:flex;gap:12px;align-items:center;margin-bottom:14px}\
-.c360-acct-avatar{width:40px;height:40px;border-radius:8px;background:#f0f0f2;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--text-muted);flex-shrink:0}\
-.c360-acct-info{flex:1;min-width:0}\
-.c360-acct-name{font-size:14px;font-weight:700;color:var(--accent);cursor:pointer;transition:opacity .12s}\
-.c360-acct-name:hover{opacity:.75}\
-.c360-acct-industry{font-size:11px;color:var(--text-light);margin-top:1px}\
-.c360-acct-fields{display:flex;flex-direction:column;gap:8px}\
-.c360-acct-field{display:flex;justify-content:space-between;align-items:center}\
-.c360-acct-field-label{font-size:10px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px}\
-.c360-acct-field-value{font-size:12px;font-weight:600;color:var(--text)}\
-\
-@media(max-width:1100px){\
-  .c360-grid2{grid-template-columns:1fr}\
-  .c360-kpi-row{grid-template-columns:repeat(2,1fr)}\
-  .c360-header-top{flex-wrap:wrap}\
-}\
-@media(max-width:768px){\
-  .c360-kpi-row{grid-template-columns:repeat(2,1fr)}\
-  .c360-header-actions{flex-wrap:wrap}\
-}\
-@media(max-width:640px){\
-  .c360{padding:10px 10px 32px}\
-  .c360-header-top{padding:16px 14px 12px;gap:12px}\
-  .c360-photo{width:64px;height:64px;font-size:20px}\
-  .c360-name{font-size:18px}\
-  .c360-kpi-value{font-size:22px}\
-  .c360-header-actions{padding:10px 14px}\
-  .c360-action-btn{padding:6px 10px;font-size:11px}\
-}\
-';
-  document.head.appendChild(s);
-}
-
-
-/* ════════════════════════════════════════════════════════
-   CSS INJECTION — LEAD 360
-   ════════════════════════════════════════════════════════ */
-
-function injectL360Styles() {
-  if (document.getElementById('l360-css')) return;
-  var s = document.createElement('style'); s.id = 'l360-css';
-  s.textContent = '\
-.l360{max-width:1140px;margin:0 auto;padding:14px 18px 48px}\
-.l360-back{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer;padding:4px 0;margin-bottom:10px;transition:color .12s}\
-.l360-back:hover{color:var(--accent)}\
-\
-/* Header Card */\
-.l360-header-card{background:var(--card);border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);border:1px solid var(--border);margin-bottom:14px;overflow:hidden}\
-.l360-header-top{padding:22px 26px 18px;display:flex;gap:20px;align-items:flex-start}\
-.l360-avatar{width:64px;height:64px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 50%,#fbbf24 100%);border:2.5px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#92400e;letter-spacing:-.5px}\
-.l360-photo{width:92px;height:92px;border-radius:50%;flex-shrink:0;overflow:hidden;border:1px solid #E6E8EC;box-shadow:0 2px 8px rgba(0,0,0,.06);background:#fff;transition:transform .18s ease,box-shadow .18s ease}\
-.l360-photo img{width:100%;height:100%;object-fit:cover}\
-.l360-photo.l360-photo-initials{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 50%,#fbbf24 100%);font-size:28px;font-weight:800;color:#92400e;letter-spacing:-.5px}\
-.l360-photo-wrap{position:relative;cursor:pointer;flex-shrink:0}\
-.l360-photo-wrap:hover .l360-photo{transform:scale(1.05);box-shadow:0 6px 20px rgba(0,0,0,.12)}\
-.l360-photo-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}\
-.l360-photo-wrap:hover .l360-photo-overlay{opacity:1}\
-.l360-photo-loading{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 100%)}\
-.l360-spinner{width:22px;height:22px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:l360spin .6s linear infinite}\
-@keyframes l360spin{to{transform:rotate(360deg)}}\
-.l360-header-info{flex:1;min-width:0}\
-.l360-name-row{display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap}\
-.l360-name{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.5px;margin:0;line-height:1.1}\
-.l360-role{font-size:12.5px;color:var(--text-muted);font-weight:500;margin-bottom:4px}\
-.l360-company{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--accent);cursor:pointer;margin-bottom:8px;transition:opacity .12s}\
-.l360-company:hover{opacity:.75}\
-\
-/* Temperature Badge */\
-.l360-temp-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}\
-.l360-temp-hot{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}\
-.l360-temp-warm{background:#fffbeb;color:#d97706;border:1px solid #fde68a}\
-.l360-temp-cold{background:#f0f9ff;color:#64748b;border:1px solid #e0e7ff}\
-\
-/* Contact chips */\
-.l360-details-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}\
-.l360-detail-chip{display:inline-flex;align-items:center;gap:5px;background:#f8f9fb;border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-size:11px;color:var(--text-muted);font-weight:500}\
-\
-/* Meta row */\
-.l360-meta-row{display:flex;flex-wrap:wrap;gap:8px}\
-.l360-meta-tag{font-size:10px;color:var(--text-light);font-weight:500}\
-.l360-meta-tag strong{color:var(--text-muted);font-weight:600}\
-\
-/* Header metrics */\
-.l360-header-metrics{display:flex;flex-direction:column;gap:12px;flex-shrink:0;align-items:center;padding-left:20px;border-left:1px solid var(--border)}\
-.l360-hmetric{display:flex;flex-direction:column;align-items:center}\
-.l360-hmetric-val{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1;font-variant-numeric:tabular-nums}\
-.l360-hmetric-label{font-size:9px;color:var(--text-light);font-weight:500;margin-top:2px;text-transform:uppercase;letter-spacing:.3px}\
-\
-/* Actions */\
-.l360-actions{display:flex;gap:7px;padding:12px 26px 14px;border-top:1px solid var(--border);flex-wrap:wrap}\
-.l360-action-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;transition:all .12s}\
-.l360-action-primary{background:var(--accent);color:#fff}\
-.l360-action-primary:hover{background:var(--accent-hover)}\
-.l360-action-outline{background:transparent;border:1px solid var(--border);color:var(--text-muted)}\
-.l360-action-outline:hover{border-color:#bbb;color:var(--text);background:#f8f9fb}\
-.l360-action-convert{background:var(--success);color:#fff}\
-.l360-action-convert:hover{background:#059669}\
-\
-/* KPI Row */\
-.l360-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}\
-.l360-kpi{background:var(--card);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);padding:16px 18px;text-align:center;transition:all .15s}\
-.l360-kpi:hover{box-shadow:0 4px 14px rgba(0,0,0,.08);transform:translateY(-2px)}\
-.l360-kpi-value{font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1;margin-bottom:3px;font-variant-numeric:tabular-nums}\
-.l360-kpi-label{font-size:10.5px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px}\
-.l360-kpi-insight{font-size:9.5px;font-weight:600;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}\
-\
-/* Qualification Funnel */\
-.l360-funnel-card{background:var(--card);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);padding:18px 24px;margin-bottom:14px}\
-.l360-funnel-title{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}\
-.l360-funnel{display:flex;align-items:center;gap:0;width:100%;padding-bottom:38px}\
-.l360-funnel-step{display:flex;align-items:center;flex:1;position:relative}\
-.l360-funnel-step:last-child{flex:0 0 auto}\
-.l360-funnel-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;z-index:1;transition:all .2s}\
-.l360-funnel-current .l360-funnel-dot{box-shadow:0 0 0 4px rgba(37,99,235,.15)}\
-.l360-funnel-pulse{width:10px;height:10px;border-radius:50%;background:#fff;animation:l360pulse 1.5s ease-in-out infinite}\
-@keyframes l360pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.7)}}\
-.l360-funnel-label{position:absolute;top:40px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:600;color:var(--text-muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}\
-.l360-funnel-current .l360-funnel-label{color:var(--accent);font-weight:700}\
-.l360-funnel-done .l360-funnel-label{color:var(--success)}\
-.l360-funnel-line{flex:1;height:3px;border-radius:2px;margin:0 6px;transition:background .2s}\
-\
-/* 2-Column Grid */\
-.l360-grid2{display:grid;grid-template-columns:1.12fr 1fr;gap:14px;align-items:start;margin-top:28px}\
-.l360-col{display:flex;flex-direction:column;gap:12px}\
-\
-/* Sections */\
-.l360-section{background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid var(--border);overflow:hidden}\
-.l360-section-head{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px}\
-.l360-section-title{font-size:11.5px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.5px}\
-.l360-section-link{margin-left:auto;font-size:10px;font-weight:500;color:var(--text-light);cursor:pointer;transition:color .12s}\
-.l360-section-link:hover{color:var(--accent)}\
-\
-/* Rows */\
-.l360-row{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .08s;display:flex;align-items:center;gap:10px}\
-.l360-row:hover{background:#fafbfc}\
-.l360-row-last{border-bottom:none}\
-.l360-row-left{flex:1;min-width:0}\
-.l360-row-right{display:flex;align-items:center;gap:8px;flex-shrink:0}\
-.l360-row-title{font-size:12.5px;font-weight:700;color:var(--text);line-height:1.2}\
-.l360-row-sub{font-size:10px;color:var(--text-light);margin-top:2px}\
-.l360-row-amount{font-size:15px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.3px;margin-right:4px}\
-.l360-empty{padding:20px 16px;text-align:center;color:var(--text-light);font-size:11px}\
-\
-/* Insight Rows */\
-.l360-insights{padding:4px 0}\
-.l360-insight-row{display:flex;justify-content:space-between;align-items:center;padding:9px 16px;border-bottom:1px solid var(--border)}\
-.l360-insight-row:last-child{border-bottom:none}\
-.l360-insight-label{font-size:11px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.3px}\
-.l360-insight-value{font-size:12.5px;font-weight:600;color:var(--text)}\
-\
-/* Company Card */\
-.l360-company-card{padding:16px}\
-.l360-co-top{display:flex;gap:12px;align-items:center;margin-bottom:14px}\
-.l360-co-avatar{width:40px;height:40px;border-radius:8px;background:#f0f0f2;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--text-muted);flex-shrink:0}\
-.l360-co-info{flex:1;min-width:0}\
-.l360-co-name{font-size:14px;font-weight:700;color:var(--accent);cursor:pointer;transition:opacity .12s}\
-.l360-co-name:hover{opacity:.75}\
-.l360-co-industry{font-size:11px;color:var(--text-light);margin-top:1px}\
-.l360-co-fields{display:flex;flex-direction:column;gap:8px}\
-.l360-co-field{display:flex;justify-content:space-between;align-items:center}\
-.l360-co-field-label{font-size:10px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px}\
-.l360-co-field-value{font-size:12px;font-weight:600;color:var(--text)}\
-\
-/* Next Action */\
-.l360-next-action{background:var(--card);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);padding:16px 18px;display:flex;gap:14px;align-items:center}\
-.l360-na-icon{width:36px;height:36px;border-radius:10px;border:1.5px solid;display:flex;align-items:center;justify-content:center;flex-shrink:0}\
-.l360-na-body{flex:1;min-width:0}\
-.l360-na-label{font-size:9px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}\
-.l360-na-text{font-size:12.5px;font-weight:600;color:var(--text);line-height:1.4}\
-\
-/* Timeline */\
-.l360-timeline{padding:12px 16px}\
-.l360-tl-item{display:flex;gap:10px;position:relative;padding-bottom:16px}\
-.l360-tl-item:last-child{padding-bottom:0}\
-.l360-tl-line{position:absolute;left:13px;top:28px;bottom:0;width:1.5px;background:var(--border);border-radius:1px}\
-.l360-tl-item:last-child .l360-tl-line{display:none}\
-.l360-tl-icon{width:26px;height:26px;border-radius:8px;border:1.5px solid;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1;background:var(--card)}\
-.l360-tl-body{flex:1;min-width:0;padding-top:2px}\
-.l360-tl-top{display:flex;justify-content:space-between;align-items:baseline}\
-.l360-tl-subject{font-size:12px;font-weight:600;color:var(--text);line-height:1.2}\
-.l360-tl-type{font-size:10px;font-weight:600;flex-shrink:0;margin-left:8px}\
-.l360-tl-meta{font-size:10px;color:var(--text-light);margin-top:2px}\
-\
-/* Notes */\
-.l360-note{padding:12px 16px;border-bottom:1px solid var(--border)}\
-.l360-note:last-child,.l360-note.l360-row-last{border-bottom:none}\
-.l360-note-date{font-size:9px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}\
-.l360-note-text{font-size:12px;color:var(--text);line-height:1.55}\
-\
-@media(max-width:1100px){\
-  .l360-grid2{grid-template-columns:1fr}\
-  .l360-kpi-row{grid-template-columns:repeat(2,1fr)}\
-  .l360-header-top{flex-wrap:wrap}\
-  .l360-header-metrics{border-left:none;padding-left:0;flex-direction:row;gap:20px;margin-top:10px}\
-}\
-@media(max-width:768px){\
-  .l360-kpi-row{grid-template-columns:repeat(2,1fr)}\
-  .l360-actions{flex-wrap:wrap}\
-  .l360-funnel{flex-wrap:wrap;gap:8px}\
-  .l360-funnel-line{display:none}\
-  .l360-funnel-label{position:static;transform:none;margin-top:4px}\
-  .l360-funnel-step{flex-direction:column;align-items:center;flex:0 0 auto}\
-}\
-@media(max-width:640px){\
-  .l360{padding:10px 10px 32px}\
-  .l360-header-top{padding:16px 14px 12px;gap:12px}\
-  .l360-photo{width:64px;height:64px;font-size:20px}\
-  .l360-name{font-size:17px}\
-  .l360-kpi-value{font-size:22px}\
-  .l360-actions{padding:10px 14px}\
-  .l360-action-btn{padding:6px 10px;font-size:11px}\
-}\
-';
-  document.head.appendChild(s);
-}
