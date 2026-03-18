@@ -8,7 +8,7 @@ var viewModes = {};
 
 function getViewMode(objKey) {
   if (!viewModes[objKey]) {
-    viewModes[objKey] = (objKey==='opportunities'||objKey==='leads') ? 'kanban' : 'list';
+    viewModes[objKey] = 'list';
   }
   return viewModes[objKey];
 }
@@ -393,7 +393,7 @@ function renderObjHeader(objKey, cfg, headerEl) {
   var mode = getViewMode(objKey);
   var vs = '';
   if (cfg.hasKanban) {
-    var views = [{key:'kanban',icon:'kanban',label:'Kanban'},{key:'list',icon:'list',label:'List'},{key:'calendar',icon:'calendarView',label:'Calendar'},{key:'analytics',icon:'chart',label:'Analytics'}];
+    var views = [{key:'kanban',icon:'kanban',label:'Kanban'},{key:'list',icon:'list',label:'List'}];
     vs = '<div class="view-switcher">' + views.map(function(v){
       return '<button class="view-sw-btn '+(mode===v.key?'active':'')+'" data-view="'+v.key+'">'+svgIcon(v.icon,14)+' <span>'+v.label+'</span></button>';
     }).join('') + '</div>';
