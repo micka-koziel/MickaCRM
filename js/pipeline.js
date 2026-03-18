@@ -542,15 +542,22 @@ function renderObjContent(objKey, cfg, mode, contentEl) {
 
   var filterHTML = renderFilterPanel(objKey, cfg);
   var isPipelineObj = (objKey === 'opportunities' || objKey === 'leads');
+  var hasObjInsights = (objKey === 'projects' || objKey === 'quotes' || objKey === 'claims' || objKey === 'activities');
 
   if (mode==='kanban' && cfg.hasKanban) {
     contentEl.innerHTML = filterHTML;
-    /* Pipeline Insight Section for Opps & Leads */
     if (isPipelineObj) {
       injectPipelineInsightStyles();
       var insightDiv = document.createElement('div');
       insightDiv.innerHTML = renderPipelineInsights(objKey, cfg, filtered) + renderLifecycleSummary(objKey, cfg, filtered);
       contentEl.appendChild(insightDiv);
+    }
+    if (hasObjInsights) {
+      injectPipelineInsightStyles();
+      injectObjInsightStyles();
+      var oiDiv = document.createElement('div');
+      oiDiv.innerHTML = renderObjectInsights(objKey, cfg, filtered);
+      contentEl.appendChild(oiDiv);
     }
     var kanbanContainer = document.createElement('div');
     contentEl.appendChild(kanbanContainer);
@@ -558,7 +565,6 @@ function renderObjContent(objKey, cfg, mode, contentEl) {
     bindFilterEvents(objKey, cfg, contentEl);
   }
   else if (mode==='list') {
-    /* V2 list views handle their own filter UI */
     var isV2Obj = (objKey === 'contacts' || objKey === 'accounts') && typeof renderListViewV2 === 'function';
     contentEl.innerHTML = isV2Obj ? '' : filterHTML;
     if (isPipelineObj) {
@@ -567,9 +573,15 @@ function renderObjContent(objKey, cfg, mode, contentEl) {
       insightDiv2.innerHTML = renderPipelineInsights(objKey, cfg, filtered) + renderLifecycleSummary(objKey, cfg, filtered);
       contentEl.appendChild(insightDiv2);
     }
+    if (hasObjInsights) {
+      injectPipelineInsightStyles();
+      injectObjInsightStyles();
+      var oiDiv2 = document.createElement('div');
+      oiDiv2.innerHTML = renderObjectInsights(objKey, cfg, filtered);
+      contentEl.appendChild(oiDiv2);
+    }
     var listContainer = document.createElement('div');
     contentEl.appendChild(listContainer);
-    /* V2 enhanced list for contacts & accounts */
     if ((objKey === 'contacts' || objKey === 'accounts') && typeof renderListViewV2 === 'function') {
       renderListViewV2(filtered, cfg.columns, listContainer, objKey);
     } else if (objKey === 'products' && typeof renderProductGallery === 'function') {
@@ -859,6 +871,253 @@ function renderAnalyticsView(objKey, cfg, items) {
   h += '</div></div>';
   h += '</div>';
   return h;
+}
+
+/* ═══════════════════════════════════════════════════════
+   OBJECT INSIGHTS — Projects / Quotes / Claims / Activities
+   ═══════════════════════════════════════════════════════ */
+
+function _oiDonut(data, total, size) {
+  size = size || 80;
+  var cx=50, cy=50, r=38, circ=2*Math.PI*r, offset=0;
+  var s = '<div style="position:relative;width:'+size+'px;height:'+size+'px;flex-shrink:0">';
+  s += '<svg viewBox="0 0 100 100" width="'+size+'" height="'+size+'">';
+  s += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="#f1f5f9" stroke-width="10"/>';
+  data.forEach(function(d){
+    var pct=d.count/(total||1), dl=pct*circ;
+    s += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+d.color+'" stroke-width="10" stroke-dasharray="'+dl+' '+(circ-dl)+'" stroke-dashoffset="-'+offset+'" style="transition:all .5s"/>';
+    offset += dl;
+  });
+  s += '</svg><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">';
+  s += '<span style="font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.5px">'+total+'</span></div></div>';
+  return s;
+}
+
+function _oiKpi(label, value, sub, color) {
+  color = color || 'var(--accent)';
+  return '<div class="pi-card" style="padding:12px 14px;gap:2px">' +
+    '<span style="font-size:9.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">'+label+'</span>' +
+    '<span style="font-size:22px;font-weight:800;color:'+color+';letter-spacing:-.5px;line-height:1.1">'+value+'</span>' +
+    (sub ? '<span style="font-size:10px;color:var(--text-light);font-weight:500">'+sub+'</span>' : '') + '</div>';
+}
+
+function _oiLegendRow(color, label, count) {
+  return '<div style="display:flex;align-items:center;gap:6px">' +
+    '<span style="width:7px;height:7px;border-radius:50%;background:'+color+';flex-shrink:0"></span>' +
+    '<span style="font-size:11px;font-weight:500;color:var(--text-muted);flex:1">'+label+'</span>' +
+    '<span style="font-size:12px;font-weight:700;color:var(--text)">'+count+'</span></div>';
+}
+
+function _oiBarDist(data, maxCount) {
+  var h = '';
+  data.forEach(function(d) {
+    var pct = Math.max((d.count/(maxCount||1))*100, d.count>0?12:0);
+    h += '<div class="pi-dist-row"><span class="pi-dist-label">'+d.label+'</span>' +
+      '<div class="pi-dist-track"><div class="pi-dist-fill" style="width:'+pct+'%;background:'+d.color+'"></div></div>' +
+      '<span class="pi-dist-count">'+d.count+'</span></div>';
+  });
+  return h;
+}
+
+function _oiValBarDist(data, maxVal) {
+  var h = '';
+  data.forEach(function(d) {
+    if (d.total <= 0) return;
+    var pct = Math.max((d.total/(maxVal||1))*100, 8);
+    h += '<div class="pi-dist-row"><span class="pi-dist-label">'+d.label+'</span>' +
+      '<div class="pi-dist-track"><div class="pi-dist-fill" style="width:'+pct+'%;background:'+d.color+'"></div></div>' +
+      '<span style="width:50px;font-size:10px;font-weight:700;color:var(--text);text-align:right">'+_piAmt(d.total)+'</span></div>';
+  });
+  return h;
+}
+
+function _oiTopList(items, valKey, labelKey, subFn, maxN) {
+  maxN = maxN || 5;
+  var sorted = items.slice().sort(function(a,b){ return (b[valKey]||0)-(a[valKey]||0); });
+  var h = '';
+  sorted.slice(0, maxN).forEach(function(item, i) {
+    h += '<div class="pi-top-row"><span class="pi-top-rank">#'+(i+1)+'</span>' +
+      '<div class="pi-top-info"><span class="pi-top-name">'+(item[labelKey]||item.name||item.title||'—')+'</span>' +
+      '<span class="pi-top-account">'+(subFn?subFn(item):'')+'</span></div>' +
+      '<span class="pi-top-val">'+_piAmt(item[valKey]||0)+'</span></div>';
+  });
+  return h;
+}
+
+/* ─── Dispatch ───────────────────────────────────────── */
+
+function renderObjectInsights(objKey, cfg, items) {
+  if (objKey === 'projects')   return _oiProjectInsights(cfg, items);
+  if (objKey === 'quotes')     return _oiQuoteInsights(items);
+  if (objKey === 'claims')     return _oiClaimInsights(items);
+  if (objKey === 'activities') return _oiActivityInsights(items);
+  return '';
+}
+
+/* ── PROJECTS ──────────────────────────────────────── */
+
+function _oiProjectInsights(cfg, items) {
+  var stages = STAGES.projects || [];
+  var stageData = stages.map(function(s) {
+    var si = items.filter(function(p){ return p.stage===s.key; });
+    return { label:s.label, color:s.color, count:si.length, total:si.reduce(function(sum,p){ return sum+(p.value||0); },0) };
+  });
+  var maxC = Math.max.apply(null, stageData.map(function(d){ return d.count; }))||1;
+  var totalVal = items.reduce(function(s,p){ return s+(p.value||0); },0);
+  var healthMap = {Healthy:'#10b981',Attention:'#f59e0b','At Risk':'#ef4444'};
+  var healthData = ['Healthy','Attention','At Risk'].map(function(hl){
+    return { label:hl, color:healthMap[hl], count:items.filter(function(p){ return p.health===hl; }).length };
+  });
+  var totalH = healthData.reduce(function(s,d){ return s+d.count; },0);
+
+  var h = '<div class="pi-section"><div class="pi-cards-row">';
+  h += '<div class="pi-card"><div class="pi-card-head"><span class="pi-card-title">Phase Distribution</span></div>';
+  h += '<div class="pi-dist">'+_oiBarDist(stageData, maxC)+'</div>';
+  h += '<div class="pi-dist-footer"><span class="pi-funnel-total-icon">&#9660;</span> <strong>'+_piAmt(totalVal)+'</strong>' +
+    '<span style="margin-left:auto;font-size:10px;color:var(--text-light)">'+items.length+' projects</span></div></div>';
+  h += '<div class="pi-card"><div class="pi-card-head"><span class="pi-card-title">Health Status</span></div>';
+  h += '<div class="pi-donut-wrap"><div class="pi-donut-chart">'+_oiDonut(healthData,totalH,92)+'</div>';
+  h += '<div class="pi-donut-legend">';
+  healthData.forEach(function(d){ h += _oiLegendRow(d.color, d.label, d.count); });
+  h += '</div></div></div>';
+  h += '<div class="pi-card"><div class="pi-card-head"><span class="pi-card-title">Top Projects by Value</span></div>';
+  h += '<div class="pi-top-list">'+_oiTopList(items,'value','name',function(p){ return getAccountName(p.account); },5)+'</div></div>';
+  h += '</div></div>';
+  return h;
+}
+
+/* ── QUOTES ────────────────────────────────────────── */
+
+function _oiQuoteInsights(items) {
+  var qStages = [
+    {key:'Draft',label:'Draft',color:'#94a3b8'},
+    {key:'Internal Review',label:'Internal Review',color:'#8b5cf6'},
+    {key:'Sent',label:'Sent',color:'#3b82f6'},
+    {key:'Negotiation',label:'Negotiation',color:'#f59e0b'},
+    {key:'Accepted',label:'Accepted',color:'#10b981'}
+  ];
+  var stageData = qStages.map(function(s){
+    var si = items.filter(function(q){ return q.stage===s.key; });
+    return { label:s.label, color:s.color, count:si.length, total:si.reduce(function(sum,q){ return sum+(q.value||0); },0) };
+  });
+  var maxC = Math.max.apply(null, stageData.map(function(d){ return d.count; }))||1;
+  var maxVal = Math.max.apply(null, stageData.map(function(d){ return d.total; }))||1;
+  var totalVal = items.reduce(function(s,q){ return s+(q.value||0); },0);
+  var accepted = items.filter(function(q){ return q.stage==='Accepted'; });
+  var acceptedVal = accepted.reduce(function(s,q){ return s+(q.value||0); },0);
+  var winRate = items.length>0 ? Math.round((accepted.length/items.length)*100) : 0;
+  var avgDiscount = items.length>0 ? (items.reduce(function(s,q){ return s+(q.discount||0); },0)/items.length).toFixed(1) : 0;
+
+  var h = '<div class="pi-section"><div class="oi-kpi-row">';
+  h += _oiKpi('Total Pipeline', _piAmt(totalVal), items.length+' quotes');
+  h += _oiKpi('Win Rate', winRate+'%', accepted.length+' accepted', 'var(--success)');
+  h += _oiKpi('Won Value', _piAmt(acceptedVal), 'closed quotes', 'var(--success)');
+  h += _oiKpi('Avg. Discount', avgDiscount+'%', 'across all quotes', 'var(--warning)');
+  h += '</div></div>';
+  h += '<div class="pi-section" style="padding-top:6px"><div class="oi-two-col">';
+  h += '<div class="pi-card"><div class="pi-card-head"><span class="pi-card-title">Stage Distribution</span></div>';
+  h += '<div class="pi-dist">'+_oiBarDist(stageData, maxC)+'</div>';
+  h += '<div class="pi-dist-footer"><span class="pi-funnel-total-icon">&#9660;</span> <strong>'+_piAmt(totalVal)+'</strong>' +
+    '<span style="margin-left:auto;font-size:10px;color:var(--text-light)">'+items.length+' quotes</span></div></div>';
+  h += '<div class="pi-card"><div class="pi-card-head"><span class="pi-card-title">Value by Stage</span></div>';
+  h += '<div class="pi-dist">'+_oiValBarDist(stageData, maxVal)+'</div></div>';
+  h += '</div></div>';
+  return h;
+}
+
+/* ── CLAIMS ────────────────────────────────────────── */
+
+function _oiClaimInsights(items) {
+  var clStatuses = [
+    {key:'Open',label:'Open',color:'#ef4444'},{key:'Investigation',label:'Investigation',color:'#f59e0b'},
+    {key:'In Progress',label:'In Progress',color:'#f59e0b'},{key:'Negotiation',label:'Negotiation',color:'#3b82f6'},
+    {key:'Resolved',label:'Resolved',color:'#10b981'},{key:'Closed',label:'Closed',color:'#94a3b8'}
+  ];
+  var openItems = items.filter(function(c){ return c.status==='Open'||c.status==='Investigation'||c.status==='In Progress'; });
+  var resolved = items.filter(function(c){ return c.status==='Resolved'||c.status==='Closed'; });
+  var totalImpact = items.reduce(function(s,c){ return s+(c.impactValue||0); },0);
+  var openImpact = openItems.reduce(function(s,c){ return s+(c.impactValue||0); },0);
+  var highCount = items.filter(function(c){ return c.priority==='High'||c.priority==='Critical'; }).length;
+  var statusData = clStatuses.map(function(s){
+    return { label:s.label, color:s.color, count:items.filter(function(c){ return c.status===s.key; }).length };
+  }).filter(function(d){ return d.count>0; });
+  var totalS = statusData.reduce(function(s,d){ return s+d.count; },0);
+  var cats = {};
+  items.forEach(function(c){ if(c.category) cats[c.category]=(cats[c.category]||0)+1; });
+  var catColors = {'Supply Chain':'#3b82f6',Quality:'#8b5cf6',Safety:'#ef4444',Contractual:'#f59e0b',Logistics:'#10b981',Other:'#94a3b8'};
+  var catData = Object.keys(cats).map(function(k){ return { label:k, color:catColors[k]||'#94a3b8', count:cats[k] }; });
+  var maxCat = Math.max.apply(null, catData.map(function(d){ return d.count; }).concat([1]));
+
+  var h = '<div class="pi-section"><div class="oi-kpi-row">';
+  h += _oiKpi('Open Claims', openItems.length, _piAmt(openImpact)+' at risk', 'var(--danger)');
+  h += _oiKpi('Resolved', resolved.length, 'of '+items.length+' total', 'var(--success)');
+  h += _oiKpi('Total Impact', _piAmt(totalImpact), items.length+' claims');
+  h += _oiKpi('High / Critical', highCount, 'priority claims', 'var(--danger)');
+  h += '</div></div>';
+  h += '<div class="pi-section" style="padding-top:6px"><div class="oi-two-col">';
+  h += '<div class="pi-card"><div class="pi-card-head"><span class="pi-card-title">Status Breakdown</span></div>';
+  h += '<div class="pi-donut-wrap"><div class="pi-donut-chart">'+_oiDonut(statusData,totalS,92)+'</div>';
+  h += '<div class="pi-donut-legend">';
+  statusData.forEach(function(d){ h += _oiLegendRow(d.color, d.label, d.count); });
+  h += '</div></div></div>';
+  h += '<div class="pi-card"><div class="pi-card-head"><span class="pi-card-title">Claims by Category</span></div>';
+  h += '<div class="pi-dist">'+_oiBarDist(catData, maxCat)+'</div></div>';
+  h += '</div></div>';
+  return h;
+}
+
+/* ── ACTIVITIES ────────────────────────────────────── */
+
+function _oiActivityInsights(items) {
+  var actTypes = [
+    {key:'Call',label:'Calls',color:'#3b82f6'},{key:'Meeting',label:'Meetings',color:'#8b5cf6'},
+    {key:'Email',label:'Emails',color:'#10b981'},{key:'Site Visit',label:'Site Visits',color:'#ef4444'}
+  ];
+  var typeData = actTypes.map(function(t){
+    return { label:t.label, color:t.color, count:items.filter(function(a){ return a.type===t.key; }).length };
+  });
+  var totalT = typeData.reduce(function(s,d){ return s+d.count; },0);
+  var completed = items.filter(function(a){ return a.status==='Completed'; }).length;
+  var planned = items.filter(function(a){ return a.status==='Planned'; }).length;
+  var completionRate = items.length>0 ? Math.round((completed/items.length)*100) : 0;
+
+  var h = '<div class="pi-section"><div class="oi-kpi-row">';
+  h += _oiKpi('Total Activities', items.length, 'all types');
+  h += _oiKpi('Completed', completed, completionRate+'% completion', 'var(--success)');
+  h += _oiKpi('Planned', planned, 'upcoming', 'var(--text-light)');
+  h += '<div class="pi-card"><div class="pi-card-head"><span class="pi-card-title">By Type</span></div>';
+  h += '<div style="display:flex;align-items:center;gap:14px;flex:1">';
+  h += '<div class="pi-donut-chart">'+_oiDonut(typeData,totalT,70)+'</div>';
+  h += '<div style="display:flex;flex-direction:column;gap:5px;flex:1">';
+  typeData.forEach(function(d){
+    h += '<div style="display:flex;align-items:center;gap:5px">' +
+      '<span style="width:6px;height:6px;border-radius:50%;background:'+d.color+';flex-shrink:0"></span>' +
+      '<span style="font-size:10px;color:var(--text-muted);flex:1">'+d.label+'</span>' +
+      '<span style="font-size:11px;font-weight:700;color:var(--text)">'+d.count+'</span></div>';
+  });
+  h += '</div></div></div>';
+  h += '</div></div>';
+  return h;
+}
+
+/* ─── Object Insight CSS ─────────────────────────────── */
+
+function injectObjInsightStyles() {
+  if (document.getElementById('oi-css')) return;
+  var s = document.createElement('style'); s.id = 'oi-css';
+  s.textContent = '\
+.oi-kpi-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}\
+.oi-two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}\
+@media(max-width:1024px){\
+  .oi-kpi-row{grid-template-columns:1fr 1fr}\
+  .oi-two-col{grid-template-columns:1fr 1fr}\
+}\
+@media(max-width:640px){\
+  .oi-kpi-row{grid-template-columns:1fr 1fr}\
+  .oi-two-col{grid-template-columns:1fr}\
+}\
+';
+  document.head.appendChild(s);
 }
 
 /* ─── Pipeline Insight Styles ─────────────────────────── */
