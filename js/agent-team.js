@@ -35,7 +35,7 @@ var AT_AGENTS = [
     id:'camille', name:'Camille Dubois', role:'Business Strategist', title:'Revenue Ops Lead',
     specialty:'Business Intelligence', color:'#f59e0b', accent:'#d97706',
     greeting:'Camille here. What commercial objective are you targeting?',
-    skills:['Deal Risk Analysis','Next Best Action','Win Rate','Conversion Funnel'],
+    skills:['Deal Risk Analysis','Next Best Action'],
     keywords:['business','commercial','pipeline','opportunit','deal','risk','risque','win','conversion','funnel','entonnoir','action','revenue','chiffre'],
     stats:{resolved:623,rating:4.8,avgTime:'3m 45s'}
   },
@@ -89,9 +89,9 @@ function atDetectBestAgent(msg) {
 function atGetSuggestions(agentId) {
   var map = {
     nora: ['Merge duplicates', 'Orphan accounts', 'Non-completed fields'],
-    hugo: ['Create a user', 'Deactivate a user', 'Reset password', 'Change role', 'New field creation', 'Delete a field'],
+    hugo: ['Create a user', 'Deactivate a user', 'Reset password', 'Change role', 'New field creation'],
     karim: ['Audit log viewer', 'Inactive users scan', 'Login activity', 'Sensitive data exposure'],
-    camille: ['Top deals at risk', 'Next best action', 'Win rate analysis', 'Conversion funnel'],
+    camille: ['Top deals at risk', 'Next best action'],
     leo: ['CRM Tour', 'Quiz me', 'My score', 'Daily challenge', 'Tips & tricks', 'Leaderboard']
   };
   return (map[agentId] || []);
@@ -160,7 +160,7 @@ function atRenderTeam(el) {
   var html =
     '<div class="at-team-header">' +
       '<div class="at-team-header-title">Agent Team</div>' +
-      '<div class="at-team-header-sub">5 AI experts — 23 commands</div>' +
+      '<div class="at-team-header-sub">5 AI experts — 20 commands</div>' +
       '<button class="at-close-btn" onclick="AT_OPEN=false;document.getElementById(\'at-window\').classList.remove(\'open\')">'+svgIcon('x',14)+'</button>' +
     '</div>' +
     '<div class="at-team-list">';

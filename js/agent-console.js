@@ -515,7 +515,6 @@ function acFormatMsg(text, isUser) {
 
 /* ── Scripted Scenario Engine ── (UNCHANGED from V2) ──── */
 var AC_SCENARIOS = [
-  {keywords:['doublon','duplicate','doublons','duplicates','merge'],actionId:'dq1',responses:{delegated:'✅ Action réalisée : Analyse des doublons terminée.\n\n3 doublons détectés et fusionnés :\n• "Bouygues Construction" et "Bouygues Constr." → fusionnés (compte principal : a1)\n• "Vinci Immobilier" et "VINCI Immo" → fusionnés (compte principal : a2)\n• "Eiffage GC" et "Eiffage Génie Civil" → fusionnés (compte principal : a3)\n\n7 contacts et 4 opportunités ont été rattachés automatiquement aux comptes principaux.',supervised:'🔄 Action préparée — soumise à validation admin :\n\n3 doublons identifiés pour fusion :\n• "Bouygues Construction" / "Bouygues Constr." → fusion proposée vers a1\n• "Vinci Immobilier" / "VINCI Immo" → fusion proposée vers a2\n• "Eiffage GC" / "Eiffage Génie Civil" → fusion proposée vers a3\n\nLa fusion sera exécutée après validation d\'un administrateur.',escalated:'⚠️ [ESCALADE] Fusion de doublons comptes\nCette action nécessite une intervention admin. Ticket d\'escalade créé.\nRaison : La fusion de comptes peut impacter les relations, opportunités et historique. Un administrateur doit valider les correspondances proposées.'}},
   {keywords:['champ','vide','vides','missing','incomplet','incomplete','manquant'],actionId:'dq2',responses:{delegated:'✅ Action réalisée : Audit des champs obligatoires terminé.\n\n12 enregistrements avec des champs manquants détectés :\n\nContacts (6) :\n• Claire Rousseau — email manquant\n• Antoine Mercier — téléphone manquant\n• Nathalie Petit — email et téléphone manquants\n• 3 autres contacts — champ "role" vide\n\nComptes (4) :\n• NGE Fondations — secteur d\'activité manquant\n• Razel-Bec — adresse incomplète\n• 2 autres — champ "pipeline" à 0 sans opportunités\n\nOpportunités (2) :\n• Flaubert Bridge Phase 2 — date de clôture dépassée\n• Port de Nice Quai Sud — probabilité non renseignée',supervised:'🔄 Action préparée — soumise à validation admin :\n\n12 enregistrements avec champs manquants identifiés (6 contacts, 4 comptes, 2 opportunités). Un rapport détaillé a été généré. L\'envoi des notifications aux propriétaires de fiches sera effectué après validation.',escalated:'⚠️ [ESCALADE] Audit champs manquants\nCette action nécessite une intervention admin.'}},
   {keywords:['format','adresse','address','telephone','phone','standardis'],actionId:'dq3',responses:{delegated:'✅ Action réalisée : Standardisation des formats terminée.\n\n48 numéros de téléphone reformatés au format international (+33 X XX XX XX XX)\n12 adresses normalisées (capitalisation, code postal vérifié)\n3 emails corrigés (espaces supprimés, domaine vérifié)',supervised:'🔄 Action préparée — soumise à validation admin :\n\n48 numéros, 12 adresses et 3 emails identifiés pour standardisation. Aperçu des modifications disponible. Exécution après validation.',escalated:'⚠️ [ESCALADE] Standardisation des formats\nCette action nécessite une intervention admin.'}},
   {keywords:['enrichi','enrich','données publiques','public sources'],actionId:'dq5',responses:{delegated:'✅ Action réalisée : Enrichissement de données effectué.\n\nComptes enrichis depuis les sources publiques :\n• NGE Fondations — CA ajouté (420M€), effectif (2,800), SIRET vérifié\n• Razel-Bec — adresse siège mise à jour, secteur NAF corrigé\n• Implenia TP — lien LinkedIn corporate ajouté, dirigeant mis à jour',supervised:'🔄 Action préparée — soumise à validation admin :\n\n3 comptes identifiés pour enrichissement. Application après validation admin.',escalated:'⚠️ [ESCALADE] Enrichissement de données depuis sources publiques\nCette action nécessite une intervention admin.'}},
@@ -554,7 +553,6 @@ var AC_SCENARIOS = [
   {keywords:['reset password','reset pwd','réinitialiser mot de passe','reset mot de passe','password reset'],actionId:'hugo_reset_pwd',responses:{delegated:null,supervised:null,escalated:null}},
   {keywords:['change role','changer role','changer rôle','modifier role','update role','switch role'],actionId:'hugo_change_role',responses:{delegated:null,supervised:null,escalated:null}},
   {keywords:['new field creation','nouveau champ','créer champ','create field','add field','ajouter champ','new field'],actionId:'hugo_new_field',responses:{delegated:null,supervised:null,escalated:null}},
-  {keywords:['delete a field','delete field','supprimer champ','remove field','supprime champ','supprimer un champ'],actionId:'hugo_delete_field',responses:{delegated:null,supervised:null,escalated:null}},
   /* ── KARIM: 4 Security commands ── */
   {keywords:['audit log','audit log viewer','journal audit','log viewer','voir audit','historique actions'],actionId:'karim_audit_log',responses:{delegated:null,supervised:null,escalated:null}},
   {keywords:['inactive users','utilisateurs inactifs','inactive scan','users inactifs','dormant','inactive users scan'],actionId:'karim_inactive_scan',responses:{delegated:null,supervised:null,escalated:null}},
@@ -563,8 +561,6 @@ var AC_SCENARIOS = [
   /* ── CAMILLE: 4 Business commands ── */
   {keywords:['deals at risk','top deals','deals risk','opportunités à risque','deals à risque','risk deals','at risk'],actionId:'camille_deals_risk',responses:{delegated:null,supervised:null,escalated:null}},
   {keywords:['next best action','prochaine action','best action','next action','nba','recommandation'],actionId:'camille_nba',responses:{delegated:null,supervised:null,escalated:null}},
-  {keywords:['win rate','taux de gain','win rate analysis','taux conversion won','ratio won','won rate'],actionId:'camille_win_rate',responses:{delegated:null,supervised:null,escalated:null}},
-  {keywords:['conversion funnel','funnel','entonnoir','conversion','funnel analysis','leads to won','pipeline funnel'],actionId:'camille_funnel',responses:{delegated:null,supervised:null,escalated:null}},
   /* ── LEO: 6 Trainer commands ── */
   {keywords:['crm tour','tour','guided tour','visite guidée','onboarding','discover crm'],actionId:'leo_tour',responses:{delegated:null,supervised:null,escalated:null}},
   {keywords:['quiz me','quiz','qcm','test me','question','evaluate'],actionId:'leo_quiz',responses:{delegated:null,supervised:null,escalated:null}},
@@ -1502,7 +1498,6 @@ function acMatchScenario(msg) {
     return '<div style="margin-top:10px"><button onclick="'+oc+'" style="background:#7c3aed12;color:#7c3aed;border:1px solid #7c3aed30;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">→ '+label+'</button></div>';
   };
   if (level === 'delegated') {
-    if (bestMatch.actionId === 'dq1') { var r=acMutateMergeDuplicates(); acShowToast('Duplicates Merged',r.removed+' accounts merged','#10b981'); return bestMatch.responses.delegated+'\n%%HTML%%'+_vb('Verify in Accounts','accounts')+'%%/HTML%%'; }
     if (bestMatch.actionId === 'dq3') { var r=acMutateStandardizePhones(); acShowToast('Phones Standardized',r.count+' contacts updated','#10b981'); return bestMatch.responses.delegated+'\n%%HTML%%'+_vb('Verify in Contacts','contacts')+'%%/HTML%%'; }
     if (bestMatch.actionId === 'um1') { if (typeof umChatResetPwd === 'function' && UM_LOADED) return umChatResetPwd(msg); var uname=acMutateResetPassword(msg); acShowToast('Password Reset','Email sent to '+uname,'#10b981'); return '✅ Action réalisée : Mot de passe de '+uname+' réinitialisé.\n%%HTML%%'+_vb('View in Activities','activities')+'%%/HTML%%'; }
     if (bestMatch.actionId === 'um4') { if (typeof umChatCreateUser === 'function' && UM_LOADED) return umChatCreateUser(msg); var nu=acMutateCreateUser(); acShowToast('User Created',nu.name+' added','#10b981'); return '✅ Action réalisée : Nouveau compte créé.\n\n• Nom : '+nu.name+'\n• Email : '+nu.email+'\n%%HTML%%'+_vb('Open '+nu.name,'contacts')+'%%/HTML%%'; }
@@ -1526,7 +1521,6 @@ function acMatchScenario(msg) {
   if (bestMatch.actionId==='hugo_reset_pwd') { return hugoResetPassword(); }
   if (bestMatch.actionId==='hugo_change_role') { return hugoChangeRole(); }
   if (bestMatch.actionId==='hugo_new_field') { return hugoNewField(); }
-  if (bestMatch.actionId==='hugo_delete_field') { return hugoDeleteField(); }
   /* ── KARIM: 4 Security commands ── */
   if (bestMatch.actionId==='karim_audit_log') { return karimAuditLog(); }
   if (bestMatch.actionId==='karim_inactive_scan') { return karimInactiveScan(); }
@@ -1535,8 +1529,6 @@ function acMatchScenario(msg) {
   /* ── CAMILLE: 4 Business commands ── */
   if (bestMatch.actionId==='camille_deals_risk') { return camilleDealsAtRisk(); }
   if (bestMatch.actionId==='camille_nba') { return camilleNextBestAction(); }
-  if (bestMatch.actionId==='camille_win_rate') { return camilleWinRate(); }
-  if (bestMatch.actionId==='camille_funnel') { return camilleConversionFunnel(); }
   /* ── LEO: 6 Trainer commands ── */
   if (bestMatch.actionId==='leo_tour') { return leoCrmTour(); }
   if (bestMatch.actionId==='leo_quiz') { return leoQuizMe(); }
@@ -1606,72 +1598,104 @@ function _noraPushMsgAs(agentId,msgText) {
   }
 }
 
+/* Helper: get users from UM_USERS or Firestore cache */
+function _hugoGetUsers(activeOnly) {
+  var users = [];
+  if (typeof UM_USERS !== 'undefined' && UM_USERS.length > 0) {
+    users = UM_USERS;
+  } else if (typeof window._UM_USERS_CACHE !== 'undefined' && window._UM_USERS_CACHE.length > 0) {
+    users = window._UM_USERS_CACHE;
+  }
+  if (activeOnly) return users.filter(function(u) { return u.status === 'Active'; });
+  return users;
+}
+
 function hugoDeactivateUser() {
-  var users=(typeof UM_USERS!=='undefined')?UM_USERS.filter(function(u){return u.status==='Active'}):[];
-  if(!users.length) return 'No active users found.';
-  var opts=users.map(function(u){return'<option value="'+u.id+'">'+u.name+' ('+u.role+')</option>'}).join('');
-  var html='<div style="background:#fff;border:1px solid #8b5cf630;border-radius:12px;padding:14px;margin:6px 0"><div style="font-weight:600;margin-bottom:10px;font-size:12px;color:#8b5cf6">Deactivate User</div><select id="hugo-deact-sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;outline:none;font-family:inherit;margin-bottom:6px;box-sizing:border-box">'+opts+'</select><button onclick="hugoDeactivateExec()" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:#ef4444;color:#fff;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit">Deactivate</button></div>';
+  var users = _hugoGetUsers(true);
+  if (!users.length) return 'No active users found. Make sure User Management is loaded.';
+  var opts = users.map(function(u) { return '<option value="'+u.id+'">'+u.name+' ('+u.role+')</option>'; }).join('');
+  var html = '<div style="background:#fff;border:1px solid #8b5cf630;border-radius:12px;padding:14px;margin:6px 0">' +
+    '<div style="font-weight:600;margin-bottom:10px;font-size:12px;color:#8b5cf6">Deactivate User</div>' +
+    '<select id="hugo-deact-sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;outline:none;font-family:inherit;margin-bottom:6px;box-sizing:border-box">'+opts+'</select>' +
+    '<button onclick="hugoDeactivateExec()" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:#ef4444;color:#fff;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit">Deactivate</button></div>';
   return 'Select the user to deactivate:\n%%HTML%%'+html+'%%/HTML%%';
 }
 function hugoDeactivateExec() {
-  var sel=document.getElementById('hugo-deact-sel'); if(!sel) return;
-  var uid=sel.value;var user=(typeof UM_USERS!=='undefined')?UM_USERS.find(function(u){return u.id===uid}):null;
-  if(!user) return;
-  user.status='Inactive';
-  if(typeof firebase!=='undefined'){try{firebase.firestore().collection('users').doc(uid).update({status:'Inactive'})}catch(e){}}
-  var msg='User deactivated.\n%%HTML%%<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div style="width:18px;height:18px;border-radius:50%;background:#ef4444;display:flex;align-items:center;justify-content:center"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg></div><span style="font-weight:600;color:#ef4444">User Deactivated</span></div><div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 12px;font-size:12px"><strong>'+user.name+'</strong> — Active → Inactive</div><div style="font-size:11px;color:#2563eb;margin-top:4px;cursor:pointer" onclick="navigate(\'record\',\'users\',\''+uid+'\')">View User 360 →</div>%%/HTML%%';
-  _noraPushMsgAs('hugo',msg);
+  var sel = document.getElementById('hugo-deact-sel'); if (!sel) return;
+  var uid = sel.value;
+  var users = _hugoGetUsers(false);
+  var user = users.find(function(u) { return u.id === uid; });
+  if (!user) return;
+  user.status = 'Inactive';
+  if (typeof firebase !== 'undefined') { try { firebase.firestore().collection('users').doc(uid).update({status:'Inactive'}); } catch(e) {} }
+  var msg = 'User deactivated.\n%%HTML%%<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div style="width:18px;height:18px;border-radius:50%;background:#ef4444;display:flex;align-items:center;justify-content:center"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg></div><span style="font-weight:600;color:#ef4444">User Deactivated</span></div><div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 12px;font-size:12px"><strong>'+user.name+'</strong> — Active → Inactive</div><div style="font-size:11px;color:#2563eb;margin-top:4px;cursor:pointer" onclick="navigate(\'record\',\'users\',\''+uid+'\')">View User 360 →</div>%%/HTML%%';
+  _noraPushMsgAs('hugo', msg);
 }
 
 function hugoResetPassword() {
-  var users=(typeof UM_USERS!=='undefined')?UM_USERS:[];
-  if(!users.length) return 'No users found.';
-  var opts=users.map(function(u){return'<option value="'+u.id+'">'+u.name+'</option>'}).join('');
-  var html='<div style="background:#fff;border:1px solid #8b5cf630;border-radius:12px;padding:14px;margin:6px 0"><div style="font-weight:600;margin-bottom:10px;font-size:12px;color:#8b5cf6">Reset Password</div><select id="hugo-reset-sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;outline:none;font-family:inherit;margin-bottom:6px;box-sizing:border-box">'+opts+'</select><button onclick="hugoResetPwdExec()" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit">Send Reset Email</button></div>';
+  var users = _hugoGetUsers(false);
+  if (!users.length) return 'No users found. Make sure User Management is loaded.';
+  var opts = users.map(function(u) { return '<option value="'+u.id+'">'+u.name+'</option>'; }).join('');
+  var html = '<div style="background:#fff;border:1px solid #8b5cf630;border-radius:12px;padding:14px;margin:6px 0">' +
+    '<div style="font-weight:600;margin-bottom:10px;font-size:12px;color:#8b5cf6">Reset Password</div>' +
+    '<select id="hugo-reset-sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;outline:none;font-family:inherit;margin-bottom:6px;box-sizing:border-box">'+opts+'</select>' +
+    '<button onclick="hugoResetPwdExec()" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit">Send Reset Email</button></div>';
   return 'Select user to reset password:\n%%HTML%%'+html+'%%/HTML%%';
 }
 function hugoResetPwdExec() {
-  var sel=document.getElementById('hugo-reset-sel'); if(!sel) return;
-  var uid=sel.value;var user=(typeof UM_USERS!=='undefined')?UM_USERS.find(function(u){return u.id===uid}):null;
-  if(!user) return;
-  if(typeof firebase!=='undefined'){try{firebase.auth().sendPasswordResetEmail('mickael.koziel@gmail.com')}catch(e){}}
-  var msg='Password reset email sent.\n%%HTML%%<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div style="width:18px;height:18px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><span style="font-weight:600;color:#10b981">Password Reset Sent</span></div><div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;font-size:12px">Email sent to <strong>mickael.koziel@gmail.com</strong><br/><span style="color:#94a3b8">For user: '+user.name+'</span></div>%%/HTML%%';
-  _noraPushMsgAs('hugo',msg);
+  var sel = document.getElementById('hugo-reset-sel'); if (!sel) return;
+  var uid = sel.value;
+  var users = _hugoGetUsers(false);
+  var user = users.find(function(u) { return u.id === uid; });
+  if (!user) return;
+  if (typeof firebase !== 'undefined') { try { firebase.auth().sendPasswordResetEmail('mickael.koziel@gmail.com'); } catch(e) {} }
+  var msg = 'Password reset email sent.\n%%HTML%%<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div style="width:18px;height:18px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><span style="font-weight:600;color:#10b981">Password Reset Sent</span></div><div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;font-size:12px">Email sent to <strong>mickael.koziel@gmail.com</strong><br/><span style="color:#94a3b8">For user: '+user.name+'</span></div>%%/HTML%%';
+  _noraPushMsgAs('hugo', msg);
 }
 
 function hugoChangeRole() {
-  var users=(typeof UM_USERS!=='undefined')?UM_USERS.filter(function(u){return u.status==='Active'}):[];
-  if(!users.length) return 'No active users found.';
-  var opts=users.map(function(u){return'<option value="'+u.id+'">'+u.name+' ('+u.role+')</option>'}).join('');
-  var html='<div style="background:#fff;border:1px solid #8b5cf630;border-radius:12px;padding:14px;margin:6px 0"><div style="font-weight:600;margin-bottom:10px;font-size:12px;color:#8b5cf6">Change Role</div><select id="hugo-role-sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;outline:none;font-family:inherit;margin-bottom:6px;box-sizing:border-box">'+opts+'</select><div style="display:flex;gap:6px;margin-bottom:6px"><button id="hugo-rb-admin" onclick="document.getElementById(\'hugo-new-role\').value=\'Admin\';this.style.borderColor=\'#8b5cf6\';this.style.color=\'#8b5cf6\';document.getElementById(\'hugo-rb-user\').style.borderColor=\'#e2e8f0\';document.getElementById(\'hugo-rb-user\').style.color=\'#64748b\'" style="flex:1;padding:6px 0;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:#64748b;font-family:inherit">Admin</button><button id="hugo-rb-user" onclick="document.getElementById(\'hugo-new-role\').value=\'User\';this.style.borderColor=\'#8b5cf6\';this.style.color=\'#8b5cf6\';document.getElementById(\'hugo-rb-admin\').style.borderColor=\'#e2e8f0\';document.getElementById(\'hugo-rb-admin\').style.color=\'#64748b\'" style="flex:1;padding:6px 0;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:#64748b;font-family:inherit">User</button></div><input type="hidden" id="hugo-new-role" value=""/><button onclick="hugoChangeRoleExec()" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit">Update Role</button></div>';
+  var users = _hugoGetUsers(true);
+  if (!users.length) return 'No active users found. Make sure User Management is loaded.';
+  var opts = users.map(function(u) { return '<option value="'+u.id+'">'+u.name+' ('+u.role+')</option>'; }).join('');
+  var html = '<div style="background:#fff;border:1px solid #8b5cf630;border-radius:12px;padding:14px;margin:6px 0">' +
+    '<div style="font-weight:600;margin-bottom:10px;font-size:12px;color:#8b5cf6">Change Role</div>' +
+    '<select id="hugo-role-sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;outline:none;font-family:inherit;margin-bottom:6px;box-sizing:border-box">'+opts+'</select>' +
+    '<div style="display:flex;gap:6px;margin-bottom:6px">' +
+      '<button id="hugo-rb-admin" onclick="document.getElementById(\'hugo-new-role\').value=\'Admin\';this.style.borderColor=\'#8b5cf6\';this.style.color=\'#8b5cf6\';document.getElementById(\'hugo-rb-user\').style.borderColor=\'#e2e8f0\';document.getElementById(\'hugo-rb-user\').style.color=\'#64748b\'" style="flex:1;padding:6px 0;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:#64748b;font-family:inherit">Admin</button>' +
+      '<button id="hugo-rb-user" onclick="document.getElementById(\'hugo-new-role\').value=\'User\';this.style.borderColor=\'#8b5cf6\';this.style.color=\'#8b5cf6\';document.getElementById(\'hugo-rb-admin\').style.borderColor=\'#e2e8f0\';document.getElementById(\'hugo-rb-admin\').style.color=\'#64748b\'" style="flex:1;padding:6px 0;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:#64748b;font-family:inherit">User</button>' +
+    '</div>' +
+    '<input type="hidden" id="hugo-new-role" value=""/>' +
+    '<button onclick="hugoChangeRoleExec()" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit">Update Role</button></div>';
   return 'Select user and new role:\n%%HTML%%'+html+'%%/HTML%%';
 }
 function hugoChangeRoleExec() {
-  var sel=document.getElementById('hugo-role-sel'),nr=document.getElementById('hugo-new-role');
-  if(!sel||!nr||!nr.value) return;
-  var uid=sel.value;var user=(typeof UM_USERS!=='undefined')?UM_USERS.find(function(u){return u.id===uid}):null;
-  if(!user) return;
-  user.role=nr.value;
-  if(typeof firebase!=='undefined'){try{firebase.firestore().collection('users').doc(uid).update({role:nr.value})}catch(e){}}
-  var msg='Role updated.\n%%HTML%%<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div style="width:18px;height:18px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><span style="font-weight:600;color:#10b981">Role Updated</span></div><div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;font-size:12px"><strong>'+user.name+'</strong> → <strong>'+nr.value+'</strong></div>%%/HTML%%';
-  _noraPushMsgAs('hugo',msg);
+  var sel = document.getElementById('hugo-role-sel'), nr = document.getElementById('hugo-new-role');
+  if (!sel || !nr || !nr.value) return;
+  var uid = sel.value;
+  var users = _hugoGetUsers(false);
+  var user = users.find(function(u) { return u.id === uid; });
+  if (!user) return;
+  user.role = nr.value;
+  if (typeof firebase !== 'undefined') { try { firebase.firestore().collection('users').doc(uid).update({role:nr.value}); } catch(e) {} }
+  var msg = 'Role updated.\n%%HTML%%<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div style="width:18px;height:18px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><span style="font-weight:600;color:#10b981">Role Updated</span></div><div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;font-size:12px"><strong>'+user.name+'</strong> → <strong>'+nr.value+'</strong></div>%%/HTML%%';
+  _noraPushMsgAs('hugo', msg);
 }
 
 function hugoNewField() {
-  var objs=['Accounts','Contacts','Opportunities','Leads','Projects','Quotes','Claims','Activities'];
-  var opts=objs.map(function(o){return'<option>'+o+'</option>'}).join('');
-  var html='<div style="background:#fff;border:1px solid #8b5cf630;border-radius:12px;padding:14px;margin:6px 0"><div style="font-weight:600;margin-bottom:10px;font-size:12px;color:#8b5cf6">New Field Creation</div><select id="hugo-field-obj" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;outline:none;font-family:inherit;margin-bottom:6px;box-sizing:border-box"><option value="">Select object...</option>'+opts+'</select><input id="hugo-field-name" placeholder="Field name" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;outline:none;font-family:inherit;margin-bottom:6px;box-sizing:border-box"/><button onclick="hugoNewFieldExec()" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit">Create Field</button></div>';
+  var objs = ['Accounts','Contacts','Opportunities','Leads','Projects','Quotes','Claims','Activities'];
+  var opts = objs.map(function(o) { return '<option>'+o+'</option>'; }).join('');
+  var html = '<div style="background:#fff;border:1px solid #8b5cf630;border-radius:12px;padding:14px;margin:6px 0">' +
+    '<div style="font-weight:600;margin-bottom:10px;font-size:12px;color:#8b5cf6">New Field Creation</div>' +
+    '<select id="hugo-field-obj" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;outline:none;font-family:inherit;margin-bottom:6px;box-sizing:border-box"><option value="">Select object...</option>'+opts+'</select>' +
+    '<input id="hugo-field-name" placeholder="Field name" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;outline:none;font-family:inherit;margin-bottom:6px;box-sizing:border-box"/>' +
+    '<button onclick="hugoNewFieldExec()" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit">Create Field</button></div>';
   return 'Select the object and enter the field name:\n%%HTML%%'+html+'%%/HTML%%';
 }
 function hugoNewFieldExec() {
-  var obj=document.getElementById('hugo-field-obj'),fn=document.getElementById('hugo-field-name');
-  if(!obj||!fn||!obj.value||!fn.value.trim()) return;
-  var msg='Field created.\n%%HTML%%<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div style="width:18px;height:18px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><span style="font-weight:600;color:#10b981">Field Created</span></div><div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;font-size:12px">"<strong>'+fn.value.trim()+'</strong>" added to <strong>'+obj.value+'</strong></div>%%/HTML%%';
-  _noraPushMsgAs('hugo',msg);
-}
-
-function hugoDeleteField() {
-  return '[ESCALADE] Field Deletion Request\nThis action requires senior admin approval. The request has been escalated to the admin console and is pending review.\n%%HTML%%<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 12px;font-size:12px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div style="width:18px;height:18px;border-radius:50%;background:#ef4444;display:flex;align-items:center;justify-content:center"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 9v4M12 17h.01"/></svg></div><span style="font-weight:600;color:#ef4444">[ESCALATION] Field Deletion</span></div>Escalated to <strong>admin console</strong>. Pending senior admin review.</div>%%/HTML%%';
+  var obj = document.getElementById('hugo-field-obj'), fn = document.getElementById('hugo-field-name');
+  if (!obj || !fn || !obj.value || !fn.value.trim()) return;
+  var msg = 'Field created.\n%%HTML%%<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div style="width:18px;height:18px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><span style="font-weight:600;color:#10b981">Field Created</span></div><div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;font-size:12px">"<strong>'+fn.value.trim()+'</strong>" added to <strong>'+obj.value+'</strong></div>%%/HTML%%';
+  _noraPushMsgAs('hugo', msg);
 }
 
 /* ── KARIM: 4 Security commands ──────────────────────────── */
@@ -1705,11 +1729,28 @@ function karimLoginActivity() {
 function karimSensitiveData() {
   var D=window.DATA||{};
   var checks={Accounts:D.accounts||[],Contacts:D.contacts||[]};
-  var sensitiveFields=['email','phone'];
+  var sensitiveFields=['email','phone','address'];
   var results=[];
-  Object.keys(checks).forEach(function(n){sensitiveFields.forEach(function(f){var exposed=checks[n].filter(function(r){return r[f]&&String(r[f]).trim()!==''}).length;if(exposed>0)results.push({field:f,object:n,count:exposed,total:checks[n].length})})});
-  var cards=results.map(function(r){return'<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center"><div style="font-size:12px"><strong style="text-transform:capitalize">'+r.field+'</strong> <span style="color:#94a3b8;font-size:11px">— '+r.object+'</span></div><div style="text-align:right"><div style="font-weight:700;color:#ef4444;font-size:14px">'+r.count+'</div><div style="font-size:10px;color:#94a3b8">of '+r.total+'</div></div></div>'}).join('');
-  return 'GDPR — Sensitive Data Exposure:\n%%HTML%%<div style="font-weight:600;margin-bottom:8px;color:#ef4444">GDPR — Sensitive Data</div>'+cards+'<div style="font-size:11px;color:#94a3b8;margin-top:6px">Review access controls for fields containing personal data.</div>%%/HTML%%';
+  Object.keys(checks).forEach(function(n){sensitiveFields.forEach(function(f){var exposed=checks[n].filter(function(r){return r[f]&&String(r[f]).trim()!==''}).length;if(exposed>0){var pct=Math.round(exposed/checks[n].length*100);results.push({field:f,object:n,count:exposed,total:checks[n].length,pct:pct})}})});
+  if(!results.length) return 'GDPR scan complete — no sensitive personal data detected in your CRM records.';
+  var totalExposed=results.reduce(function(s,r){return s+r.count},0);
+  var cards=results.map(function(r){
+    var risk=r.pct>=70?'HIGH':r.pct>=40?'MEDIUM':'LOW';
+    var riskColor=risk==='HIGH'?'#ef4444':risk==='MEDIUM'?'#f59e0b':'#10b981';
+    return'<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+riskColor+'">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+        '<div style="font-size:12px"><strong style="text-transform:capitalize">'+r.field+'</strong> <span style="color:#94a3b8;font-size:11px">— '+r.object+'</span></div>'+
+        '<span style="background:'+riskColor+'15;color:'+riskColor+';padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">'+risk+'</span>'+
+      '</div>'+
+      '<div style="font-size:11px;color:#475569;margin-bottom:6px"><strong>'+r.count+'</strong> of '+r.total+' records contain personal <strong>'+r.field+'</strong> data ('+r.pct+'%)</div>'+
+      '<div style="height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden"><div style="height:100%;width:'+r.pct+'%;background:'+riskColor+';border-radius:3px"></div></div>'+
+    '</div>';
+  }).join('');
+  var summaryColor=totalExposed>20?'#ef4444':totalExposed>10?'#f59e0b':'#10b981';
+  var summary='<div style="display:flex;gap:8px;margin-bottom:10px">'+
+    '<div style="flex:1;background:'+summaryColor+'08;border:1px solid '+summaryColor+'20;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:'+summaryColor+'">'+totalExposed+'</div><div style="font-size:10px;color:#64748b">Records Exposed</div></div>'+
+    '<div style="flex:1;background:#64748b08;border:1px solid #64748b20;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:#64748b">'+results.length+'</div><div style="font-size:10px;color:#64748b">Fields Scanned</div></div></div>';
+  return 'GDPR — Sensitive Data Exposure Scan:\n%%HTML%%<div style="font-weight:600;margin-bottom:8px;color:#ef4444">GDPR — Sensitive Data Exposure</div>'+summary+cards+'<div style="font-size:11px;color:#94a3b8;margin-top:6px">Recommendation: Review access controls and encryption policies for HIGH-risk fields. Ensure GDPR compliance for all personal data.</div>%%/HTML%%';
 }
 
 /* ── CAMILLE: 4 Business commands ────────────────────────── */
@@ -1760,17 +1801,157 @@ function camilleConversionFunnel() {
 }
 
 /* ── LEO: 6 Trainer commands ─────────────────────────────── */
+/* ── LEO: CRM Tour — 6 navigable steps ─────────────────── */
+var LEO_TOUR_STEPS = [
+  {title:'Dashboard',page:'home',desc:'Your home page with KPIs, pipeline overview, recently viewed records and upcoming activities. It\'s your command center to start every day.'},
+  {title:'Accounts',page:'accounts',desc:'All your client and prospect companies. Use Key Relationships to star your top accounts — they appear first in list views.'},
+  {title:'Opportunities & Pipeline',page:'opportunities',desc:'Your sales pipeline in kanban view. Drag & drop deals between stages. Track amounts, probabilities and close dates.'},
+  {title:'Contacts',page:'contacts',desc:'People linked to accounts. Each contact has a 360 view with related opportunities, projects, and activity timeline.'},
+  {title:'Calendar & Activities',page:'calendar',desc:'Your weekly calendar with calls, meetings, site visits and emails. Colour-coded by type. Never miss a follow-up.'},
+  {title:'Agent Console',page:'agentConsole',desc:'Your AI team of 5 specialists. Data quality, security, business intelligence, training — all accessible from one place.'}
+];
+var LEO_TOUR_STEP = 0;
+
 function leoCrmTour() {
-  return 'CRM Tour — Step 1 of 6:\n%%HTML%%<div style="font-weight:600;margin-bottom:8px;color:#10b981">CRM Tour — Step 1/6</div><div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:14px"><div style="font-weight:700;font-size:13px;margin-bottom:6px">Dashboard</div><div style="font-size:12px;color:#374151;line-height:1.6">Your home page with KPIs, pipeline overview, recently viewed records and upcoming activities. It\'s your command center to start every day.</div><div style="display:flex;justify-content:space-between;margin-top:10px"><span style="font-size:10px;color:#6b7280">1/6 modules</span><button onclick="navigate(\'home\')" style="background:#10b981;color:#fff;border:none;border-radius:6px;padding:5px 14px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Go to Dashboard →</button></div></div>%%/HTML%%';
+  LEO_TOUR_STEP = 0;
+  return _leoTourRender();
 }
 
-function leoQuizMe() {
-  return 'Quiz — Question 1/5:\n%%HTML%%<div style="font-weight:600;margin-bottom:8px;color:#10b981">Quiz — Q1/5</div><div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:14px"><div style="font-size:13px;font-weight:600;margin-bottom:10px">Where do you find the sales pipeline view?</div><div id="leo-q1"><button onclick="leoQuizAnswer(this,false)" style="display:block;width:100%;text-align:left;padding:7px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:12px;margin-bottom:4px;cursor:pointer;font-family:inherit">A. Dashboard</button><button onclick="leoQuizAnswer(this,true)" style="display:block;width:100%;text-align:left;padding:7px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:12px;margin-bottom:4px;cursor:pointer;font-family:inherit">B. Opportunities page</button><button onclick="leoQuizAnswer(this,false)" style="display:block;width:100%;text-align:left;padding:7px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:12px;margin-bottom:4px;cursor:pointer;font-family:inherit">C. Calendar</button><button onclick="leoQuizAnswer(this,false)" style="display:block;width:100%;text-align:left;padding:7px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:12px;cursor:pointer;font-family:inherit">D. Agent Console</button></div></div>%%/HTML%%';
+function _leoTourRender() {
+  var s = LEO_TOUR_STEPS[LEO_TOUR_STEP];
+  var total = LEO_TOUR_STEPS.length;
+  var stepNum = LEO_TOUR_STEP + 1;
+  var dots = '';
+  for (var i = 0; i < total; i++) {
+    dots += '<div style="width:'+(i===LEO_TOUR_STEP?'16':'6')+'px;height:6px;border-radius:3px;background:'+(i<=LEO_TOUR_STEP?'#10b981':'#d1d5db')+';transition:all .2s"></div>';
+  }
+  var prevBtn = LEO_TOUR_STEP > 0 ? '<button onclick="leoTourPrev()" style="background:#f0fdf4;color:#10b981;border:1px solid #a7f3d0;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">← Back</button>' : '';
+  var nextBtn = LEO_TOUR_STEP < total - 1 ?
+    '<button onclick="leoTourNext()" style="background:#10b981;color:#fff;border:none;border-radius:6px;padding:5px 14px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Next →</button>' :
+    '<button onclick="leoTourFinish()" style="background:#10b981;color:#fff;border:none;border-radius:6px;padding:5px 14px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Finish Tour</button>';
+  var goBtn = '<button onclick="navigate(\''+s.page+'\')" style="background:transparent;color:#2563eb;border:1px solid #2563eb40;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Open '+s.title+'</button>';
+
+  return 'CRM Tour — Step '+stepNum+'/'+total+':\n%%HTML%%'+
+    '<div style="font-weight:600;margin-bottom:8px;color:#10b981">CRM Tour — Step '+stepNum+'/'+total+'</div>'+
+    '<div style="display:flex;gap:3px;margin-bottom:10px;align-items:center">'+dots+'</div>'+
+    '<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:14px">'+
+      '<div style="font-weight:700;font-size:13px;margin-bottom:6px">'+s.title+'</div>'+
+      '<div style="font-size:12px;color:#374151;line-height:1.6">'+s.desc+'</div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:6px;flex-wrap:wrap">'+
+        '<div style="display:flex;gap:6px">'+prevBtn+nextBtn+'</div>'+
+        goBtn+
+      '</div>'+
+    '</div>%%/HTML%%';
 }
-function leoQuizAnswer(btn,correct) {
-  if(correct){btn.style.background='#f0fdf4';btn.style.borderColor='#10b981';btn.textContent+=' ✓';
-    var p=document.createElement('div');p.style.cssText='margin-top:8px;font-size:11px;color:#10b981;font-weight:600';p.textContent='Correct! The pipeline/kanban is in the Opportunities page.';btn.parentElement.appendChild(p);
-  } else {btn.style.background='#fef2f2';btn.style.borderColor='#ef4444';btn.textContent+=' ✗';}
+
+function leoTourNext() {
+  if (LEO_TOUR_STEP < LEO_TOUR_STEPS.length - 1) LEO_TOUR_STEP++;
+  _noraPushMsgAs('leo', _leoTourRender());
+}
+function leoTourPrev() {
+  if (LEO_TOUR_STEP > 0) LEO_TOUR_STEP--;
+  _noraPushMsgAs('leo', _leoTourRender());
+}
+function leoTourFinish() {
+  _noraPushMsgAs('leo', 'Congratulations! You\'ve completed the CRM Tour. You now know all 6 key modules. Keep exploring and don\'t hesitate to ask me anything!\n%%HTML%%<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;font-size:12px;display:flex;align-items:center;gap:6px"><div style="width:18px;height:18px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><span style="font-weight:600;color:#10b981">Tour Complete — +100 points earned!</span></div>%%/HTML%%');
+}
+
+/* ── LEO: Quiz — 5 questions with progression ────────────── */
+var LEO_QUIZ = [
+  {q:'Where do you find the sales pipeline view?',opts:['Dashboard','Opportunities page','Calendar','Agent Console'],correct:1,explain:'The pipeline/kanban is in the Opportunities page.'},
+  {q:'How do you star a key account?',opts:['Edit the record','Click the star icon in list view','Send an email','Create a project'],correct:1,explain:'Click the star icon — it marks the account as a Key Relationship.'},
+  {q:'What does Nora specialize in?',opts:['Security audits','Business strategy','Data Quality','Training'],correct:2,explain:'Nora is the Data Quality agent — duplicates, orphans, field completion.'},
+  {q:'Where do you see upcoming activities?',opts:['Agent Console','Dashboard & Calendar','Quotes page','Pipeline'],correct:1,explain:'The Dashboard shows upcoming activities, and the Calendar gives a weekly view.'},
+  {q:'What happens when Hugo escalates a field deletion?',opts:['It\'s deleted immediately','It goes to the admin console','Nothing happens','A backup is created'],correct:1,explain:'Field deletion is escalated to the admin console for senior admin review.'}
+];
+var LEO_QUIZ_IDX = 0;
+var LEO_QUIZ_SCORE = 0;
+var LEO_QUIZ_ANSWERED = false;
+
+function leoQuizMe() {
+  LEO_QUIZ_IDX = 0;
+  LEO_QUIZ_SCORE = 0;
+  LEO_QUIZ_ANSWERED = false;
+  return _leoQuizRender();
+}
+
+function _leoQuizRender() {
+  var q = LEO_QUIZ[LEO_QUIZ_IDX];
+  var num = LEO_QUIZ_IDX + 1;
+  var total = LEO_QUIZ.length;
+  var optsHtml = q.opts.map(function(opt, i) {
+    var letter = String.fromCharCode(65 + i);
+    return '<button id="leo-q-opt-'+i+'" onclick="leoQuizAnswer('+i+')" style="display:block;width:100%;text-align:left;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:12px;margin-bottom:4px;cursor:pointer;font-family:inherit;transition:all .15s">'+letter+'. '+opt+'</button>';
+  }).join('');
+
+  var progressDots = '';
+  for (var i = 0; i < total; i++) {
+    var c = i < LEO_QUIZ_IDX ? '#10b981' : i === LEO_QUIZ_IDX ? '#10b981' : '#d1d5db';
+    progressDots += '<div style="width:'+(i===LEO_QUIZ_IDX?'16':'6')+'px;height:6px;border-radius:3px;background:'+c+';transition:all .2s"></div>';
+  }
+
+  return 'Quiz — Question '+num+'/'+total+':\n%%HTML%%'+
+    '<div style="font-weight:600;margin-bottom:8px;color:#10b981">Quiz — Q'+num+'/'+total+' <span style="color:#94a3b8;font-weight:400;font-size:11px">(Score: '+LEO_QUIZ_SCORE+'/'+LEO_QUIZ_IDX+')</span></div>'+
+    '<div style="display:flex;gap:3px;margin-bottom:10px">'+progressDots+'</div>'+
+    '<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:14px">'+
+      '<div style="font-size:13px;font-weight:600;margin-bottom:10px">'+q.q+'</div>'+
+      '<div id="leo-quiz-opts">'+optsHtml+'</div>'+
+      '<div id="leo-quiz-feedback" style="margin-top:8px"></div>'+
+    '</div>%%/HTML%%';
+}
+
+function leoQuizAnswer(idx) {
+  if (LEO_QUIZ_ANSWERED) return;
+  LEO_QUIZ_ANSWERED = true;
+  var q = LEO_QUIZ[LEO_QUIZ_IDX];
+  var isCorrect = idx === q.correct;
+  if (isCorrect) LEO_QUIZ_SCORE++;
+
+  /* Highlight buttons */
+  for (var i = 0; i < q.opts.length; i++) {
+    var btn = document.getElementById('leo-q-opt-' + i);
+    if (!btn) continue;
+    btn.style.cursor = 'default';
+    if (i === q.correct) {
+      btn.style.background = '#f0fdf4';
+      btn.style.borderColor = '#10b981';
+      btn.textContent += ' ✓';
+    } else if (i === idx && !isCorrect) {
+      btn.style.background = '#fef2f2';
+      btn.style.borderColor = '#ef4444';
+      btn.textContent += ' ✗';
+    }
+  }
+
+  /* Feedback + next button */
+  var fb = document.getElementById('leo-quiz-feedback');
+  if (fb) {
+    var color = isCorrect ? '#10b981' : '#ef4444';
+    var label = isCorrect ? 'Correct!' : 'Wrong!';
+    var nextLabel = LEO_QUIZ_IDX < LEO_QUIZ.length - 1 ? 'Next Question →' : 'See Results';
+    fb.innerHTML = '<div style="font-size:11px;color:'+color+';font-weight:600;margin-bottom:6px">'+label+' '+q.explain+'</div>' +
+      '<button onclick="leoQuizNext()" style="background:#10b981;color:#fff;border:none;border-radius:6px;padding:5px 14px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">'+nextLabel+'</button>';
+  }
+}
+
+function leoQuizNext() {
+  LEO_QUIZ_IDX++;
+  LEO_QUIZ_ANSWERED = false;
+  if (LEO_QUIZ_IDX >= LEO_QUIZ.length) {
+    /* Final results */
+    var pct = Math.round(LEO_QUIZ_SCORE / LEO_QUIZ.length * 100);
+    var badge = pct >= 80 ? 'Expert' : pct >= 60 ? 'Intermediate' : 'Beginner';
+    var badgeColor = pct >= 80 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444';
+    _noraPushMsgAs('leo', 'Quiz Complete!\n%%HTML%%'+
+      '<div style="font-weight:600;margin-bottom:10px;color:#10b981">Quiz Results</div>'+
+      '<div style="display:flex;gap:8px;margin-bottom:8px">'+
+        '<div style="flex:1;background:#ecfdf5;border-radius:10px;padding:12px;text-align:center"><div style="font-size:26px;font-weight:700;color:#10b981">'+LEO_QUIZ_SCORE+'/'+LEO_QUIZ.length+'</div><div style="font-size:10px;color:#64748b">Score</div></div>'+
+        '<div style="flex:1;background:'+badgeColor+'10;border-radius:10px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:700;color:'+badgeColor+'">'+badge+'</div><div style="font-size:10px;color:#64748b">Level</div></div>'+
+      '</div>'+
+      '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;font-size:12px">'+pct+'% correct — +'+(LEO_QUIZ_SCORE*20)+' points earned!</div>%%/HTML%%');
+  } else {
+    _noraPushMsgAs('leo', _leoQuizRender());
+  }
 }
 
 function leoMyScore() {
