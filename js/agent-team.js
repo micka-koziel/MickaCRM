@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════
-   agent-team.js — AI Agent Team with Manga Avatars
+   agent-team.js — AI Agent Team V2
    Floating multi-agent panel available on ALL pages
-   Replaces single L1 chat bubble with 5-agent team selector
+   5 agents, 23 commands, professional SVG avatars
    Vanilla JS — MickaCRM v4 design system
    ═══════════════════════════════════════════════════════════════ */
 
@@ -10,202 +10,67 @@ var AT_AGENTS = [
   {
     id:'nora', name:'Nora Leclerc', role:'Data Analyst', title:'Chief Data Officer',
     specialty:'Data Quality', color:'#0ea5e9', accent:'#0284c7',
-    greeting:'Bonjour Mickaël ! Je suis Nora, votre experte Data Quality. Je veille à ce que votre CRM reste propre, complet et fiable. Dites-moi ce dont vous avez besoin !',
-    skills:['Duplicate Detection','Missing Fields Audit','Data Cleansing','Integrity Checks'],
-    keywords:['data','donnée','kpi','qualité','quality','chiffre','doublon','duplicate','merge','fusionner','champ','vide','missing','incomplet','format','adresse','phone','standardis','enrichi','enrich','supprimer','archiver','delete','obsolete','export','csv','nettoyage','orphelin','périmé','expired','audit','manquant','correction','nettoyer'],
+    greeting:'Hello! I\'m Nora, your Data Quality expert. I keep your CRM clean, complete and reliable. What can I help you with?',
+    skills:['Duplicate Detection','Orphan Accounts','Field Completion Audit'],
+    keywords:['data','donnée','kpi','qualité','quality','doublon','duplicate','merge','fusionner','champ','vide','missing','incomplet','orphelin','orphan','complétion','completion','non-completed','remplissage'],
     stats:{resolved:847,rating:4.9,avgTime:'2m 14s'}
   },
   {
     id:'hugo', name:'Hugo Martin', role:'Support L1', title:'Customer Success Lead',
     specialty:'Support & Assistance', color:'#8b5cf6', accent:'#7c3aed',
-    greeting:'Hey ! Hugo ici, votre support L1. Decrivez votre probleme et je m\'en occupe !',
-    skills:['Troubleshooting','User Guidance','Ticket Routing','Quick Fixes'],
-    keywords:['aide','help','problème','problem','bug','erreur','error','bloqué','stuck','comment','how','marche pas','fonctionne pas','comprend pas','expliqu','tutoriel','guide','crm','objet','champ custom','custom field','ajouter champ','workflow','automation','page layout'],
+    greeting:'Hey! Hugo here, your L1 support. Describe your request and I\'ll handle it!',
+    skills:['User Management','Field Administration','Password Reset'],
+    keywords:['aide','help','user','utilisateur','créer','create','désactiv','deactivat','password','mot de passe','reset','role','rôle','champ','field','ajouter','supprimer','delete'],
     stats:{resolved:2341,rating:4.7,avgTime:'45s'}
   },
   {
     id:'karim', name:'Karim Benzarti', role:'Cybersecurity Expert', title:'Security Ops Lead',
-    specialty:'Cybersecurite', color:'#ef4444', accent:'#dc2626',
-    greeting:'Karim, cybersecurite. Quel est le perimetre de votre question securite ?',
-    skills:['Access Control','RGPD Compliance','Threat Detection','Audit Logs'],
-    keywords:['sécurité','security','rgpd','gdpr','permission','accès','access','audit','login','connexion','anomalie','suspect','token','api','révoquer','revoke','mot de passe','password','reset','mdp','désactiv','deactivat','réactiv','activer','utilisateur','user','profil','onboard','nouveau'],
+    specialty:'Security & Compliance', color:'#ef4444', accent:'#dc2626',
+    greeting:'Karim, Security. What\'s your security concern?',
+    skills:['Audit Logs','Inactive Users','Login Monitoring','GDPR Compliance'],
+    keywords:['sécurité','security','rgpd','gdpr','audit','login','connexion','inactif','inactive','sensible','sensitive','données personnelles','personal data'],
     stats:{resolved:412,rating:4.95,avgTime:'5m 30s'}
   },
   {
     id:'camille', name:'Camille Dubois', role:'Business Strategist', title:'Revenue Ops Lead',
-    specialty:'Business & Strategie', color:'#f59e0b', accent:'#d97706',
-    greeting:'Camille, votre partenaire business. Quel objectif commercial visez-vous ?',
-    skills:['Sales Strategy','Lead Scoring','Pipeline Optimization','Revenue Forecasting'],
-    keywords:['business','commercial','vente','stratégie','opportunit','pipeline','lead','prospect','conversion','revenue','forecast','prévision','client','account','contact','deal','affaire','négociation','won','perdu','objectif','target','croissance','growth'],
+    specialty:'Business Intelligence', color:'#f59e0b', accent:'#d97706',
+    greeting:'Camille here. What commercial objective are you targeting?',
+    skills:['Deal Risk Analysis','Next Best Action','Win Rate','Conversion Funnel'],
+    keywords:['business','commercial','pipeline','opportunit','deal','risk','risque','win','conversion','funnel','entonnoir','action','revenue','chiffre'],
     stats:{resolved:623,rating:4.8,avgTime:'3m 45s'}
   },
   {
-    id:'leo', name:'Leo Fournier', role:'CRM Trainer', title:'Learning & Adoption Lead',
-    specialty:'Formation CRM', color:'#10b981', accent:'#059669',
-    greeting:'Salut ! Leo, votre formateur CRM. Quelle fonctionnalite voulez-vous maitriser ?',
-    skills:['Onboarding','Feature Tutorials','Best Practices','Adoption Tracking'],
-    keywords:['formation','training','apprendre','learn','tuto','tutoriel','comment faire','how to','fonctionnalité','feature','astuce','tip','best practice','onboarding','nouveau','débutant','beginner','utiliser','use','navigation','sidebar','dashboard','calendar'],
+    id:'leo', name:'Léo Fournier', role:'CRM Trainer', title:'Learning & Adoption Lead',
+    specialty:'Training & Adoption', color:'#10b981', accent:'#059669',
+    greeting:'Hi! Léo here, your CRM coach. What would you like to learn today?',
+    skills:['Onboarding Tours','Quizzes','Gamification','Tips & Tricks'],
+    keywords:['formation','training','apprendre','learn','tuto','quiz','score','challenge','astuce','tip','leaderboard','classement','tour','onboarding','défi'],
     stats:{resolved:1156,rating:4.85,avgTime:'4m 10s'}
   }
 ];
 
 /* ── State ─────────────────────────────────────────────────── */
 var AT_OPEN = false;
-var AT_VIEW = 'team';        /* 'team' | 'chat' */
-var AT_ACTIVE_AGENT = null;  /* current agent object */
-var AT_MESSAGES = {};         /* per-agent message history keyed by agent.id */
+var AT_VIEW = 'team';
+var AT_ACTIVE_AGENT = null;
+var AT_MESSAGES = {};
 var AT_LOADING = false;
 var AT_UNREAD = 1;
 
-/* ── Manga SVG Avatar Generator ───────────────────────────── */
+/* ── Professional SVG Avatar Generator ─────────────────────── */
 function atMangaAvatar(agentId, size) {
   size = size || 80;
-  var s = 100; /* viewBox 0..100 */
-
-  if (agentId === 'nora') {
-    return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 '+s+' '+s+'">' +
-      '<circle cx="50" cy="50" r="49" fill="#E8F4FD"/>' +
-      '<ellipse cx="50" cy="54" rx="28" ry="32" fill="#FDDCB5"/>' +
-      '<path d="M22 42C22 18,78 18,78 42L78 35C78 12,22 12,22 35Z" fill="#1a2744"/>' +
-      '<path d="M22 35C22 38,20 50,22 52" stroke="#1a2744" stroke-width="8" fill="none" stroke-linecap="round"/>' +
-      '<path d="M78 35C78 38,80 50,78 52" stroke="#1a2744" stroke-width="8" fill="none" stroke-linecap="round"/>' +
-      '<path d="M26 36Q24 48,26 55" stroke="#243356" stroke-width="3" fill="none" stroke-linecap="round"/>' +
-      '<path d="M74 36Q76 48,74 55" stroke="#243356" stroke-width="3" fill="none" stroke-linecap="round"/>' +
-      '<path d="M30 34Q38 28,42 36Q46 26,54 34Q58 26,62 34Q66 28,70 34" fill="#1a2744"/>' +
-      '<ellipse cx="38" cy="52" rx="7" ry="8" fill="#fff"/><ellipse cx="62" cy="52" rx="7" ry="8" fill="#fff"/>' +
-      '<ellipse cx="39" cy="53" rx="5" ry="5.5" fill="#0284c7"/><ellipse cx="63" cy="53" rx="5" ry="5.5" fill="#0284c7"/>' +
-      '<circle cx="39" cy="53" r="3" fill="#064e7a"/><circle cx="63" cy="53" r="3" fill="#064e7a"/>' +
-      '<circle cx="41" cy="50" r="1.8" fill="#fff"/><circle cx="65" cy="50" r="1.8" fill="#fff"/>' +
-      '<circle cx="37" cy="55" r=".8" fill="#fff"/><circle cx="61" cy="55" r=".8" fill="#fff"/>' +
-      '<path d="M30 43Q38 39,46 43" stroke="#1a2744" stroke-width="1.8" fill="none" stroke-linecap="round"/>' +
-      '<path d="M54 43Q62 39,70 43" stroke="#1a2744" stroke-width="1.8" fill="none" stroke-linecap="round"/>' +
-      '<rect x="28" y="44" width="20" height="16" rx="5" fill="none" stroke="#334155" stroke-width="1.8"/>' +
-      '<rect x="52" y="44" width="20" height="16" rx="5" fill="none" stroke="#334155" stroke-width="1.8"/>' +
-      '<line x1="48" y1="50" x2="52" y2="50" stroke="#334155" stroke-width="1.5"/>' +
-      '<line x1="28" y1="50" x2="24" y2="48" stroke="#334155" stroke-width="1.2"/>' +
-      '<line x1="72" y1="50" x2="76" y2="48" stroke="#334155" stroke-width="1.2"/>' +
-      '<path d="M48 60Q50 64,52 60" stroke="#e5a882" stroke-width="1.2" fill="none" stroke-linecap="round"/>' +
-      '<path d="M42 70Q50 76,58 70" stroke="#d4756b" stroke-width="1.8" fill="none" stroke-linecap="round"/>' +
-      '<ellipse cx="34" cy="66" rx="5" ry="3" fill="#f8b4b4" opacity=".3"/>' +
-      '<ellipse cx="66" cy="66" rx="5" ry="3" fill="#f8b4b4" opacity=".3"/>' +
-    '</svg>';
-  }
-
-  if (agentId === 'hugo') {
-    return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 '+s+' '+s+'">' +
-      '<circle cx="50" cy="50" r="49" fill="#F3EEFF"/>' +
-      '<ellipse cx="50" cy="56" rx="26" ry="30" fill="#F5D5A8"/>' +
-      '<path d="M24 40C24 15,76 15,76 40L76 32C76 8,24 8,24 32Z" fill="#4c1d95"/>' +
-      '<path d="M28 24L22 10L34 22Z" fill="#4c1d95"/><path d="M42 18L38 4L48 16Z" fill="#5b21b6"/>' +
-      '<path d="M56 17L58 2L64 16Z" fill="#4c1d95"/><path d="M68 22L76 8L72 24Z" fill="#5b21b6"/>' +
-      '<path d="M34 20L30 8L40 18Z" fill="#5b21b6"/>' +
-      '<ellipse cx="24" cy="56" rx="5" ry="7" fill="#F5D5A8"/><ellipse cx="76" cy="56" rx="5" ry="7" fill="#F5D5A8"/>' +
-      '<ellipse cx="38" cy="52" rx="7.5" ry="8.5" fill="#fff"/><ellipse cx="62" cy="52" rx="7.5" ry="8.5" fill="#fff"/>' +
-      '<ellipse cx="39" cy="53" rx="5.5" ry="6" fill="#7c3aed"/><ellipse cx="63" cy="53" rx="5.5" ry="6" fill="#7c3aed"/>' +
-      '<circle cx="39" cy="53" r="3.5" fill="#4c1d95"/><circle cx="63" cy="53" r="3.5" fill="#4c1d95"/>' +
-      '<circle cx="41" cy="50" r="2" fill="#fff"/><circle cx="65" cy="50" r="2" fill="#fff"/>' +
-      '<circle cx="37" cy="55" r="1" fill="#fff"/><circle cx="61" cy="55" r="1" fill="#fff"/>' +
-      '<path d="M30 42Q38 37,46 42" stroke="#3b1578" stroke-width="2" fill="none" stroke-linecap="round"/>' +
-      '<path d="M54 42Q62 37,70 42" stroke="#3b1578" stroke-width="2" fill="none" stroke-linecap="round"/>' +
-      '<path d="M48 62Q50 65,52 62" stroke="#dbb68c" stroke-width="1.2" fill="none" stroke-linecap="round"/>' +
-      '<path d="M38 70Q50 82,62 70" stroke="#c9544d" stroke-width="2" fill="#fff" stroke-linecap="round"/>' +
-      '<path d="M40 72Q50 76,60 72" fill="#c9544d"/>' +
-      '<path d="M20 48Q20 30,50 28Q80 30,80 48" stroke="#475569" stroke-width="3" fill="none" stroke-linecap="round"/>' +
-      '<rect x="14" y="46" width="10" height="18" rx="4" fill="#475569"/>' +
-      '<rect x="76" y="46" width="10" height="18" rx="4" fill="#475569"/>' +
-      '<path d="M16 64Q16 78,36 78" stroke="#475569" stroke-width="2.5" fill="none" stroke-linecap="round"/>' +
-      '<ellipse cx="38" cy="78" rx="5" ry="4" fill="#64748b"/>' +
-      '<ellipse cx="32" cy="66" rx="5" ry="3" fill="#f8b4b4" opacity=".35"/>' +
-      '<ellipse cx="68" cy="66" rx="5" ry="3" fill="#f8b4b4" opacity=".35"/>' +
-    '</svg>';
-  }
-
-  if (agentId === 'karim') {
-    return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 '+s+' '+s+'">' +
-      '<circle cx="50" cy="50" r="49" fill="#FDE8E8"/>' +
-      '<ellipse cx="50" cy="55" rx="27" ry="31" fill="#D4A574"/>' +
-      '<path d="M23 44C23 18,77 18,77 44L77 36C77 14,23 14,23 36Z" fill="#1c1917"/>' +
-      '<path d="M23 36L23 46" stroke="#1c1917" stroke-width="6" stroke-linecap="round"/>' +
-      '<path d="M77 36L77 46" stroke="#1c1917" stroke-width="6" stroke-linecap="round"/>' +
-      '<path d="M28 34Q40 30,50 34Q60 30,72 34L72 28Q60 22,50 28Q40 22,28 28Z" fill="#1c1917"/>' +
-      '<ellipse cx="23" cy="55" rx="5" ry="7" fill="#D4A574"/><ellipse cx="77" cy="55" rx="5" ry="7" fill="#D4A574"/>' +
-      '<path d="M30 50Q38 46,46 50Q38 56,30 52Z" fill="#fff"/>' +
-      '<path d="M54 50Q62 46,70 50Q62 56,54 52Z" fill="#fff"/>' +
-      '<circle cx="38" cy="51" r="4.5" fill="#dc2626"/><circle cx="62" cy="51" r="4.5" fill="#dc2626"/>' +
-      '<circle cx="38" cy="51" r="2.5" fill="#7f1d1d"/><circle cx="62" cy="51" r="2.5" fill="#7f1d1d"/>' +
-      '<circle cx="40" cy="49" r="1.5" fill="#fff"/><circle cx="64" cy="49" r="1.5" fill="#fff"/>' +
-      '<path d="M28 44L46 42" stroke="#1c1917" stroke-width="2.5" fill="none" stroke-linecap="round"/>' +
-      '<path d="M72 44L54 42" stroke="#1c1917" stroke-width="2.5" fill="none" stroke-linecap="round"/>' +
-      '<path d="M47 60L50 66L53 60" stroke="#b8894d" stroke-width="1.3" fill="none" stroke-linecap="round"/>' +
-      '<path d="M42 72L58 72" stroke="#a0685a" stroke-width="2" fill="none" stroke-linecap="round"/>' +
-      '<path d="M28 62L34 58" stroke="#c09970" stroke-width="1" fill="none" stroke-linecap="round" opacity=".6"/>' +
-      '<path d="M42 88L50 92L58 88L58 82Q50 86,42 82Z" fill="#dc2626" opacity=".3"/>' +
-    '</svg>';
-  }
-
-  if (agentId === 'camille') {
-    return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 '+s+' '+s+'">' +
-      '<circle cx="50" cy="50" r="49" fill="#FFF8EB"/>' +
-      '<path d="M20 40Q14 65,18 90L28 92Q24 65,26 44Z" fill="#b8860b"/>' +
-      '<path d="M80 40Q86 65,82 90L72 92Q76 65,74 44Z" fill="#b8860b"/>' +
-      '<ellipse cx="50" cy="54" rx="27" ry="32" fill="#FDDCB5"/>' +
-      '<path d="M23 42C23 16,77 16,77 42L77 34C77 10,23 10,23 34Z" fill="#d4a017"/>' +
-      '<path d="M23 34Q20 50,24 66Q20 70,22 80" stroke="#b8860b" stroke-width="10" fill="none" stroke-linecap="round"/>' +
-      '<path d="M77 34Q80 50,76 66Q80 70,78 80" stroke="#b8860b" stroke-width="10" fill="none" stroke-linecap="round"/>' +
-      '<path d="M28 36Q26 52,28 68" stroke="#e6bc2f" stroke-width="2" fill="none" stroke-linecap="round" opacity=".5"/>' +
-      '<path d="M72 36Q74 52,72 68" stroke="#e6bc2f" stroke-width="2" fill="none" stroke-linecap="round" opacity=".5"/>' +
-      '<path d="M28 34Q35 26,45 34Q50 24,58 32Q64 26,72 34" fill="#d4a017"/>' +
-      '<path d="M32 32Q38 24,46 32" fill="#c99a10"/>' +
-      '<ellipse cx="38" cy="52" rx="7" ry="8" fill="#fff"/><ellipse cx="62" cy="52" rx="7" ry="8" fill="#fff"/>' +
-      '<ellipse cx="39" cy="53" rx="5" ry="5.5" fill="#d97706"/><ellipse cx="63" cy="53" rx="5" ry="5.5" fill="#d97706"/>' +
-      '<circle cx="39" cy="53" r="3" fill="#92400e"/><circle cx="63" cy="53" r="3" fill="#92400e"/>' +
-      '<circle cx="41" cy="50" r="2" fill="#fff"/><circle cx="65" cy="50" r="2" fill="#fff"/>' +
-      '<circle cx="37" cy="55" r=".8" fill="#fff"/><circle cx="61" cy="55" r=".8" fill="#fff"/>' +
-      '<path d="M31 48L29 45" stroke="#5c3c10" stroke-width="1" stroke-linecap="round"/>' +
-      '<path d="M33 46L32 43" stroke="#5c3c10" stroke-width="1" stroke-linecap="round"/>' +
-      '<path d="M69 48L71 45" stroke="#5c3c10" stroke-width="1" stroke-linecap="round"/>' +
-      '<path d="M67 46L68 43" stroke="#5c3c10" stroke-width="1" stroke-linecap="round"/>' +
-      '<path d="M30 43Q38 38,46 42" stroke="#8b6914" stroke-width="1.5" fill="none" stroke-linecap="round"/>' +
-      '<path d="M54 42Q62 38,70 43" stroke="#8b6914" stroke-width="1.5" fill="none" stroke-linecap="round"/>' +
-      '<path d="M48 60Q50 64,52 60" stroke="#e5a882" stroke-width="1.2" fill="none" stroke-linecap="round"/>' +
-      '<path d="M42 70Q46 68,50 72Q54 68,58 70" fill="#dc4a5a"/>' +
-      '<path d="M42 70Q50 76,58 70" fill="#c93d4c"/>' +
-      '<ellipse cx="32" cy="64" rx="6" ry="3" fill="#f8b4b4" opacity=".3"/>' +
-      '<ellipse cx="68" cy="64" rx="6" ry="3" fill="#f8b4b4" opacity=".3"/>' +
-      '<circle cx="22" cy="62" r="2.5" fill="#d4a017" opacity=".7"/>' +
-      '<circle cx="78" cy="62" r="2.5" fill="#d4a017" opacity=".7"/>' +
-    '</svg>';
-  }
-
-  if (agentId === 'leo') {
-    return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 '+s+' '+s+'">' +
-      '<circle cx="50" cy="50" r="49" fill="#ECFDF5"/>' +
-      '<ellipse cx="50" cy="56" rx="26" ry="30" fill="#F5D5A8"/>' +
-      '<path d="M24 42C24 16,76 16,76 42L76 34C76 10,24 10,24 34Z" fill="#065f46"/>' +
-      '<path d="M24 34L24 46" stroke="#065f46" stroke-width="7" stroke-linecap="round"/>' +
-      '<path d="M76 34L76 46" stroke="#065f46" stroke-width="7" stroke-linecap="round"/>' +
-      '<path d="M30 26Q36 18,42 24Q46 16,52 22Q56 14,62 22Q66 18,70 26" fill="#047857"/>' +
-      '<path d="M34 22Q40 14,46 20" stroke="#059669" stroke-width="2" fill="none" stroke-linecap="round" opacity=".5"/>' +
-      '<path d="M54 20Q60 12,66 20" stroke="#059669" stroke-width="2" fill="none" stroke-linecap="round" opacity=".5"/>' +
-      '<ellipse cx="24" cy="56" rx="5" ry="7" fill="#F5D5A8"/><ellipse cx="76" cy="56" rx="5" ry="7" fill="#F5D5A8"/>' +
-      '<ellipse cx="38" cy="52" rx="7.5" ry="8.5" fill="#fff"/><ellipse cx="62" cy="52" rx="7.5" ry="8.5" fill="#fff"/>' +
-      '<ellipse cx="39" cy="53" rx="5.5" ry="6" fill="#059669"/><ellipse cx="63" cy="53" rx="5.5" ry="6" fill="#059669"/>' +
-      '<circle cx="39" cy="53" r="3.5" fill="#065f46"/><circle cx="63" cy="53" r="3.5" fill="#065f46"/>' +
-      '<circle cx="41" cy="50" r="2" fill="#fff"/><circle cx="65" cy="50" r="2" fill="#fff"/>' +
-      '<circle cx="37" cy="55" r="1" fill="#fff"/><circle cx="61" cy="55" r="1" fill="#fff"/>' +
-      '<path d="M30 42Q38 37,46 41" stroke="#065f46" stroke-width="2" fill="none" stroke-linecap="round"/>' +
-      '<path d="M54 41Q62 37,70 42" stroke="#065f46" stroke-width="2" fill="none" stroke-linecap="round"/>' +
-      '<path d="M48 62Q50 65,52 62" stroke="#dbb68c" stroke-width="1.2" fill="none" stroke-linecap="round"/>' +
-      '<path d="M40 70Q50 80,60 70" stroke="#c9544d" stroke-width="2" fill="none" stroke-linecap="round"/>' +
-      '<path d="M43 72Q50 76,57 72" fill="#fff"/>' +
-      '<ellipse cx="32" cy="66" rx="5" ry="3" fill="#f8b4b4" opacity=".35"/>' +
-      '<ellipse cx="68" cy="66" rx="5" ry="3" fill="#f8b4b4" opacity=".35"/>' +
-      '<path d="M32 16L50 8L68 16L50 22Z" fill="#065f46" opacity=".4"/>' +
-      '<rect x="48" y="8" width="4" height="6" fill="#065f46" opacity=".3"/>' +
-    '</svg>';
-  }
-
-  return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:#ddd"></div>';
+  /* Photo-based avatars from assets/ folder */
+  var photos = {
+    nora: 'assets/Nora.png',
+    hugo: 'assets/Hugo.png',
+    karim: 'assets/Karim.png',
+    camille: 'assets/Camille.png',
+    leo: 'assets/Leo.png'
+  };
+  var src = photos[agentId];
+  if (!src) return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:#ddd"></div>';
+  return '<img src="'+src+'" alt="'+agentId+'" width="'+size+'" height="'+size+'" style="width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;display:block" />';
 }
 
 /* ── Smart Agent Routing ──────────────────────────────────── */
@@ -220,6 +85,18 @@ function atDetectBestAgent(msg) {
   return scores[0].score > 0 ? scores[0].agent : null;
 }
 
+/* ── Command-based Suggestions per Agent ──────────────────── */
+function atGetSuggestions(agentId) {
+  var map = {
+    nora: ['Merge duplicates', 'Orphan accounts', 'Non-completed fields'],
+    hugo: ['Create a user', 'Deactivate a user', 'Reset password', 'Change role', 'New field creation', 'Delete a field'],
+    karim: ['Audit log viewer', 'Inactive users scan', 'Login activity', 'Sensitive data exposure'],
+    camille: ['Top deals at risk', 'Next best action', 'Win rate analysis', 'Conversion funnel'],
+    leo: ['CRM Tour', 'Quiz me', 'My score', 'Daily challenge', 'Tips & tricks', 'Leaderboard']
+  };
+  return (map[agentId] || []);
+}
+
 /* ── Render: Floating Root ────────────────────────────────── */
 function renderAgentTeamFloat() {
   injectATStyles();
@@ -230,7 +107,6 @@ function renderAgentTeamFloat() {
   var root = document.createElement('div');
   root.id = 'at-float-root';
 
-  /* Main toggle button — stacked mini avatars */
   root.innerHTML =
     '<button class="at-fab" id="at-fab" title="Agent Team">' +
       '<div class="at-fab-stack">' +
@@ -247,7 +123,6 @@ function renderAgentTeamFloat() {
 
   document.body.appendChild(root);
 
-  /* FAB click */
   document.getElementById('at-fab').addEventListener('click', function() {
     AT_OPEN = !AT_OPEN;
     var win = document.getElementById('at-window');
@@ -285,7 +160,7 @@ function atRenderTeam(el) {
   var html =
     '<div class="at-team-header">' +
       '<div class="at-team-header-title">Agent Team</div>' +
-      '<div class="at-team-header-sub">5 AI experts ready to help</div>' +
+      '<div class="at-team-header-sub">5 AI experts — 23 commands</div>' +
       '<button class="at-close-btn" onclick="AT_OPEN=false;document.getElementById(\'at-window\').classList.remove(\'open\')">'+svgIcon('x',14)+'</button>' +
     '</div>' +
     '<div class="at-team-list">';
@@ -302,7 +177,7 @@ function atRenderTeam(el) {
         '<div class="at-agent-info">' +
           '<div class="at-agent-name">'+a.name+'</div>' +
           '<div class="at-agent-spec" style="color:'+a.color+'">'+a.specialty+'</div>' +
-          '<div class="at-agent-role">'+a.role+'</div>' +
+          '<div class="at-agent-role">'+a.cmdsCount()+' commands</div>' +
         '</div>' +
         '<div class="at-agent-meta">' +
           '<div class="at-agent-rating">'+a.stats.rating+'</div>' +
@@ -324,7 +199,6 @@ function atRenderTeam(el) {
 
   el.innerHTML = html;
 
-  /* Quick ask → auto-route to best agent */
   var quickInput = document.getElementById('at-quick-input');
   var quickSend = document.getElementById('at-quick-send');
   if (quickInput && quickSend) {
@@ -335,16 +209,21 @@ function atRenderTeam(el) {
   }
 }
 
+/* Helper: count commands per agent */
+AT_AGENTS.forEach(function(a) {
+  a.cmdsCount = function() {
+    return atGetSuggestions(a.id).length;
+  };
+});
+
 function atQuickAsk() {
   var input = document.getElementById('at-quick-input');
   if (!input) return;
   var msg = input.value.trim();
   if (!msg) return;
-  /* Auto-route to the best agent */
   var best = atDetectBestAgent(msg);
-  if (!best) best = AT_AGENTS[1]; /* default Hugo support */
+  if (!best) best = AT_AGENTS[1]; /* default Hugo */
   atOpenChat(best.id);
-  /* Pre-fill and send */
   setTimeout(function() {
     var chatInput = document.getElementById('at-chat-input');
     if (chatInput) {
@@ -358,7 +237,6 @@ function atQuickAsk() {
 function atOpenChat(agentId) {
   AT_ACTIVE_AGENT = AT_AGENTS.find(function(a) { return a.id === agentId; });
   AT_VIEW = 'chat';
-  /* Init messages for this agent if empty */
   if (!AT_MESSAGES[agentId]) {
     AT_MESSAGES[agentId] = [
       { role:'agent', text: AT_ACTIVE_AGENT.greeting }
@@ -373,7 +251,6 @@ function atRenderChat(el) {
   if (!a) return;
   var msgs = AT_MESSAGES[a.id] || [];
 
-  /* Flex wrapper so at-messages gets proper flex:1 height */
   var html = '<div style="display:flex;flex-direction:column;height:100%;overflow:hidden">';
 
   /* Header */
@@ -407,7 +284,7 @@ function atRenderChat(el) {
   }
   html += '<div id="at-msg-bottom"></div></div>';
 
-  /* Suggestions */
+  /* Suggestions (command buttons) */
   var suggestions = atGetSuggestions(a.id);
   html += '<div class="at-suggestions">';
   suggestions.forEach(function(s) {
@@ -423,11 +300,10 @@ function atRenderChat(el) {
     '</button>' +
   '</div>';
 
-  html += '</div>'; /* close flex wrapper */
+  html += '</div>';
 
   el.innerHTML = html;
 
-  /* Wire input */
   var input = document.getElementById('at-chat-input');
   if (input) {
     input.addEventListener('keydown', function(e) {
@@ -435,14 +311,12 @@ function atRenderChat(el) {
     });
   }
 
-  /* Scroll to bottom */
   var scroll = document.getElementById('at-msg-scroll');
   if (scroll) scroll.scrollTop = scroll.scrollHeight;
 }
 
 function atFormatMsg(text, isUser) {
   if (isUser) return '<span>' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>';
-  /* Support %%HTML%% blocks from agent-console */
   var parts = text.split(/(%%HTML%%[\s\S]*?%%\/HTML%%)/);
   return parts.map(function(part) {
     if (part.indexOf('%%HTML%%') === 0) return part.replace('%%HTML%%','').replace('%%/HTML%%','');
@@ -451,17 +325,6 @@ function atFormatMsg(text, isUser) {
       return '<span>' + line + '</span>';
     }).join('<br>');
   }).join('');
-}
-
-function atGetSuggestions(agentId) {
-  var map = {
-    nora: ['Fusionner les doublons comptes', 'Comptes sans contact ?'],
-    hugo: ['How do I use the CRM?', 'Explain opportunities', 'Navigate to calendar', 'Create a custom field'],
-    karim: ['Audit login history', 'RGPD deletion request', 'Check user permissions', 'Revoke API token'],
-    camille: ['Top opportunities by amount', 'Pipeline by stage', 'Contacts at Bouygues', 'Lead conversion rate'],
-    leo: ['Getting started tutorial', 'How to create a lead', 'Best practices for pipeline', 'Dashboard walkthrough']
-  };
-  return (map[agentId] || []).slice(0, 4);
 }
 
 /* ── Send Message ─────────────────────────────────────────── */
@@ -478,7 +341,6 @@ function atSendMessage() {
 
   var delay = 600 + Math.random() * 1000;
   setTimeout(function() {
-    /* Route through existing acMatchScenario if available */
     var response;
     if (typeof acMatchScenario === 'function') {
       response = acMatchScenario(msg);
@@ -486,7 +348,6 @@ function atSendMessage() {
       response = atLocalResponse(msg, agentId);
     }
 
-    /* Handle promises */
     if (response && typeof response.then === 'function') {
       response.then(function(r) { atFinishMessage(r, agentId); })
         .catch(function() { atFinishMessage('An error occurred. Please try again.', agentId); });
@@ -499,7 +360,6 @@ function atSendMessage() {
 function atFinishMessage(response, agentId) {
   AT_MESSAGES[agentId].push({ role:'agent', text:response });
 
-  /* Detect escalation — forward to agent-console if present */
   if (response.indexOf('[ESCALADE]') >= 0 && typeof AC_NOTIFICATIONS !== 'undefined') {
     var match = response.match(/\[ESCALADE\]\s*(.+?)(?:\n|$)/);
     var escText = match ? match[1].trim() : 'Escalation from '+AT_ACTIVE_AGENT.name;
@@ -511,7 +371,6 @@ function atFinishMessage(response, agentId) {
   atRenderChat(document.getElementById('at-window-content'));
 }
 
-/* ── Auto-send: suggestion click sends immediately ────── */
 function atAutoSend(text) {
   if (!text || AT_LOADING || !AT_ACTIVE_AGENT) return;
   var input = document.getElementById('at-chat-input');
@@ -519,7 +378,6 @@ function atAutoSend(text) {
   atSendMessage();
 }
 
-/* Fallback local response if agent-console not loaded */
 function atLocalResponse(msg, agentId) {
   var a = AT_AGENTS.find(function(ag) { return ag.id === agentId; });
   return 'Thank you for your question! As ' + a.name + ' (' + a.specialty + '), I\'m analyzing your request. ' +
@@ -628,13 +486,10 @@ function injectATStyles() {
 }
 
 /* ── Override renderFloatingChat ──────────────────────────── */
-/* This replaces the old single-agent chat bubble from agent-console.js */
 var _origRenderFloatingChat = typeof renderFloatingChat === 'function' ? renderFloatingChat : null;
 
 function renderFloatingChat() {
-  /* Remove old float if any */
   var oldFloat = document.getElementById('ac-float-root');
   if (oldFloat) oldFloat.remove();
-  /* Render new Agent Team */
   renderAgentTeamFloat();
 }
