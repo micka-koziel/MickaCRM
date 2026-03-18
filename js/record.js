@@ -222,7 +222,7 @@ function ccInjectStyles() {
 
 /* KPI Box HTML */
 function ccKpiBox(icon, iconBg, label, valueHtml, subHtml, tabId) {
-  return '<div class="cc-kpi-box" data-cc-tab="' + tabId + '">' +
+  return '<div class="cc-kpi-box" data-cc-tab="' + tabId + '" onclick="ccSwitchTab(this,\'' + tabId + '\')">' +
     '<div class="cc-kpi-head">' +
     '<div class="cc-kpi-icon" style="background:' + iconBg + '">' + svgIcon(icon, 15, iconBg.replace(/14$/, '').replace('#f0f4ff', '#2563eb').replace('#ecfdf5', '#059669').replace('#fef7ec', '#d97706').replace('#fef3f2', '#dc2626').replace('#f3f0ff', '#7c3aed')) + '</div>' +
     '<span class="cc-kpi-label">' + label + '</span>' +
@@ -234,7 +234,7 @@ function ccKpiBox(icon, iconBg, label, valueHtml, subHtml, tabId) {
 
 /* Tab HTML */
 function ccTab(id, label, icon, count) {
-  return '<div class="cc-tab" data-cc-tab="' + id + '">' +
+  return '<div class="cc-tab" data-cc-tab="' + id + '" onclick="ccSwitchTab(this,\'' + id + '\')">' +
     svgIcon(icon, 14, 'currentColor') + ' ' + label +
     (count !== undefined && count !== null ? ' <span class="cc-tab-count">' + count + '</span>' : '') +
     '</div>';
@@ -303,6 +303,20 @@ function ccTimelineItem(icon, color, title, date, desc) {
     '<div class="cc-tl-date">' + date + '</div>' +
     (desc ? '<div class="cc-tl-desc">' + desc + '</div>' : '') +
     '</div></div>';
+}
+
+/* Global tab switch — called by inline onclick on KPI boxes and tabs */
+function ccSwitchTab(el, tabId) {
+  var wrap = el.closest('.cc-wrap');
+  if (!wrap) return;
+  wrap.querySelectorAll('.cc-section').forEach(function(s) { s.classList.remove('cc-visible'); });
+  wrap.querySelectorAll('.cc-tab').forEach(function(t) { t.classList.remove('cc-tab-active'); });
+  wrap.querySelectorAll('.cc-kpi-box').forEach(function(k) { k.classList.remove('cc-kpi-active'); });
+  /* Find section by suffix — try all prefixes */
+  var sec = wrap.querySelector('.cc-section[id$="-sec-' + tabId + '"]');
+  if (sec) sec.classList.add('cc-visible');
+  wrap.querySelectorAll('.cc-tab[data-cc-tab="' + tabId + '"]').forEach(function(t) { t.classList.add('cc-tab-active'); });
+  wrap.querySelectorAll('.cc-kpi-box[data-cc-tab="' + tabId + '"]').forEach(function(k) { k.classList.add('cc-kpi-active'); });
 }
 
 /* Bind tab switching + KPI box clicks + row navigation */
