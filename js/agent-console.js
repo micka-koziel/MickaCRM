@@ -1585,40 +1585,94 @@ function hugoCreateUserExec() {
   if(!fn||!ln||!em||!fn.value.trim()||!ln.value.trim()||!em.value.trim()) return;
   var name=fn.value.trim()+' '+ln.value.trim();
   var newUser={id:'u_'+Date.now(),name:name,email:em.value.trim(),role:rl.value,status:'Active',lastLogin:''};
-  if(typeof UM_USERS!=='undefined')UM_USERS.push(newUser);
+  if(typeof UM_USERS!=='undefined') UM_USERS.push(newUser);
+  if(typeof window._HUGO_USERS_CACHE!=='undefined') window._HUGO_USERS_CACHE.push(newUser);
   if(typeof firebase!=='undefined'){try{firebase.firestore().collection('users').doc(newUser.id).set(newUser)}catch(e){}}
   var msg='User created successfully!\n%%HTML%%<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div style="width:18px;height:18px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><span style="font-weight:600;color:#10b981">User Created</span></div><div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;font-size:12px"><strong>'+name+'</strong><br/>'+em.value.trim()+' — '+rl.value+' — Active</div><div style="font-size:11px;color:#2563eb;margin-top:4px;cursor:pointer" onclick="navigate(\'record\',\'users\',\''+newUser.id+'\')">View User 360 →</div>%%/HTML%%';
   _noraPushMsgAs('hugo',msg);
 }
-function _noraPushMsgAs(agentId,msgText) {
-  if(typeof AT_ACTIVE_AGENT!=='undefined'&&AT_ACTIVE_AGENT&&AT_ACTIVE_AGENT.id===agentId) {
-    if(typeof AT_MESSAGES!=='undefined'){AT_MESSAGES[agentId].push({role:'agent',text:msgText});}
-    var el=document.getElementById('at-window-content');
-    if(el&&typeof atRenderChat==='function')atRenderChat(el);
+function _noraPushMsgAs(agentId, msgText) {
+  /* Push to agent-team chat */
+  if (typeof AT_MESSAGES !== 'undefined') {
+    if (!AT_MESSAGES[agentId]) AT_MESSAGES[agentId] = [];
+    AT_MESSAGES[agentId].push({role:'agent', text:msgText});
+  }
+  /* Also push to agent-console chat */
+  if (typeof AC_CHAT_MESSAGES !== 'undefined') {
+    AC_CHAT_MESSAGES.push({role:'assistant', content:msgText});
+  }
+  /* Re-render whichever chat is visible */
+  var el = document.getElementById('at-window-content');
+  if (el && typeof atRenderChat === 'function' && typeof AT_ACTIVE_AGENT !== 'undefined' && AT_ACTIVE_AGENT && AT_ACTIVE_AGENT.id === agentId) {
+    atRenderChat(el);
+  }
+  var floatBody = document.getElementById('ac-float-body');
+  if (floatBody && typeof acRenderChat === 'function') {
+    acRenderChat(floatBody);
   }
 }
 
-/* Helper: get users from UM_USERS or Firestore cache */
+/* Helper: get users — tries UM_USERS, then Firestore sync cache, then fetches from Firestore */
 function _hugoGetUsers(activeOnly) {
   var users = [];
-  if (typeof UM_USERS !== 'undefined' && UM_USERS.length > 0) {
+  /* Try UM_USERS from user-management.js */
+  if (typeof UM_USERS !== 'undefined' && UM_USERS && UM_USERS.length > 0) {
     users = UM_USERS;
-  } else if (typeof window._UM_USERS_CACHE !== 'undefined' && window._UM_USERS_CACHE.length > 0) {
-    users = window._UM_USERS_CACHE;
+  }
+  /* Try cached version */
+  if (!users.length && typeof window._HUGO_USERS_CACHE !== 'undefined' && window._HUGO_USERS_CACHE.length > 0) {
+    users = window._HUGO_USERS_CACHE;
+  }
+  /* If still empty, try to load from Firestore synchronously (will be available next call) */
+  if (!users.length && typeof firebase !== 'undefined') {
+    try {
+      firebase.firestore().collection('users').get().then(function(snap) {
+        window._HUGO_USERS_CACHE = [];
+        snap.forEach(function(doc) { window._HUGO_USERS_CACHE.push(doc.data()); });
+      });
+    } catch(e) {}
+    /* Return empty this time — user will need to click again */
+    return [];
   }
   if (activeOnly) return users.filter(function(u) { return u.status === 'Active'; });
   return users;
 }
 
+/* Pre-load users on first call */
+function _hugoEnsureUsersLoaded(callback) {
+  var users = _hugoGetUsers(false);
+  if (users.length > 0) { callback(users); return; }
+  /* Load from Firestore then callback */
+  if (typeof firebase !== 'undefined') {
+    try {
+      firebase.firestore().collection('users').get().then(function(snap) {
+        window._HUGO_USERS_CACHE = [];
+        snap.forEach(function(doc) {
+          var d = doc.data();
+          d.id = doc.id;
+          window._HUGO_USERS_CACHE.push(d);
+        });
+        if (typeof UM_USERS !== 'undefined' && !UM_USERS.length) {
+          window._HUGO_USERS_CACHE.forEach(function(u) { UM_USERS.push(u); });
+        }
+        callback(window._HUGO_USERS_CACHE);
+      });
+    } catch(e) { callback([]); }
+  } else { callback([]); }
+}
+
 function hugoDeactivateUser() {
-  var users = _hugoGetUsers(true);
-  if (!users.length) return 'No active users found. Make sure User Management is loaded.';
-  var opts = users.map(function(u) { return '<option value="'+u.id+'">'+u.name+' ('+u.role+')</option>'; }).join('');
-  var html = '<div style="background:#fff;border:1px solid #8b5cf630;border-radius:12px;padding:14px;margin:6px 0">' +
-    '<div style="font-weight:600;margin-bottom:10px;font-size:12px;color:#8b5cf6">Deactivate User</div>' +
-    '<select id="hugo-deact-sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;outline:none;font-family:inherit;margin-bottom:6px;box-sizing:border-box">'+opts+'</select>' +
-    '<button onclick="hugoDeactivateExec()" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:#ef4444;color:#fff;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit">Deactivate</button></div>';
-  return 'Select the user to deactivate:\n%%HTML%%'+html+'%%/HTML%%';
+  _hugoEnsureUsersLoaded(function(allUsers) {
+    var users = allUsers.filter(function(u) { return u.status === 'Active'; });
+    if (!users.length) { _noraPushMsgAs('hugo', 'No active users found. Please check that users exist in Firestore.'); return; }
+    var opts = users.map(function(u) { return '<option value="'+u.id+'">'+u.name+' ('+u.role+')</option>'; }).join('');
+    var html = '<div style="background:#fff;border:1px solid #8b5cf630;border-radius:12px;padding:14px;margin:6px 0">' +
+      '<div style="font-weight:600;margin-bottom:10px;font-size:12px;color:#8b5cf6">Deactivate User</div>' +
+      '<select id="hugo-deact-sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;outline:none;font-family:inherit;margin-bottom:6px;box-sizing:border-box">'+opts+'</select>' +
+      '<button onclick="hugoDeactivateExec()" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:#ef4444;color:#fff;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit">Deactivate</button></div>';
+    _noraPushMsgAs('hugo', 'Select the user to deactivate:\n%%HTML%%'+html+'%%/HTML%%');
+  });
+  return 'Loading users...';
 }
 function hugoDeactivateExec() {
   var sel = document.getElementById('hugo-deact-sel'); if (!sel) return;
@@ -1633,14 +1687,16 @@ function hugoDeactivateExec() {
 }
 
 function hugoResetPassword() {
-  var users = _hugoGetUsers(false);
-  if (!users.length) return 'No users found. Make sure User Management is loaded.';
-  var opts = users.map(function(u) { return '<option value="'+u.id+'">'+u.name+'</option>'; }).join('');
-  var html = '<div style="background:#fff;border:1px solid #8b5cf630;border-radius:12px;padding:14px;margin:6px 0">' +
-    '<div style="font-weight:600;margin-bottom:10px;font-size:12px;color:#8b5cf6">Reset Password</div>' +
-    '<select id="hugo-reset-sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;outline:none;font-family:inherit;margin-bottom:6px;box-sizing:border-box">'+opts+'</select>' +
-    '<button onclick="hugoResetPwdExec()" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit">Send Reset Email</button></div>';
-  return 'Select user to reset password:\n%%HTML%%'+html+'%%/HTML%%';
+  _hugoEnsureUsersLoaded(function(allUsers) {
+    if (!allUsers.length) { _noraPushMsgAs('hugo', 'No users found. Please check Firestore.'); return; }
+    var opts = allUsers.map(function(u) { return '<option value="'+u.id+'">'+u.name+'</option>'; }).join('');
+    var html = '<div style="background:#fff;border:1px solid #8b5cf630;border-radius:12px;padding:14px;margin:6px 0">' +
+      '<div style="font-weight:600;margin-bottom:10px;font-size:12px;color:#8b5cf6">Reset Password</div>' +
+      '<select id="hugo-reset-sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;outline:none;font-family:inherit;margin-bottom:6px;box-sizing:border-box">'+opts+'</select>' +
+      '<button onclick="hugoResetPwdExec()" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit">Send Reset Email</button></div>';
+    _noraPushMsgAs('hugo', 'Select user to reset password:\n%%HTML%%'+html+'%%/HTML%%');
+  });
+  return 'Loading users...';
 }
 function hugoResetPwdExec() {
   var sel = document.getElementById('hugo-reset-sel'); if (!sel) return;
@@ -1654,19 +1710,22 @@ function hugoResetPwdExec() {
 }
 
 function hugoChangeRole() {
-  var users = _hugoGetUsers(true);
-  if (!users.length) return 'No active users found. Make sure User Management is loaded.';
-  var opts = users.map(function(u) { return '<option value="'+u.id+'">'+u.name+' ('+u.role+')</option>'; }).join('');
-  var html = '<div style="background:#fff;border:1px solid #8b5cf630;border-radius:12px;padding:14px;margin:6px 0">' +
-    '<div style="font-weight:600;margin-bottom:10px;font-size:12px;color:#8b5cf6">Change Role</div>' +
-    '<select id="hugo-role-sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;outline:none;font-family:inherit;margin-bottom:6px;box-sizing:border-box">'+opts+'</select>' +
-    '<div style="display:flex;gap:6px;margin-bottom:6px">' +
-      '<button id="hugo-rb-admin" onclick="document.getElementById(\'hugo-new-role\').value=\'Admin\';this.style.borderColor=\'#8b5cf6\';this.style.color=\'#8b5cf6\';document.getElementById(\'hugo-rb-user\').style.borderColor=\'#e2e8f0\';document.getElementById(\'hugo-rb-user\').style.color=\'#64748b\'" style="flex:1;padding:6px 0;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:#64748b;font-family:inherit">Admin</button>' +
-      '<button id="hugo-rb-user" onclick="document.getElementById(\'hugo-new-role\').value=\'User\';this.style.borderColor=\'#8b5cf6\';this.style.color=\'#8b5cf6\';document.getElementById(\'hugo-rb-admin\').style.borderColor=\'#e2e8f0\';document.getElementById(\'hugo-rb-admin\').style.color=\'#64748b\'" style="flex:1;padding:6px 0;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:#64748b;font-family:inherit">User</button>' +
-    '</div>' +
-    '<input type="hidden" id="hugo-new-role" value=""/>' +
-    '<button onclick="hugoChangeRoleExec()" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit">Update Role</button></div>';
-  return 'Select user and new role:\n%%HTML%%'+html+'%%/HTML%%';
+  _hugoEnsureUsersLoaded(function(allUsers) {
+    var users = allUsers.filter(function(u) { return u.status === 'Active'; });
+    if (!users.length) { _noraPushMsgAs('hugo', 'No active users found. Please check Firestore.'); return; }
+    var opts = users.map(function(u) { return '<option value="'+u.id+'">'+u.name+' ('+u.role+')</option>'; }).join('');
+    var html = '<div style="background:#fff;border:1px solid #8b5cf630;border-radius:12px;padding:14px;margin:6px 0">' +
+      '<div style="font-weight:600;margin-bottom:10px;font-size:12px;color:#8b5cf6">Change Role</div>' +
+      '<select id="hugo-role-sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;outline:none;font-family:inherit;margin-bottom:6px;box-sizing:border-box">'+opts+'</select>' +
+      '<div style="display:flex;gap:6px;margin-bottom:6px">' +
+        '<button id="hugo-rb-admin" onclick="document.getElementById(\'hugo-new-role\').value=\'Admin\';this.style.borderColor=\'#8b5cf6\';this.style.color=\'#8b5cf6\';document.getElementById(\'hugo-rb-user\').style.borderColor=\'#e2e8f0\';document.getElementById(\'hugo-rb-user\').style.color=\'#64748b\'" style="flex:1;padding:6px 0;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:#64748b;font-family:inherit">Admin</button>' +
+        '<button id="hugo-rb-user" onclick="document.getElementById(\'hugo-new-role\').value=\'User\';this.style.borderColor=\'#8b5cf6\';this.style.color=\'#8b5cf6\';document.getElementById(\'hugo-rb-admin\').style.borderColor=\'#e2e8f0\';document.getElementById(\'hugo-rb-admin\').style.color=\'#64748b\'" style="flex:1;padding:6px 0;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:#64748b;font-family:inherit">User</button>' +
+      '</div>' +
+      '<input type="hidden" id="hugo-new-role" value=""/>' +
+      '<button onclick="hugoChangeRoleExec()" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit">Update Role</button></div>';
+    _noraPushMsgAs('hugo', 'Select user and new role:\n%%HTML%%'+html+'%%/HTML%%');
+  });
+  return 'Loading users...';
 }
 function hugoChangeRoleExec() {
   var sel = document.getElementById('hugo-role-sel'), nr = document.getElementById('hugo-new-role');
