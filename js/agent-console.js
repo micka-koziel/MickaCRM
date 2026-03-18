@@ -1938,9 +1938,10 @@ function _leoQuizRender() {
   var q = LEO_QUIZ[LEO_QUIZ_IDX];
   var num = LEO_QUIZ_IDX + 1;
   var total = LEO_QUIZ.length;
+  var uid = 'lq-' + LEO_QUIZ_IDX; /* unique id per question */
   var optsHtml = q.opts.map(function(opt, i) {
     var letter = String.fromCharCode(65 + i);
-    return '<button id="leo-q-opt-'+i+'" onclick="leoQuizAnswer('+i+')" style="display:block;width:100%;text-align:left;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:12px;margin-bottom:4px;cursor:pointer;font-family:inherit;transition:all .15s">'+letter+'. '+opt+'</button>';
+    return '<button id="'+uid+'-opt-'+i+'" onclick="leoQuizAnswer('+LEO_QUIZ_IDX+','+i+')" style="display:block;width:100%;text-align:left;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:12px;margin-bottom:4px;cursor:pointer;font-family:inherit;transition:all .15s">'+letter+'. '+opt+'</button>';
   }).join('');
 
   var progressDots = '';
@@ -1954,63 +1955,104 @@ function _leoQuizRender() {
     '<div style="display:flex;gap:3px;margin-bottom:10px">'+progressDots+'</div>'+
     '<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:14px">'+
       '<div style="font-size:13px;font-weight:600;margin-bottom:10px">'+q.q+'</div>'+
-      '<div id="leo-quiz-opts">'+optsHtml+'</div>'+
-      '<div id="leo-quiz-feedback" style="margin-top:8px"></div>'+
+      '<div id="'+uid+'-opts">'+optsHtml+'</div>'+
+      '<div id="'+uid+'-fb" style="margin-top:8px"></div>'+
     '</div>%%/HTML%%';
 }
 
-function leoQuizAnswer(idx) {
+function leoQuizAnswer(qIdx, ansIdx) {
   if (LEO_QUIZ_ANSWERED) return;
   LEO_QUIZ_ANSWERED = true;
-  var q = LEO_QUIZ[LEO_QUIZ_IDX];
-  var isCorrect = idx === q.correct;
+  var q = LEO_QUIZ[qIdx];
+  var isCorrect = ansIdx === q.correct;
   if (isCorrect) LEO_QUIZ_SCORE++;
+  var uid = 'lq-' + qIdx;
 
   /* Highlight buttons */
   for (var i = 0; i < q.opts.length; i++) {
-    var btn = document.getElementById('leo-q-opt-' + i);
+    var btn = document.getElementById(uid + '-opt-' + i);
     if (!btn) continue;
+    btn.onclick = null;
     btn.style.cursor = 'default';
     if (i === q.correct) {
       btn.style.background = '#f0fdf4';
       btn.style.borderColor = '#10b981';
-      btn.textContent += ' ✓';
-    } else if (i === idx && !isCorrect) {
+      btn.innerHTML += ' <span style="color:#10b981;font-weight:700">✓</span>';
+    } else if (i === ansIdx && !isCorrect) {
       btn.style.background = '#fef2f2';
       btn.style.borderColor = '#ef4444';
-      btn.textContent += ' ✗';
+      btn.innerHTML += ' <span style="color:#ef4444;font-weight:700">✗</span>';
+    } else {
+      btn.style.opacity = '0.5';
     }
   }
 
-  /* Feedback + next button */
-  var fb = document.getElementById('leo-quiz-feedback');
+  /* Show feedback + Next button INSIDE the current question card */
+  var fb = document.getElementById(uid + '-fb');
   if (fb) {
     var color = isCorrect ? '#10b981' : '#ef4444';
     var label = isCorrect ? 'Correct!' : 'Wrong!';
     var nextLabel = LEO_QUIZ_IDX < LEO_QUIZ.length - 1 ? 'Next Question →' : 'See Results';
     fb.innerHTML = '<div style="font-size:11px;color:'+color+';font-weight:600;margin-bottom:6px">'+label+' '+q.explain+'</div>' +
-      '<button onclick="leoQuizNext()" style="background:#10b981;color:#fff;border:none;border-radius:6px;padding:5px 14px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">'+nextLabel+'</button>';
+      '<button onclick="leoQuizNext()" style="background:#10b981;color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">'+nextLabel+'</button>';
   }
+
+  /* Scroll to bottom */
+  var scroll = document.getElementById('at-msg-scroll');
+  if (scroll) setTimeout(function() { scroll.scrollTop = scroll.scrollHeight; }, 50);
 }
 
 function leoQuizNext() {
   LEO_QUIZ_IDX++;
   LEO_QUIZ_ANSWERED = false;
+
   if (LEO_QUIZ_IDX >= LEO_QUIZ.length) {
     /* Final results */
     var pct = Math.round(LEO_QUIZ_SCORE / LEO_QUIZ.length * 100);
     var badge = pct >= 80 ? 'Expert' : pct >= 60 ? 'Intermediate' : 'Beginner';
     var badgeColor = pct >= 80 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444';
-    _noraPushMsgAs('leo', 'Quiz Complete!\n%%HTML%%'+
+    var resultHtml = 'Quiz Complete!\n%%HTML%%'+
       '<div style="font-weight:600;margin-bottom:10px;color:#10b981">Quiz Results</div>'+
       '<div style="display:flex;gap:8px;margin-bottom:8px">'+
         '<div style="flex:1;background:#ecfdf5;border-radius:10px;padding:12px;text-align:center"><div style="font-size:26px;font-weight:700;color:#10b981">'+LEO_QUIZ_SCORE+'/'+LEO_QUIZ.length+'</div><div style="font-size:10px;color:#64748b">Score</div></div>'+
         '<div style="flex:1;background:'+badgeColor+'10;border-radius:10px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:700;color:'+badgeColor+'">'+badge+'</div><div style="font-size:10px;color:#64748b">Level</div></div>'+
       '</div>'+
-      '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;font-size:12px">'+pct+'% correct — +'+(LEO_QUIZ_SCORE*20)+' points earned!</div>%%/HTML%%');
+      '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;font-size:12px">'+pct+'% correct — +'+(LEO_QUIZ_SCORE*20)+' points earned!</div>%%/HTML%%';
+    _leoInjectMessage(resultHtml);
   } else {
-    _noraPushMsgAs('leo', _leoQuizRender());
+    _leoInjectMessage(_leoQuizRender());
   }
+}
+
+/* Inject a new agent message bubble directly into the DOM without re-rendering the entire chat */
+function _leoInjectMessage(msgText) {
+  /* Store in messages array for persistence */
+  if (typeof AT_MESSAGES !== 'undefined' && typeof AT_ACTIVE_AGENT !== 'undefined' && AT_ACTIVE_AGENT) {
+    if (!AT_MESSAGES[AT_ACTIVE_AGENT.id]) AT_MESSAGES[AT_ACTIVE_AGENT.id] = [];
+    AT_MESSAGES[AT_ACTIVE_AGENT.id].push({role:'agent', text:msgText});
+  }
+
+  /* Inject into DOM directly */
+  var scroll = document.getElementById('at-msg-scroll');
+  var bottom = document.getElementById('at-msg-bottom');
+  if (!scroll || !bottom) { /* fallback: full re-render */ _noraPushMsgAs('leo', msgText); return; }
+
+  var agentId = (typeof AT_ACTIVE_AGENT !== 'undefined' && AT_ACTIVE_AGENT) ? AT_ACTIVE_AGENT.id : 'leo';
+  var avatarHtml = (typeof atMangaAvatar === 'function') ? atMangaAvatar(agentId, 28) : '';
+
+  /* Format text (reuse atFormatMsg if available) */
+  var formatted = msgText;
+  if (typeof atFormatMsg === 'function') formatted = atFormatMsg(msgText, false);
+
+  var msgDiv = document.createElement('div');
+  msgDiv.className = 'at-msg at-msg-agent';
+  msgDiv.innerHTML = '<div class="at-msg-avi">' + avatarHtml + '</div>' +
+    '<div class="at-bubble at-bubble-agent">' + formatted + '</div>';
+
+  scroll.insertBefore(msgDiv, bottom);
+
+  /* Scroll to bottom */
+  setTimeout(function() { scroll.scrollTop = scroll.scrollHeight; }, 30);
 }
 
 function leoMyScore() {
