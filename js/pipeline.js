@@ -972,11 +972,11 @@ function _oiProjectInsights(cfg, items) {
 
   var h = '<div class="pi-section"><div class="pi-cards-row">';
   h += '<div class="pi-card"><div class="pi-card-head"><span class="pi-card-title">Phase Distribution</span></div>';
-  h += '<div class="pi-dist">'+_oiBarDist(stageData, maxC)+'</div>';
+  h += '<div class="pi-dist" style="flex:1;justify-content:center">'+_oiBarDist(stageData, maxC)+'</div>';
   h += '<div class="pi-dist-footer"><span class="pi-funnel-total-icon">&#9660;</span> <strong>'+_piAmt(totalVal)+'</strong>' +
     '<span style="margin-left:auto;font-size:10px;color:var(--text-light)">'+items.length+' projects</span></div></div>';
   h += '<div class="pi-card"><div class="pi-card-head"><span class="pi-card-title">Health Status</span></div>';
-  h += '<div class="pi-donut-wrap"><div class="pi-donut-chart">'+_oiDonut(healthData,totalH,92)+'</div>';
+  h += '<div class="pi-donut-wrap" style="flex:1"><div class="pi-donut-chart">'+_oiDonut(healthData,totalH,116)+'</div>';
   h += '<div class="pi-donut-legend">';
   healthData.forEach(function(d){ h += _oiLegendRow(d.color, d.label, d.count); });
   h += '</div></div></div>';
