@@ -1,65 +1,81 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MickaCRM</title>
+  <title>Micka CRM</title>
 
-  <!-- Google Fonts -->
+  <!-- ── Google Fonts ─────────────────────────────────────────── -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap" rel="stylesheet" />
 
-  <!-- Firebase SDK (CDN compat) -->
+  <!-- ── Firebase SDK (CDN compat) ────────────────────────────── -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 
-  <!-- Firebase Init (must come right after SDKs) -->
-  <script src="js/firebase-init.js"></script>
-  <script src="js/firebase-crud.js"></script>
-
-  <!-- MickaCRM Styles -->
+  <!-- ── Styles (tokens → base → modules) ─────────────────────── -->
+  <link rel="stylesheet" href="css/tokens.css" />
   <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/modules/auth.css" />
 </head>
 <body>
 
-  <!-- ── Auth Screen (rendered by auth.js) ───────────────────────── -->
-
-  <!-- ── App Shell (flex container for sidebar + main) ────────────── -->
-  <div id="app-shell">
-
-    <!-- ── Sidebar ───────────────────────────────────────────────── -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- APP SHELL (caché tant que non authentifié)                   -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <div id="app-shell" style="display:none">
     <aside id="sidebar">
       <nav id="sidebar-nav"></nav>
     </aside>
-
-    <!-- ── Sidebar overlay (mobile) ──────────────────────────────── -->
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-    <!-- ── Main Area ─────────────────────────────────────────────── -->
     <main id="main-area">
-      <!-- Mobile topbar (hidden on desktop) -->
       <div class="mobile-topbar" id="mobile-topbar">
         <button class="mobile-hamburger" id="mobile-hamburger" aria-label="Menu">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
-        <span class="mobile-topbar-logo">MickaCRM<span class="sb-logo-360">360</span></span>
+        <span class="mobile-topbar-logo">Micka<span class="sb-logo-360">CRM</span></span>
         <div style="width:36px"></div>
       </div>
       <div id="page-header"></div>
       <div id="page-content"></div>
     </main>
-
   </div>
 
-  <!-- ── MickaCRM Scripts (order matters) ────────────────────────── -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- CHARGEMENT DES SCRIPTS — ordre strict                       -->
+  <!--   1. Core (namespace EN PREMIER)                            -->
+  <!--   2. Firebase init + CRUD                                   -->
+  <!--   3. Config / data / objets                                 -->
+  <!--   4. Modules UI                                             -->
+  <!--   5. Modules métier                                         -->
+  <!--   6. app.js (bootstrap) EN DERNIER                          -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+
+  <!-- 1. Core -->
+  <script src="js/core/namespace.js"></script>
+  <script src="js/core/helpers.js"></script>
+  <script src="js/core/i18n.js"></script>
+  <script src="js/core/errors.js"></script>
+  <script src="js/core/icons.js"></script>
+
+  <!-- 2. Firebase -->
+  <script src="js/firebase-init.js"></script>
+  <script src="js/firebase-crud.js"></script>
+
+  <!-- 3. Config / data / objets (modules historiques non encore migrés) -->
   <script src="js/config.js"></script>
   <script src="js/data.js"></script>
   <script src="js/objects.js"></script>
+
+  <!-- 4. UI / navigation -->
   <script src="js/nav.js"></script>
   <script src="js/ui.js"></script>
+
+  <!-- 5. Modules métier -->
   <script src="js/list.js"></script>
   <script src="js/dashboard.js"></script>
   <script src="js/pipeline.js"></script>
@@ -74,11 +90,12 @@
   <script src="js/agent-console.js"></script>
   <script src="js/agent-team.js"></script>
   <script src="js/record.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/app.js"></script>
 
-  <!-- ── AI Assistant (loads last, self-initializing) ────────────── -->
-  <script src="js/ai-assistant.js"></script>
+  <!-- 6. Auth (module refactorisé Dwight-compliant) -->
+  <script src="js/modules/auth/auth.js"></script>
+
+  <!-- 7. Bootstrap — EN DERNIER -->
+  <script src="js/app.js"></script>
 
 </body>
 </html>

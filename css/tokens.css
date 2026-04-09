@@ -1,0 +1,75 @@
+/* css/tokens.css — Design system Micka CRM
+ * Variables centrales : couleurs, typo, rayons, ombres, espacements
+ * À importer EN PREMIER dans index.html
+ */
+:root {
+  /* ── Couleurs primaires ── */
+  --primary:        #2563eb;
+  --primary-dark:   #1d4ed8;
+  --primary-light:  #dbeafe;
+  --accent:         #2563eb;
+
+  /* ── Textes ── */
+  --text:           #0f172a;
+  --text-muted:     #475569;
+  --text-light:     #94a3b8;
+
+  /* ── Fonds ── */
+  --bg:             #ffffff;
+  --bg-soft:        #f8fafc;
+  --bg-muted:       #f1f5f9;
+
+  /* ── Bordures ── */
+  --border:         #e2e8f0;
+  --border-strong:  #cbd5e1;
+
+  /* ── Status ── */
+  --success:        #10b981;
+  --success-bg:     #ecfdf5;
+  --warning:        #f59e0b;
+  --warning-bg:     #fffbeb;
+  --danger:         #ef4444;
+  --danger-bg:      #fef2f2;
+  --info:           #3b82f6;
+  --info-bg:        #eff6ff;
+
+  /* ── Typographie ── */
+  --font-sans:      'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-size-xs:   11px;
+  --font-size-sm:   12px;
+  --font-size-base: 14px;
+  --font-size-lg:   16px;
+  --font-size-xl:   20px;
+  --font-size-2xl:  24px;
+
+  /* ── Espacements ── */
+  --space-1:        4px;
+  --space-2:        8px;
+  --space-3:        12px;
+  --space-4:        16px;
+  --space-5:        20px;
+  --space-6:        24px;
+  --space-8:        32px;
+
+  /* ── Rayons ── */
+  --radius-sm:      4px;
+  --radius:         8px;
+  --radius-lg:      12px;
+  --radius-xl:      16px;
+  --radius-full:    9999px;
+
+  /* ── Ombres ── */
+  --shadow-sm:      0 1px 2px rgba(15,23,42,.05);
+  --shadow:         0 4px 12px rgba(15,23,42,.08);
+  --shadow-lg:      0 12px 32px rgba(15,23,42,.12);
+
+  /* ── Transitions ── */
+  --trans-fast:     .15s ease;
+  --trans:          .2s ease;
+  --trans-slow:     .3s ease;
+
+  /* ── Layout ── */
+  --sidebar-width:  240px;
+  --sidebar-collapsed: 64px;
+  --topbar-height:  56px;
+}
